@@ -119,3 +119,10 @@ Documentation is part of the change. Whenever a change alters a documented fact 
 Use concise Conventional Commit subjects. Don't commit generated `dist`, coverage, or Playwright report output once they exist. Don't commit or push unless explicitly requested.
 
 No work should happen on the master branch. You need to create feature branches if current branch is master.
+
+Till the App will be implemented and fully working, branch - "feature/app-v1-implementation" is the main integration branch.
+
+For each change should be created separate branch from "feature/app-v1-implementation", using the pattern "feature/change-short-name".
+
+Till the change is archived - all the work happens in the "feature/change-short-name".
+When change is archived - "feature/change-short-name" is squash-merged back to the "feature/app-v1-implementation".
