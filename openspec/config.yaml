@@ -1,0 +1,83 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  Project: Klondike Solitaire - a calm, retro-styled, offline-capable static SPA/PWA
+  (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under /solitaire/.
+  No backend/API/database/accounts; all state lives in a versioned `solitaire.local-state`
+  localStorage record. The repository may still be pre-implementation - trust what's
+  actually implemented (src/, package.json, CI) over this text whenever they exist.
+
+  Source of truth, in order: (1) current source/config/tests/CI, (2) docs/spec/specification.md
+  (KS-* EARS requirements), (3) docs/spec/research.md (R§n game-rules/UX/a11y facts),
+  (4) docs/spec/phased-design.md (architecture, data model, phase plan), (5) the mockup
+  (visual reference only, never copy its code structure). AGENTS.md at the repo root is the
+  canonical, detailed instruction set - read it before proposing or implementing anything;
+  this block only summarizes it and must not be treated as a substitute for reading it.
+
+  Layout: src/domain (pure game engine), src/solver (pure bounded-DFS, Web Worker),
+  src/features (deal service, slices, persistence), src/app (store, routing, theme),
+  src/i18n, src/pwa, src/ui, tests/{unit,component,e2e}, scripts/.
+
+  Constitution (AGENTS.md "Architecture principles" holds the authoritative numbered list -
+  do not diverge from it): pure domain/solver with no React/Redux/DOM/storage imports;
+  deterministic seeded deals (mulberry32 + Fisher-Yates, no Math.random in game logic); UI
+  only dispatches typed commands and renders snapshots, never applies rules itself; static
+  and fully offline; every move reachable by tap, drag and keyboard; every animation has a
+  no-motion path; accessible by default (names, live regions, focus, 4.5:1 contrast); one
+  versioned, defensively-decoded storage record; docs updated in the same change as
+  behavior; mockup is visual reference only.
+
+  Engineering conventions: reuse before adding; DRY/YAGNI/KISS; SOLID without
+  over-abstracting; small scoped modules, no god objects; new code goes in its correct
+  layer; new logic ships with tests at the right layer (unit/component/e2e); Prettier
+  4-space/120-col/no-semicolons/single-quotes/trailing-commas, TypeScript strict,
+  ESLint + typescript-eslint + react-hooks.
+
+  Workflow: implementation is sub-agent-driven - focused, narrowly-scoped passes for
+  research, planning, implementation, tests, verification and review, per AGENTS.md's
+  "Sub-agent driven workflow" section. This file's `operations.apply`/`operations.archive`
+  guidance below names the concrete skills to invoke for each moment in agent flavors that
+  have them (e.g. Claude Code's "superpowers" skill set).
+
+# Per-artifact rules (optional)
+rules:
+  proposal:
+    - Scope each proposal to one coherent capability or slice of the phase plan (docs/spec/phased-design.md §7); do not bundle unrelated capabilities into one change.
+    - In "Capabilities", use kebab-case capability paths that mirror the src/ layer they primarily touch (e.g. specs/domain/foundation-cards, specs/features/deal-service, specs/ui/board-render), so spec.md's location matches the architecture.
+    - The "Impact" section must name which of src/domain, src/solver, src/features, src/app, src/i18n, src/pwa, src/ui, tests/*, docs/spec are touched, and call out explicitly any change to an existing constitution/architecture principle.
+  specs:
+    - Every "### Requirement:" SHALL/MUST statement must trace to a KS-* id from docs/spec/specification.md, or introduce a new one explicitly marked "(new)".
+    - Any requirement describing a player-facing move or interaction must cover tap, drag, and keyboard input (as separate scenarios or WHEN/THEN bullets within one), per constitution principle 5 - unless the requirement is provably input-agnostic, in which case state why inline.
+    - Requirements touching domain/solver logic must state their determinism expectation (seeded input -> seeded output), per constitution principle 2.
+    - Requirements touching UI must state the accessible-name/live-region/focus/contrast expectation where relevant (principle 7), and the no-motion fallback wherever an animation is introduced (principle 6).
+  design:
+    - Only write design.md for changes that cross src/ layer boundaries (domain <-> features <-> ui, etc.) or alter the storage schema/version, the deal/seed algorithm, or an existing constitution principle; state in "Context" why a design doc is, or isn't, warranted for a borderline case.
+    - The "Migration Plan" section must address the versioned localStorage record explicitly whenever the change touches persistence - decode defensively, never silently drop unreadable data.
+  tasks:
+    - Each numbered task (`N.M`) is scoped to exactly one complete, independently testable piece of functionality - never a fragment of one (e.g. "add the type" without "and its test") and never a bundle of several unrelated pieces.
+    - Each task's description states (a) which KS-* requirement(s) and/or spec.md "### Requirement:" name(s) it implements, (b) the concrete test(s) to add or change (file path + what they assert, at the correct layer - unit for domain/solver, component for ui, e2e for cross-layer flows), and (c) every file expected to be touched, including non-code docs (README/docs/AGENTS.md, when the task changes documented behavior per constitution principle 9).
+    - Each task states its own verification inline (e.g. "`rtk npm run test:unit -- <pattern>` passes" or a named observable behavior), so completion can be confirmed without re-deriving it from the proposal.
+    - Size each task so its full working set - files it touches plus the docs/spec files and existing tests it must read for context - fits comfortably inside a single ~128k-token planning session; prefer several narrow, single-layer/single-module tasks over one broad multi-file sweep. If a piece of functionality can't be verified within that budget as one task, split it at a natural sub-capability boundary and record the split in "What Changes" - never by leaving a task half-tested.
+    - Order tasks by dependency (e.g. domain/solver before features before ui) so each is implementable and independently testable once the prior tasks in the list are complete.
+    - Write tasks "ready for planning" - give enough structure (requirement refs, test targets, file list, verification) that a planning pass can expand them into concrete steps, but do not pre-write the implementation steps themselves - that expansion is planning's job, not the task list's.
+
+# Per-operation guidance (optional)
+operations:
+  apply:
+    guidance:
+      - This project's Claude Code sessions have the "superpowers" skill set installed; the guidance below names those skills by id. Running under a different agent - apply the same phases (scoped read, test-first implementation, verification, review) using that agent's equivalent tooling.
+      - Apply one task at a time; before starting, re-read only that task's stated requirements, files, and test targets - not the whole change - to keep sub-agent context narrow and unbiased.
+      - Follow the superpowers:subagent-driven-development flow for this loop - a scoped research/analysis pass reads the task's stated files, then an implementation pass; use superpowers:test-driven-development to write the task's named failing test(s) before the implementation code that satisfies them.
+      - If a bug surfaces mid-task, switch to superpowers:systematic-debugging before proposing a fix rather than patching the symptom.
+      - Before checking a task's box `- [x]`, run superpowers:verification-before-completion - execute the task's stated verification command(s)/tests and confirm the actual output, not an assumption.
+      - Before or alongside marking a task done, run a review pass per superpowers:requesting-code-review / superpowers:receiving-code-review, checking the diff against the task's stated requirements and against AGENTS.md's Architecture and Engineering principles; treat feedback with the rigor that skill describes, not blind acceptance.
+      - Keep each task's diff scoped to what it states; if implementation reveals work beyond that scope, stop and surface it rather than silently narrowing, deferring, or expanding the task.
+      - Update docs (README/docs/AGENTS.md) within the same task when that task's own file list calls for it, per constitution principle 9 - do not defer documentation to a later task.
+  archive:
+    guidance:
+      - Before archiving, confirm every ADDED/MODIFIED/REMOVED requirement in the change's delta spec(s) is actually reflected in the synced main specs (openspec sync) and in any AGENTS.md/docs updates the tasks called for.
+      - Summarize verification evidence per task (which tests ran, pass/fail, command used) rather than a bare "done" - this is the evidence trail superpowers:verification-before-completion produced during apply.
+      - If any task was left unchecked or had its scope narrowed during apply, call that out explicitly before archiving rather than archiving as if fully complete.
+      - Once archived and verified, consider superpowers:finishing-a-development-branch for how to land the branch (merge, PR, or continue).

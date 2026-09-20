@@ -86,6 +86,26 @@ When Speckit is installed, copy this section into `.specify/memory/constitution.
 - **Test coverage.** New logic ships with tests at the appropriate layer — unit for `domain`/`solver`, component for UI, Playwright for end-to-end flows (see `docs/spec/phased-design.md` §5).
 - **Documentation stays fresh.** Code comments, README, `docs/`, and this file must reflect current behavior — see "Documentation maintenance" below.
 
+## Sub-agent driven workflow
+
+Non-trivial work here is decomposed into focused, single-purpose passes rather than done end-to-end in one broadly-scoped session: separate passes for research/analysis, planning, implementation, test-writing, verification, and review. Each pass is given only the context it needs for its one job, and no more. A pass that writes code and then judges its own correctness is a biased reviewer of its own work; a pass loaded with unrelated context makes worse decisions than one scoped tightly to its task.
+
+Apply this whenever the work is non-trivial:
+
+- Research/analysis before planning, so the plan is grounded in what's actually there.
+- Planning before implementation, with the plan reviewed before code starts.
+- Implementation and test-writing as focused, test-first passes.
+- A dedicated verification pass that actually runs the stated checks (build/lint/typecheck/tests) rather than assuming they pass.
+- A dedicated review pass, separate from the implementer, checking the diff against the task's stated requirements and this file's Architecture and Engineering principles above.
+
+This repo's OpenSpec change loop (`openspec-apply-change` / `/opsx:apply`) is always run restricted to one task at a time, driven from a planning session. For each task: a scoped read of that task's own stated requirements and files, then test-first implementation, then verification, then review — only after that does the task's checkbox move from `- [ ]` to `- [x]` in `tasks.md`. If a task turns out to need work beyond what it states, stop and surface the added scope rather than silently narrowing, deferring, or absorbing it.
+
+Concrete tooling varies by agent. `openspec/config.yaml`'s `operations.apply` and `operations.archive` guidance names the specific skills to invoke at each moment for whichever agent is running them (e.g. Claude Code's installed "superpowers" skill set) — consult it, and use your environment's equivalent tooling if a named skill isn't available.
+
+### Task sizing and context budget
+
+Planning happens in sessions with a practical context budget (roughly 128k tokens) that can't always be cleared before implementation starts. Tasks are therefore kept small and single-layer/single-module wherever possible, so a task's full working set — the files it touches plus the docs and existing tests it references — fits comfortably in that budget. This is enforced at task-generation time by `openspec/config.yaml`'s `rules.tasks`; this section describes how the resulting tasks get executed, not how they get sized.
+
 ## GitHub Actions
 
 - When you need to create/update the CI pipeline - always check via web-search the latest versions of the GitHub Actions to keep CI up-to-date.
