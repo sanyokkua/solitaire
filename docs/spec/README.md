@@ -12,12 +12,12 @@ Context pack for building **Klondike Solitaire**, a calm, retro-styled, offline-
 
 ## Authority order
 1. `specification.md` for behaviour, then `research.md` for rules and numbers. If they conflict, fix the documents; don't pick one silently.
-2. `phased-design.md` for technical decisions (they may be revised in a phase's `/speckit.plan`, but record the change).
+2. `phased-design.md` for technical decisions (they may be revised by a phase's OpenSpec change, but record the change here).
 3. The mockup for visuals only.
 
-## How to use with Speckit
-1. **Phase 0:** create the repo, copy this folder to `docs/spec/`, run `specify init`, and paste §2 of `phased-design.md` into the constitution.
-2. For each phase N, run `/speckit.specify` with the phase's **seed prompt**, adding "Context: docs/spec/specification.md, docs/spec/research.md, docs/spec/phased-design.md (Phase N)". Then run `/speckit.clarify` → `/speckit.plan` → `/speckit.tasks` → `/speckit.implement`.
+## How this spec pack is used
+1. **Phase 0 (done):** the repo was created, this folder was copied to `docs/spec/`, and §2 of `phased-design.md` was folded into `AGENTS.md` as the constitution. OpenSpec — not Speckit — is installed and drives phase-by-phase implementation.
+2. For each phase N, open an OpenSpec change scoped to that phase's capability (`openspec-propose` / `/opsx:propose`), with "Context: docs/spec/specification.md, docs/spec/research.md, docs/spec/phased-design.md (Phase N)". Then apply it (`/opsx:apply`) and archive it (`/opsx:archive`) per `AGENTS.md`'s "Sub-agent driven workflow".
 3. Trace tests to requirement IDs (`KS-…`), so that Phase 9 can produce the traceability matrix.
 
 ## Decisions already made (summary)

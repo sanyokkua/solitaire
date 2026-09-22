@@ -1,0 +1,123 @@
+@font-face {
+    font-family: 'Inter';
+    src: url('../../assets/fonts/Inter-Variable.woff2') format('woff2');
+    font-display: swap;
+    font-style: normal;
+    font-weight: 100 900;
+}
+
+@font-face {
+    font-family: 'Press Start 2P';
+    src: url('../../assets/fonts/PressStart2P-Regular.ttf') format('truetype');
+    font-display: swap;
+    font-style: normal;
+    font-weight: 400;
+}
+
+:root {
+    color-scheme: light;
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-pixel: 'Press Start 2P', 'Courier New', monospace;
+
+    --color-bg: #e8f0f5;
+    --color-surface: #f8fbfb;
+    --color-surface-raised: #eef4ed;
+    --color-table: #d4e4ee;
+    --color-text: #0b2545;
+    --color-text-muted: #4f6a88;
+    --color-primary: #457b9d;
+    --color-accent: #a8dadc;
+    --color-accent-strong: #5bc0eb;
+    --color-lcd-panel: #0b2545;
+    --color-lcd-score: #f4a7ad;
+    --color-lcd-moves: #a8dadc;
+    --color-lcd-time: #5bc0eb;
+    --color-hint: #f2b25c;
+    --color-card-face: #fbfdfb;
+    --color-card-edge: #c8d7e3;
+    --color-suit-red: #d44b56;
+    --color-suit-black: #1d3557;
+    --color-suit-four-diamond: #2f93bf;
+    --color-suit-four-club: #3a8f7c;
+    --color-night-card-face: #1c3d68;
+    --color-night-card-edge: #36608f;
+    --color-night-card-ink: #dce8ef;
+    --color-night-card-ink-red: #f28b93;
+    --color-night-card-backs: #8da9c4;
+    --color-card-back-1: #457b9d;
+    --color-card-back-2: #13315c;
+    --color-card-back-3: #5bc0eb;
+    --color-card-back-4: #d9555f;
+    --color-card-back-checker: #a8dadc;
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --color-bg: #0b2545;
+    --color-surface: #13315c;
+    --color-surface-raised: #1a3a66;
+    --color-table: #102c52;
+    --color-text: #eef4ed;
+    --color-text-muted: #8da9c4;
+    --color-primary: #5bc0eb;
+    --color-accent: #1d3f70;
+    --color-accent-strong: #a8dadc;
+    --color-lcd-panel: #06172d;
+    --color-lcd-score: #f4a7ad;
+    --color-lcd-moves: #a8dadc;
+    --color-lcd-time: #5bc0eb;
+    --color-hint: #f2c078;
+    --color-card-face: #d2dde5;
+    --color-card-edge: #06172d;
+    --color-suit-red: #cc4450;
+    --color-suit-black: #13315c;
+    --color-suit-four-diamond: #2a86b0;
+    --color-suit-four-club: #2f7d6b;
+    --color-night-card-face: #1c3d68;
+    --color-night-card-edge: #36608f;
+    --color-night-card-ink: #dce8ef;
+    --color-night-card-ink-red: #f28b93;
+    --color-night-card-backs: #8da9c4;
+    --color-card-back-1: #457b9d;
+    --color-card-back-2: #13315c;
+    --color-card-back-3: #5bc0eb;
+    --color-card-back-4: #d9555f;
+    --color-card-back-checker: #a8dadc;
+}
+
+/* "Night cards" (KS-SET-03) is an independent Appearance setting, not a theme choice: it is
+   realistically applied together with the dark theme (research.md R§9), so the roles it does not
+   itself redefine reuse the dark palette's values here. */
+:root[data-night-cards='true'] {
+    color-scheme: dark;
+    --color-bg: #0b2545;
+    --color-surface: #13315c;
+    --color-surface-raised: #1a3a66;
+    --color-table: #102c52;
+    --color-text: #eef4ed;
+    --color-text-muted: #8da9c4;
+    --color-primary: #5bc0eb;
+    --color-accent: #1d3f70;
+    --color-accent-strong: #a8dadc;
+    --color-lcd-panel: #06172d;
+    --color-lcd-score: #f4a7ad;
+    --color-lcd-moves: #a8dadc;
+    --color-lcd-time: #5bc0eb;
+    --color-hint: #f2c078;
+    --color-card-face: #1c3d68;
+    --color-card-edge: #36608f;
+    --color-suit-red: #f28b93;
+    --color-suit-black: #dce8ef;
+    --color-suit-four-diamond: #2a86b0;
+    --color-suit-four-club: #2f7d6b;
+    --color-night-card-face: #1c3d68;
+    --color-night-card-edge: #36608f;
+    --color-night-card-ink: #dce8ef;
+    --color-night-card-ink-red: #f28b93;
+    --color-night-card-backs: #8da9c4;
+    --color-card-back-1: #457b9d;
+    --color-card-back-2: #13315c;
+    --color-card-back-3: #5bc0eb;
+    --color-card-back-4: #d9555f;
+    --color-card-back-checker: #a8dadc;
+}

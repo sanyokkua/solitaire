@@ -32,7 +32,7 @@ context: |
   Engineering conventions: reuse before adding; DRY/YAGNI/KISS; SOLID without
   over-abstracting; small scoped modules, no god objects; new code goes in its correct
   layer; new logic ships with tests at the right layer (unit/component/e2e); Prettier
-  4-space/120-col/no-semicolons/single-quotes/trailing-commas, TypeScript strict,
+  4-space/120-col/semicolons/single-quotes/trailing-commas, TypeScript strict,
   ESLint + typescript-eslint + react-hooks.
 
   Workflow: implementation is sub-agent-driven - focused, narrowly-scoped passes for

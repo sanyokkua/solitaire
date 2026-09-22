@@ -6,7 +6,10 @@
       "Bash(npm ci)",
       "Bash(git status)",
       "Bash(git diff*)",
-      "Bash(git log*)"
+      "Bash(git log*)",
+      "Bash(npm view *)",
+      "Bash(python3 -c \"import json,sys; v=json.load\\(sys.stdin\\); print\\(v[-15:]\\)\")",
+      "Bash(npm --version)"
     ]
   }
 }

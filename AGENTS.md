@@ -6,9 +6,9 @@ Guidance for AI coding agents (Claude Code, Codex, etc.) working in this reposit
 
 This repository will become **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
 
-**Repository state: pre-implementation.** As of now the repository contains only `docs/spec/` (the full product spec, game-rules research, and phased build plan) plus `LICENSE` and this file. No `package.json`, source tree, or tooling exists yet — that is Phase 1 of the plan below. Do not assume any npm script, source file, or test exists until you have checked.
+**Repository state: Phase 1 scaffolding complete.** The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks all exist. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
 
-GitHub Speckit (or OpenSpec) will be installed into this repo later to drive phase-by-phase implementation; it is not set up yet.
+OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
 
 ## Source of truth
 
@@ -40,26 +40,36 @@ Keep domain and solver logic out of React components: UI dispatches typed comman
 
 ## Runtime and commands
 
-**Not yet scaffolded.** Once Phase 1 lands, this repo follows the same conventions as the sibling project `sanyokkua/minesweeper` (Vite + React + TS + Redux Toolkit + vite-plugin-pwa + Vitest + Playwright + GitHub Pages). Expect npm scripts equivalent to:
+This repo follows the same base conventions as the sibling project `sanyokkua/minesweeper` (Vite + React + TS + Redux Toolkit + vite-plugin-pwa + Vitest + Playwright + GitHub Pages), with the divergences noted below. The actual npm scripts, from `package.json`:
 
 ```sh
 rtk npm ci
 rtk npm run dev
+rtk npm run dev-network
+rtk npm run build
+rtk npm run preview
+rtk npm run format
 rtk npm run format:check
 rtk npm run lint
+rtk npm run lint:fix
 rtk npm run typecheck
-rtk npm run validate:lifecycle-storage
+rtk npm run test
 rtk npm run test:unit
 rtk npm run test:coverage
-rtk npm run build
-rtk npm run validate:artifact
 rtk npm run e2e
+rtk npm run e2e:headed
 rtk npm run validate
 ```
 
+`validate` runs `format:check && lint && typecheck && test:unit && build`. `validate:lifecycle-storage` and `validate:artifact` do not exist yet — they're deferred to Phase 4 and Phase 8 respectively (design decision D6) and are not part of `validate` until then.
+
+Git hooks (husky, installed via the `prepare` script): `.husky/pre-commit` runs `npx lint-staged` (Prettier+ESLint on staged `*.{ts,tsx}`; Prettier on staged `*.{json,css,html,md,yml,yaml}`), then `npm run typecheck`, then `npm run test:unit`. `.husky/pre-push` runs `npm run e2e`.
+
 Prefix commands with `rtk`; use `rtk proxy <cmd>` when the wrapper rejects a required flag. Node floor: `>= 22.22.2`. The build must preserve the `/solitaire/` base path.
 
-Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent, 120-column width, no semicolons, single quotes, trailing commas; TypeScript strict with no-unused checks; ESLint + typescript-eslint + react-hooks.
+Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent, 120-column width, semicolons, single quotes, trailing commas; TypeScript strict with no-unused checks; ESLint + typescript-eslint + react-hooks.
+
+**Divergence from the sibling project.** This repo's Prettier semicolon rule, git hooks (husky + lint-staged — new; the sibling has none), and ESLint strictness (`strictTypeChecked`/`stylisticTypeChecked`, vs. the sibling's `recommended`) are deliberate departures from `sanyokkua/minesweeper`. "As in Minesweeper" elsewhere in this file and in `phased-design.md` no longer holds literally for those three things.
 
 ## Architecture principles (constitution seed — see phased-design.md §2)
 
@@ -74,7 +84,7 @@ Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent,
 9. **Docs are part of the change.** Update `README.md`/`docs/`/`AGENTS.md` whenever documented behavior changes.
 10. **Mockup is visual reference only.** Production code does not copy `docs/spec/mockup/klondike-mockup.html`'s structure.
 
-When Speckit is installed, copy this section into `.specify/memory/constitution.md` per `docs/spec/README.md`'s Phase 0 instructions; keep both in sync.
+OpenSpec (not Speckit) is installed; this section is the constitution's canonical home directly — there is no `.specify/memory/constitution.md` copy step.
 
 ## Engineering principles
 
@@ -100,6 +110,8 @@ Apply this whenever the work is non-trivial:
 
 This repo's OpenSpec change loop (`openspec-apply-change` / `/opsx:apply`) is always run restricted to one task at a time, driven from a planning session. For each task: a scoped read of that task's own stated requirements and files, then test-first implementation, then verification, then review — only after that does the task's checkbox move from `- [ ]` to `- [x]` in `tasks.md`. If a task turns out to need work beyond what it states, stop and surface the added scope rather than silently narrowing, deferring, or absorbing it.
 
+Once a task's checkbox moves to `- [x]`, commit its changes (including the `tasks.md` edit) before starting the next task, so every implemented task lands as its own commit — see "Git and review" below.
+
 Concrete tooling varies by agent. `openspec/config.yaml`'s `operations.apply` and `operations.archive` guidance names the specific skills to invoke at each moment for whichever agent is running them (e.g. Claude Code's installed "superpowers" skill set) — consult it, and use your environment's equivalent tooling if a named skill isn't available.
 
 ### Task sizing and context budget
@@ -116,7 +128,9 @@ Documentation is part of the change. Whenever a change alters a documented fact 
 
 ## Git and review
 
-Use concise Conventional Commit subjects. Don't commit generated `dist`, coverage, or Playwright report output once they exist. Don't commit or push unless explicitly requested.
+Use concise Conventional Commit subjects. Don't commit generated `dist`, coverage, or Playwright report output once they exist.
+
+Don't commit or push unless explicitly requested — with one standing exception: while implementing an OpenSpec change task-by-task (see "Sub-agent driven workflow" above), commit after each task's checkbox moves to `- [x]`, without needing to ask each time. That exception covers committing only; pushing still requires an explicit request every time.
 
 No work should happen on the master branch. You need to create feature branches if current branch is master.
 
