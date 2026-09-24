@@ -24,5 +24,21 @@ export default tseslint.config(
             '@typescript-eslint/consistent-type-imports': 'error',
         },
     },
+    {
+        files: ['src/domain/**/*.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            regex: '^(?!\\./[A-Za-z]+(\\.js)?$)',
+                            message: 'src/domain may import only its own sibling modules (./name).',
+                        },
+                    ],
+                },
+            ],
+        },
+    },
     prettier,
 );

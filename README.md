@@ -12,11 +12,12 @@ Source repository: <https://github.com/sanyokkua/solitaire>
 
 ## Current status
 
-**Phase 1 (repository foundation) is complete.** The build, lint, test, CI and deployment
-tooling are in place, and the app has a routed Home/Game shell with no game logic yet.
-Phases 2–11 (card engine, board, solver, state/persistence, animation, screens/localisation,
-PWA hardening, and the rest of the phased build plan) are pending — see
-`docs/spec/phased-design.md` for the full phase list. There is no deployed build yet.
+**Phases 1 (repository foundation) and 2 (card engine) are complete.** The build, lint, test,
+CI and deployment tooling are in place, the pure Klondike engine lives in `src/domain/`, and the
+app has a routed Home/Game shell that is not yet wired to the engine.
+Phases 3–11 (solver, board, state/persistence, animation, screens/localisation, PWA hardening,
+and the rest of the phased build plan) are pending — see `docs/spec/phased-design.md` for the
+full phase list. There is no deployed build yet.
 
 ## Prerequisites
 
@@ -79,7 +80,7 @@ This mirrors the repository's git hooks: `.husky/pre-commit` runs lint-staged, `
 src/app/          Redux store and the application route slice
 src/ui/           Screens, reusable components, and token-based CSS
 src/assets/       Bundled fonts and other static assets
-src/domain/       Reserved for the pure game engine (Phase 2) — directory + README only today
+src/domain/       Pure Klondike engine: cards, seeded deals, rules, scoring, commands, hints
 src/solver/       Reserved for the bounded-DFS solver (Phase 3) — directory + README only today
 src/features/     Reserved for the deal service and slices (Phases 3–4) — directory + README only today
 src/i18n/         Reserved for the English/Ukrainian catalogs (Phase 7) — directory + README only today
@@ -87,6 +88,7 @@ src/pwa/          Reserved for the service-worker lifecycle (Phase 8) — direct
 tests/unit/       Vitest unit tests
 tests/component/  Vitest + Testing Library component tests
 tests/e2e/        Playwright end-to-end specs
+tests/fixtures/   Shared seeded deals and recorded games for the tests
 docs/spec/        Product specification, game-rules research, and the phased build plan
 openspec/         OpenSpec change proposals, specs and tasks
 ```

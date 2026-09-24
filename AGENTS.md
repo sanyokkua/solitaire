@@ -6,7 +6,7 @@ Guidance for AI coding agents (Claude Code, Codex, etc.) working in this reposit
 
 This repository will become **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
 
-**Repository state: Phase 1 scaffolding complete.** The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks all exist. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
+**Repository state: Phase 1 scaffolding complete; the Phase 2 card engine (pure domain in `src/domain`) now exists.** The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks all exist. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
 
 OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
 
@@ -73,7 +73,7 @@ Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent,
 
 ## Architecture principles (constitution seed — see phased-design.md §2)
 
-1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals.
+1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals. One narrow exception: `src/domain/prng.ts` may reference `crypto`, because `cryptoSeed` takes an injectable seed source that defaults to `globalThis.crypto` (it throws when none is available and never falls back to `Math.random`); no other domain file may touch `crypto`.
 2. **Deterministic by seed.** Every deal comes from a 32-bit seed via mulberry32 + Fisher–Yates. No `Math.random()` in game logic.
 3. **UI renders state, issues commands.** Components dispatch typed commands and render snapshots; they never apply rules themselves.
 4. **Static and offline.** No runtime network dependency; no third-party asset hosts.

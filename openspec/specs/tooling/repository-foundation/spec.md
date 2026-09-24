@@ -105,7 +105,9 @@ unit and component tests, and a browser layer covering end-to-end tests. The in-
 NOT execute browser-layer specs, and the browser layer SHALL NOT execute in-process tests. File
 naming SHALL make the layer unambiguous. The in-process layer SHALL run against a DOM environment
 whose document URL sits under the `/solitaire/` base path, and SHALL report coverage on demand.
-*(new)*
+Coverage SHALL be measured across every source file in the project, not only those a test happens
+to load, so that a module with no test at all counts against the configured thresholds instead of
+being absent from the report. *(new)*
 
 #### Scenario: In-process layer excludes end-to-end specs
 
@@ -122,6 +124,12 @@ whose document URL sits under the `/solitaire/` base path, and SHALL report cove
 
 - **WHEN** the coverage command runs and measured coverage is below the configured thresholds
 - **THEN** the command exits non-zero
+
+#### Scenario: An untested source file is still measured
+
+- **WHEN** the coverage command runs and a source file is loaded by no test
+- **THEN** that file appears in the coverage report with no covered lines and counts towards the
+  configured thresholds
 
 ### Requirement: Single aggregate validation gate
 

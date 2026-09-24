@@ -56,8 +56,8 @@ After a move from a tableau column, **if its new top card is face-down, it flips
 - **Dead end:** there is no productive move and cycling the stock can't make one (§6.4). Classic Klondike has no formal "loss"; the app reports the dead end and offers Undo or a new deal.
 
 ### 2.4 Variants chosen for this project
-- **Foundations are suit-fixed slots**, ordered ♥ ♣ ♦ ♠ so colours alternate. A card's foundation is known, which makes tap-to-foundation unambiguous.
-- **Draw 1 = unlimited passes** (standard scoring charges −100 per recycle). **Draw 3 = unlimited passes** (−20 per recycle from the 3rd onward). **Vegas** caps passes (§5.2).
+- **Foundations are suit-fixed slots**, displayed in the order ♥ ♣ ♦ ♠ so colours alternate. That display order is distinct from the suit encoding ♥ ♦ ♣ ♠ (0–3), which fixes card identifiers and foundation slot indices. A card's foundation is known, which makes tap-to-foundation unambiguous.
+- **Draw 1 = unlimited passes** (standard scoring charges −100 per recycle). **Draw 3 = unlimited passes** (−20 per recycle from the 3rd recycle onward, i.e. after three free passes). **Vegas** caps passes (§5.2).
 - Partial-run moves and foundation-to-tableau moves are allowed.
 
 ---
@@ -157,18 +157,19 @@ The talon-as-a-set simplification doesn't hold, because the order of the stock a
 | Turn over a tableau card | +5                                                        |
 | Foundation → Tableau     | −15                                                       |
 | Recycle waste, Draw 1    | −100 each time                                            |
-| Recycle waste, Draw 3    | −20 each time from the 3rd pass onward                    |
+| Recycle waste, Draw 3    | −20 each time from the 3rd recycle onward                 |
 | Time                     | −2 every 10 s                                             |
 | Time bonus on win        | `700,000 ÷ seconds`, only if the game took more than 30 s |
 
 - The score never drops below 0.
+- Draw 3 gets three free passes: four successive recycles score 0, 0, −20, −20.
 - Theoretical maximum with the bonus is **24,078** (SolitaireCat). The original report's "~745" refers to move points without the bonus.
 - **Undo:** not part of the original table. The mockup charges −2 per undo on top of restoring the previous score. **Decision for this project:** keep −2 per undo in Standard.
 - Scoring quirk: waste → tableau → foundation earns 15 points, versus 10 for going straight to the foundation.
 
 ### 5.2 Vegas
 - Start at **−$52** (a $1-per-card buy-in); **+$5 per card** played to a foundation, −$5 when a card leaves one. Break-even at 11 cards.
-- **Pass limits:** Draw 1 allows 1 pass (no recycle); Draw 3 allows 3 passes (2 recycles).
+- **Pass limits:** Vegas draws three cards and allows 3 passes (2 recycles). This product has no one-card Vegas mode.
 - **Cumulative** option: the bankroll carries across games (future).
 - Many implementations restrict or disable Undo in Vegas. **Decision for this project:** Undo is allowed and simply restores the previous bankroll, with no extra fee. A "strict Vegas" toggle that disables Undo is a future option.
 
@@ -194,7 +195,7 @@ Heuristic hints can lead into dead ends. A better hint takes the first move of t
 A card may go to its foundation automatically without ever hurting the player if its rank is **≤ 2**, or its rank is **≤ min(the two opposite-colour foundation heights) + 1**. Nothing could ever need it as a tableau parent, because both opposite-colour cards one rank below are already home.
 
 ### 6.3 Auto-finish
-Safe to offer once **every tableau card is face-up**; the game is then trivially won. Auto-finish repeatedly plays the lowest-rank foundation-ready card, drawing and recycling the stock as needed, without pass penalties. Products also offer it earlier, when the solver proves a trivial win.
+Safe to offer once **every tableau card is face-up**; the game is then trivially won. Auto-finish repeatedly plays the lowest-rank foundation-ready card, drawing and recycling the stock as needed. It is offered when such a plan completes under the ordinary rules; its draws and recycles are charged and pass-limited like the player's. Products also offer it earlier, when the solver proves a trivial win.
 
 ### 6.4 Dead-end detection (mockup approximation)
 Report a dead end if **both** are true:
@@ -206,7 +207,7 @@ This check is approximate: it misses loops, and in Draw 3 it ignores that only e
 ### 6.5 Smart tap target choice (mockup)
 1. If the grabbed unit is a single card and it fits its foundation, send it there (not when the card is already on a foundation).
 2. Otherwise, pick the first **non-empty** tableau column it fits, scanning to the right of the source and wrapping around.
-3. Otherwise, a King (not already a column base) goes to the first empty column.
+3. Otherwise, a King (not already a column base) goes to the first empty column, counting from column 0.
 4. Otherwise, reject with a small shake.
 
 ---

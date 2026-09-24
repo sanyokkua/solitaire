@@ -110,7 +110,7 @@ Tapping the stock draws cards; tapping the empty stock turns the waste over (sub
 ### 4.3 Automatic behaviour
 - A face-down card that becomes the top of a column flips over automatically.
 - **Auto-move safe cards** (setting, off by default): after each move, safe cards (*R§6.2*) travel to the foundations one after another.
-- **Finish** becomes available once all tableau cards are face up (*R§6.3*); it plays every remaining card home in a quick sequence.
+- **Finish** becomes available when a finish plan completes under the ordinary rules (*R§6.3*), which requires every tableau card to be face up; it plays every remaining card home in a quick sequence. Its draws and recycles are scored, counted and pass-limited like the player's; there is no pass-penalty exemption.
 
 ### 4.4 Undo and redo
 - Unlimited undo back to the start of the deal; redo until a new move is made.
@@ -147,7 +147,8 @@ Tapping the stock draws cards; tapping the empty stock turns the waste over (sub
 
 ## 5. Scoring and statistics
 - **Standard** and **Vegas** scoring exactly as in *R§5.1–5.2*, plus the project's undo decisions (§4.4).
-- Standard scores never go below 0. The time penalty applies every 10 seconds of *unpaused* play.
+- Standard scores never go below 0.
+- The stored score is the move score. The displayed score is derived: the move score minus the time penalty (floored at 0 under Standard only), plus the win bonus once the game is won. The time penalty is a total computed from elapsed *unpaused* play time (Standard: 2 × ⌊seconds ÷ 10⌋); it is never deducted from the stored score as time passes.
 - **Statistics** per mode as in *R§7*. A game counts as played at the first move. Starting a different deal while a game is started and unfinished breaks that mode's streak; **Restart this deal** does too.
 - **Daily**: a completed day is recorded once; the daily streak counts consecutive UTC days completed.
 - Records: best time (lowest), best score / best bank (highest), best streak.
@@ -298,7 +299,7 @@ Legend: **Ubiquitous** "The system shall…" · **Event** "WHEN … the system s
 - **KS-AST-02** WHEN the player requests a hint, the system shall highlight the suggested source and target (or the stock) for about 2 s and describe it in the hint line.
 - **KS-AST-03** WHERE a solver line is available for the current Draw 1 position within the hint budget, the system shall base the hint on that line's first move.
 - **KS-AST-04** WHILE Auto-move safe cards is on, WHEN a move completes, the system shall move safe cards (*R§6.2*) to the foundations one by one.
-- **KS-AST-05** WHILE every tableau card is face-up and the game isn't won, the system shall enable Finish; WHEN Finish is used, the system shall play all remaining cards to the foundations without pass penalties.
+- **KS-AST-05** WHILE the game isn't won and a finish plan exists (every tableau card is face-up and the plan completes under the ordinary rules), the system shall enable Finish; WHEN Finish is used, the system shall play all remaining cards to the foundations, charging and pass-limiting its draws and recycles like the player's.
 - **KS-AST-06** WHEN no productive move remains (*R§6.4*), the system shall show the dead-end notice once for that position.
 - **KS-AST-07** WHEN the player undoes, the system shall restore the exact state before the last player move, including automatic follow-up moves; WHEN the player redoes, the system shall re-apply it.
 - **KS-AST-08** WHEN the player makes a new move after undoing, the system shall discard the redo history.

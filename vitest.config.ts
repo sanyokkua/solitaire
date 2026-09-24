@@ -20,6 +20,7 @@ export default defineConfig({
             provider: 'v8',
             reporter: ['text', 'html'],
             thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
+            include: ['src/**/*.{ts,tsx}'],
             exclude: ['src/main.tsx', 'src/vite-env.d.ts'],
         },
     },
