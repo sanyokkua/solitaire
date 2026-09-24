@@ -16,6 +16,11 @@ export default defineConfig({
         passWithNoTests: true,
         include: ['tests/**/*.{test,spec}.{ts,tsx}'],
         exclude: ['tests/e2e/**/*.spec.ts'],
+        benchmark: {
+            include: ['tests/bench/**/*.bench.ts'],
+            retainSamples: true,
+            suppressExportGetterWarnings: true,
+        },
         coverage: {
             provider: 'v8',
             reporter: ['text', 'html'],

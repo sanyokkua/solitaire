@@ -85,7 +85,8 @@ The mockup doesn't expose codes yet. It does use seeded deals internally for the
 ### 3.4 Daily deal
 - One deal per calendar day, the same for everyone. The seed is derived from the date.
 - The mockup uses the device's **local** date (`yyyymmdd`) and, for winnable-only mode, tries seeds `date·131 + attempt·7919` until the solver proves one winnable.
-- Two consequences:
+- **Product behaviour, "daily v1":** the date is the **UTC** calendar date as `YYYY-MM-DD`. Attempt *k* (1 to 40) uses the seed `(YYYYMMDD × 131 + k × 7919) >>> 0`, each candidate is searched with a 20,000-node budget, and the first one proven winnable is dealt. It is always verified, whatever the "winnable only" setting. Daily v1 is pinned; any change to the formula, budget, attempt cap or search is a new version.
+- Two consequences of the mockup's approach (daily v1 above removes the first and the setting dependence of the second):
   1. Players in different time zones can be on different deals around midnight.
   2. The result depends on the "winnable only" setting and the solver version.
 - **Recommendation:** roll over at **00:00 UTC**, *always* use winnable selection for the Daily deal whatever the setting, and version the selection algorithm. Optionally ship a precomputed table of verified daily seeds so solver changes never alter past dailies.

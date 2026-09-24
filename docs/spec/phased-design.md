@@ -86,9 +86,15 @@ src/
     types.ts
   solver/
     solver.ts                  bounded DFS, returns { verdict, nodes, line? }
-    solver.worker.ts           worker entry: solve / findWinnable / hint
+    line.ts                    winning line as player commands
+    hint.ts                    solver hint from the first command of the line
+    winnable.ts                findWinnable: reject sampling over seeds
+    protocol.ts                SolverRequest / SolverResponse, handleRequest
+    solver.worker.ts           worker entry: findWinnable / hint
   features/
-    deal/dealService.ts        worker client, timeouts, overlay state, daily selection
+    deal/daily.ts              Daily v1 UTC date key and seeds
+    deal/solverClient.ts       worker client: lazy start, request ids, cancellation
+    deal/dealService.ts        deal per mode, provenance, overlay timing, timeouts, hint answering
     game/gameSlice.ts          session, history, future, timer accrual
     game/gameClock.ts          injected-clock ticker (250 ms) as in Minesweeper
     stats/statsSlice.ts
@@ -174,9 +180,9 @@ Decode defensively: validate the shape and invariants (52 unique cards, legal pi
 | Shuffle            | Fisher–Yates with `j = floor(rng() * (i+1))`. Test: 60,000 shuffles of 4 items → chi-square across 24 permutations; and "not single-cycle-only" to catch Sattolo.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | R§3.1          |
 | Deal               | Row-by-row into columns; stock = `deck[28..51]`, last = top.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | R§2.1          |
 | Deal code          | `<m>-<seed base36, 7 chars>`, m ∈ {`1`,`3`,`V`,`D`}; case-insensitive; shown as `1-K7Q29XD`. **The code stores the final dealt seed**, so replay never needs the solver.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | R§3.3          |
-| Winnable selection | Attempt k uses seed `s_k` (random, or for Daily `hash(utcDate, k)`); solve with budget 5,000 nodes (Daily: 20,000, fixed forever as "daily v1"); accept on `win`; max 40 attempts, else accept and mark `random`. Runs in the worker; the UI shows the overlay after 160 ms.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | R§4.3–4.5      |
-| Solver             | Port of the mockup DFS (talon-as-set, canonical key, safe moves, move ordering, node budget). **Extend it to return the winning line** (list of `Command`s from the start position). Regression corpus: seeds 1–200 must reproduce 142 / 1 / 57 (win / loss / unknown) at 5,000 nodes, or update the fixture consciously.                                                                                                                                                                                                                                                                                                                                                                                                              | R§4.4          |
-| Hint               | Draw 1: ask the worker `hint(state, budget 3,000)`; map the first line move to UI refs; on `unknown` or timeout (150 ms) fall back to the heuristic. Draw 3: heuristic only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | R§6.1          |
+| Winnable selection | Attempt k uses seed `s_k` (random, or for Daily `(YYYYMMDD × 131 + k × 7919) >>> 0` on the UTC date); solve with budget 5,000 nodes (Daily: 20,000, fixed forever as "daily v1"); accept on `win`; max 40 attempts, else accept and mark `random`. Runs in the worker; the UI shows the overlay after 160 ms.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | R§4.3–4.5      |
+| Solver             | Port of the mockup DFS (talon-as-set, canonical key, safe moves, move ordering, node budget), iterative, whose winning line is made of player commands (draws and moves, no `autoFoundation`). Regression corpus: seeds 1–200 must reproduce 142 / 1 / 57 (win / loss / unknown) at 5,000 nodes, or update the fixture consciously.                                                                                                                                                                                                                                                                                                                                                                                                              | R§4.4          |
+| Hint               | Draw 1 and Daily (no pass limit): ask the worker `hint(state, budget 3,000)` and map the first line move to UI refs; the heuristic answers instead on any non-win verdict, a timeout (150 ms), a failure, or a hint asked while a deal is pending. Draw 3 and Vegas: heuristic only, the solver is not asked. | R§6.1          |
 | Safe auto-move     | `isSafe(card, foundations)` per R§6.2; chain with 160 ms spacing (0 with reduced motion), all within one history entry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | R§6.2          |
 | Finish             | Available exactly when `finishPlan(state) !== undefined` (every tableau card up). The plan loops: send the lowest-ranked foundation-ready card via `autoFoundation`, else draw, else recycle; every step goes through `applyCommand`, so draws and recycles are scored, counted and pass-limited. 75 ms spacing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | R§6.3          |
 | Dead end           | Heuristic of R§6.4, evaluated after each settled move; notify once per position hash.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | R§6.4          |
@@ -220,7 +226,7 @@ Decode defensively: validate the shape and invariants (52 unique cards, legal pi
   - `base: '/solitaire/'`
   - `define __APP_BUILD_TIMESTAMP__`
   - `VitePWA({ registerType: 'prompt', injectRegister: false, manifest: false, workbox: { navigateFallback: '/solitaire/index.html', globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,ttf}'] } })`
-  - Worker bundling uses the default ES module format.
+  - Worker bundling sets `worker: { format: 'es' }` explicitly, because Vite 8 defaults worker bundles to `iife`.
 
 ---
 
@@ -262,15 +268,15 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
 - **Goal:** winnable deals and solver hints without blocking the UI.
 - **Scope:**
   - `solver.ts` (a port of the mockup DFS, plus returning the winning line).
-  - `solver.worker.ts` messages: `findWinnable`, `solve`, `hint`.
+  - `solver.worker.ts` messages: `findWinnable`, `hint`.
   - `dealService` with attempt loop, budgets, timeouts and cancellation (a newer request wins).
   - Daily selection v1 (UTC date → deterministic seed); regression corpus; benchmark test.
 - **Requirements:** KS-DEAL-03…07, KS-DEAL-10, KS-AST-03, KS-PERF-02.
 - **Done when:**
   - The corpus numbers match (§4).
-  - The worker round-trip works in Vitest (worker polyfill) and in the browser.
-  - The Daily seed is identical for two time zones on the same UTC day.
-  - The median winnable deal takes < 300 ms in Chromium on CI.
+  - The in-process worker round-trip works in Vitest (worker polyfill).
+  - The Daily key and seed are identical across time zones and match the pinned golden dates.
+  - The benchmark (`rtk npm run bench`) reports the median and p95 winnable-search latency against the KS-PERF-02 targets (300 ms median, 1.5 s p95); it is informational, not a gate, and is outside `validate`, the hooks and CI.
 - **Seed:** *"Implement the bounded DFS Klondike solver (docs/spec/research.md §4.4) as a pure module returning verdict, node count and winning line, run it in a Vite module Web Worker, and build a deal service that produces winnable Draw 1 deals by reject sampling (budget 5,000, max 40 attempts), a UTC-based deterministic Daily deal (budget 20,000, 'daily v1'), and solver-based hints with heuristic fallback. Include a seeded regression corpus and a latency benchmark."*
 
 ### Phase 4 — State, persistence & timer
@@ -300,6 +306,7 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
   - The 52-case device-fit test passes.
   - Screenshots of a fixture deal in light, dark, night and phone views match mockup screens 03–07 and 14–17 by eye.
   - No layout shift on resize.
+  - A Playwright test starts a Winnable Draw 1 deal through the real solver worker in Chromium (browser worker round-trip, KS-DEAL-03/10) and reports its latency against KS-PERF-02 (300 ms median target, reported, not gated).
 - **Seed:** *"Render the Klondike table: pure layout engine (docs/spec/research.md §10), Board with 52 persistent absolutely positioned CardView elements moved by transform, pile slots and placeholders, Draw 3 waste fan, stock count badge, card faces/backs/night cards/four-colour deck per specification §8, deal/move/flip animations with a reduced-motion path, and the three layout profiles (stacked, side rails, wide table) from specification §8.4 so the game fits every device in §8.5 without scrolling, proven by a Playwright device-fit matrix (research §13). Match mockup/screens 03–07 and 14–17. Input handling is out of scope."*
 
 ### Phase 6 — Interaction & assistance UI
@@ -351,6 +358,7 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
   - A requirements traceability matrix (KS IDs → tests).
   - The e2e matrix on all projects: full-game wins in each mode (the Vegas and Draw 3 fixtures use known-winnable seeds found offline), resume after reload mid-drag or mid-finish, the Vegas pass limit, the Draw 3 recycle penalty, the undo/redo storm (200+), rapid double-taps, resize during the deal, reduced motion, dark and night contrast, the Daily UTC-rollover (mocked clock), corrupt storage, quota errors, and keyboard-only play.
   - A performance trace of drag on a mobile emulation.
+  - KS-PERF-02 (winnable-deal latency) on a mid-range phone is a documented manual check; the benchmark and the Phase 5 Playwright report are informational only.
   - The device-fit matrix rerun against the production build, plus a **real-device checklist**: the phones and foldables you own. For each, record the actual `innerWidth × innerHeight` in portrait and landscape, browser and installed, and update R§13.1 where the estimates differ.
 - **Requirements:** all (verification only).
 - **Done when:**

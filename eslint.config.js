@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-    { ignores: ['dist', 'coverage', 'playwright-report', 'test-results', 'node_modules'] },
+    { ignores: ['dist', 'coverage', 'playwright-report', 'test-results', 'node_modules', '.claude/worktrees'] },
     eslint.configs.recommended,
     {
         files: ['**/*.{ts,tsx}'],
@@ -25,7 +25,7 @@ export default tseslint.config(
         },
     },
     {
-        files: ['src/domain/**/*.ts'],
+        files: ['src/domain/**/*.{ts,tsx}'],
         rules: {
             'no-restricted-imports': [
                 'error',
@@ -34,6 +34,41 @@ export default tseslint.config(
                         {
                             regex: '^(?!\\./[A-Za-z]+(\\.js)?$)',
                             message: 'src/domain may import only its own sibling modules (./name).',
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+    {
+        files: ['src/solver/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            regex: '^(?!\\./[A-Za-z]+(\\.js)?$|\\.\\./domain/[A-Za-z]+(\\.js)?$)',
+                            message: 'src/solver may import only its own sibling modules (./name) and ../domain/name.',
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+    {
+        files: ['src/features/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-imports': 'off',
+            '@typescript-eslint/no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            regex: '(^|/)solver(/|$)',
+                            allowTypeImports: true,
+                            message:
+                                'src/features must not value-import solver code: the solver runs in a Web Worker. Use a type-only import or the worker URL.',
                         },
                     ],
                 },

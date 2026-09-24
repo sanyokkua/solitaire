@@ -12,12 +12,14 @@ Source repository: <https://github.com/sanyokkua/solitaire>
 
 ## Current status
 
-**Phases 1 (repository foundation) and 2 (card engine) are complete.** The build, lint, test,
-CI and deployment tooling are in place, the pure Klondike engine lives in `src/domain/`, and the
-app has a routed Home/Game shell that is not yet wired to the engine.
-Phases 3–11 (solver, board, state/persistence, animation, screens/localisation, PWA hardening,
-and the rest of the phased build plan) are pending — see `docs/spec/phased-design.md` for the
-full phase list. There is no deployed build yet.
+**Phases 1 (repository foundation), 2 (card engine) and 3 (solver and deal service) are
+complete.** The build, lint, test, CI and deployment tooling are in place, the pure Klondike
+engine lives in `src/domain/`, the bounded-DFS solver lives in `src/solver/`, and the deal
+service (deals per mode, Daily v1, solver hints) lives in `src/features/deal/`. The app has a
+routed Home/Game shell that is not yet wired to the engine.
+Phases 4–11 (state/persistence, board, animation, screens/localisation, PWA hardening, and the
+rest of the phased build plan) are pending — see `docs/spec/phased-design.md` for the full
+phase list. There is no deployed build yet.
 
 ## Prerequisites
 
@@ -59,10 +61,14 @@ npm run preview
 | `npm run test`          | Run the Vitest unit and component test set.                           |
 | `npm run test:unit`     | Run unit and component tests.                                         |
 | `npm run test:coverage` | Run unit/component tests with V8 coverage thresholds.                 |
+| `npm run bench`         | Run the informational winnable-search latency benchmark.              |
 | `npm run e2e`           | Run the Playwright suite across desktop and touch projects.           |
 | `npm run e2e:headed`    | Run the Playwright suite with visible browsers.                       |
 | `npm run prepare`       | Install the Husky git hooks (runs automatically after `npm install`). |
 | `npm run validate`      | Run formatting, lint, typecheck, unit/component tests, and the build. |
+
+`bench` reports median and p95 for the winnable-deal search against KS-PERF-02; it never asserts
+on timings and is not part of `validate`, the git hooks or CI.
 
 The usual local gate is:
 
@@ -81,13 +87,14 @@ src/app/          Redux store and the application route slice
 src/ui/           Screens, reusable components, and token-based CSS
 src/assets/       Bundled fonts and other static assets
 src/domain/       Pure Klondike engine: cards, seeded deals, rules, scoring, commands, hints
-src/solver/       Reserved for the bounded-DFS solver (Phase 3) — directory + README only today
-src/features/     Reserved for the deal service and slices (Phases 3–4) — directory + README only today
+src/solver/       Pure bounded-DFS solver and its Web Worker message protocol
+src/features/     Deal service (`deal/`, Phase 3); the slices and persistence are reserved for Phase 4
 src/i18n/         Reserved for the English/Ukrainian catalogs (Phase 7) — directory + README only today
 src/pwa/          Reserved for the service-worker lifecycle (Phase 8) — directory + README only today
 tests/unit/       Vitest unit tests
 tests/component/  Vitest + Testing Library component tests
 tests/e2e/        Playwright end-to-end specs
+tests/bench/      Informational winnable-search latency benchmark
 tests/fixtures/   Shared seeded deals and recorded games for the tests
 docs/spec/        Product specification, game-rules research, and the phased build plan
 openspec/         OpenSpec change proposals, specs and tasks

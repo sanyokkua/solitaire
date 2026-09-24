@@ -157,3 +157,9 @@ test-results/
 
 # Husky
 .husky/_/
+
+# Vitest
+.vitest/
+
+# Claude Code agent worktrees
+.claude/worktrees/

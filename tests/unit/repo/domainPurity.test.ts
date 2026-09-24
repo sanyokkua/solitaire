@@ -1,65 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { forbiddenGlobals, importSpecifiers, readmeModules, usesCrypto } from './purityScanner';
 
 const DOMAIN_DIR = resolve(import.meta.dirname, '../../../src/domain');
 const SIBLING_SPECIFIER = /^\.\/[A-Za-z]+(\.js)?$/;
 
-/**
- * Removes comments. String and template literals are matched first and kept, so a `//` or `/*` inside one (such as a
- * URL) is never mistaken for the start of a comment. Known limit: a regex literal containing `//` would hide the rest
- * of its line; no domain module has one.
- */
-function stripComments(source: string): string {
-    return source.replace(
-        /('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"|`(?:\\.|[^`\\])*`)|\/\*[\s\S]*?\*\/|\/\/.*$/gm,
-        (_match, literal: string | undefined) => literal ?? '',
-    );
-}
-
-function unquote(expression: string): string {
-    const match = /^\s*(['"`])(.*)\1\s*$/.exec(expression);
-    return match?.[2] ?? expression.trim();
-}
-
-/** Specifiers of static, export-from, side-effect and dynamic imports, plus require calls. */
-function importSpecifiers(source: string): string[] {
-    const code = stripComments(source);
-    const specifiers: string[] = [];
-    for (const match of code.matchAll(/\b(?:import|export)\b[^;'"]*?\bfrom\s*['"]([^'"]+)['"]/g)) {
-        specifiers.push(match[1] ?? '');
-    }
-    for (const match of code.matchAll(/\bimport\s*['"]([^'"]+)['"]/g)) {
-        specifiers.push(match[1] ?? '');
-    }
-    for (const match of code.matchAll(/\b(?:import|require)\s*\(([^)]*)\)/g)) {
-        specifiers.push(unquote(match[1] ?? ''));
-    }
-    return specifiers;
-}
-
 function offendingSpecifiers(source: string): string[] {
     return importSpecifiers(source).filter((specifier) => !SIBLING_SPECIFIER.test(specifier));
-}
-
-/** The DOM, storage and network facilities the domain may not reference, matched as whole identifiers. */
-const FORBIDDEN_IDENTIFIERS =
-    /\b(?:document|window|navigator|localStorage|sessionStorage|indexedDB|caches|fetch|XMLHttpRequest|WebSocket|EventSource)\b/g;
-
-function forbiddenGlobals(source: string): string[] {
-    const code = stripComments(source);
-    const found: string[] = code.match(FORBIDDEN_IDENTIFIERS) ?? [];
-    if (/\bMath\s*\.\s*random\b/.test(code)) found.push('Math.random');
-    return found;
-}
-
-function usesCrypto(source: string): boolean {
-    return /\bcrypto\b/.test(stripComments(source));
-}
-
-/** Module file names listed as backticked `name.ts` entries at the start of a bullet in the domain README. */
-function readmeModules(readme: string): string[] {
-    return [...readme.matchAll(/^- `([A-Za-z]+\.ts)`/gm)].map((match) => match[1] ?? '');
 }
 
 const domainFiles = readdirSync(DOMAIN_DIR).filter((entry) => /\.[cm]?tsx?$/.test(entry));
@@ -126,7 +74,7 @@ describe('src/domain purity (D10)', () => {
     });
 
     it('contains exactly the modules listed in src/domain/README.md plus the README', () => {
-        const listed = readmeModules(readFileSync(resolve(DOMAIN_DIR, 'README.md'), 'utf8'));
+        const listed = readmeModules(readFileSync(resolve(DOMAIN_DIR, 'README.md'), 'utf8'), /^- `([A-Za-z]+\.ts)`/gm);
         expect(listed.length).toBeGreaterThan(0);
         expect(readdirSync(DOMAIN_DIR).sort()).toEqual([...listed, 'README.md'].sort());
     });

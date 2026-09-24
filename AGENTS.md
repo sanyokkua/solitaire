@@ -6,7 +6,7 @@ Guidance for AI coding agents (Claude Code, Codex, etc.) working in this reposit
 
 This repository will become **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
 
-**Repository state: Phase 1 scaffolding complete; the Phase 2 card engine (pure domain in `src/domain`) now exists.** The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks all exist. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
+**Repository state: Phase 1 scaffolding complete; the Phase 2 card engine (pure domain in `src/domain`) and the Phase 3 solver (`src/solver`) and deal service (`src/features/deal`) now exist.** The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks all exist. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
 
 OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
 
@@ -22,7 +22,7 @@ Use these sources in this order:
 
 If `specification.md` and `research.md` conflict, fix the documents — don't silently pick one. See `docs/spec/README.md` for the full authority note.
 
-## Repository layout (planned — see phased-design.md §3.1 for full detail)
+## Repository layout (see phased-design.md §3.1 for full detail; `domain`, `solver` and `features/deal` are implemented, the rest is planned)
 
 - `src/domain/` — pure game engine (cards, deal, rules, scoring, hints). No React/Redux/DOM/storage imports.
 - `src/solver/` — pure bounded-DFS solver, run in a Web Worker.
@@ -32,7 +32,7 @@ If `specification.md` and `research.md` conflict, fix the documents — don't si
 - `src/pwa/` — service-worker registration, install, update lifecycle.
 - `src/ui/` — screens, board, sheets, components, CSS tokens.
 - `public/` — manifest, icons.
-- `tests/{unit,component,e2e}/` — Vitest/RTL and Playwright coverage.
+- `tests/{unit,component,e2e,bench}/` — Vitest/RTL and Playwright coverage, plus the informational latency benchmark in `bench/`.
 - `scripts/` — artifact validation.
 - `docs/spec/` — this spec pack; treat as historical input once real docs (`docs/index.md`, `architecture.md`, etc., per Phase 10) exist.
 
@@ -56,10 +56,13 @@ rtk npm run typecheck
 rtk npm run test
 rtk npm run test:unit
 rtk npm run test:coverage
+rtk npm run bench
 rtk npm run e2e
 rtk npm run e2e:headed
 rtk npm run validate
 ```
+
+`bench` runs the informational winnable-search latency benchmark (`tests/bench/`) and reports median and p95 against KS-PERF-02; it never asserts on timings, exits zero, and is not part of `test:unit`, `validate`, the git hooks or CI.
 
 `validate` runs `format:check && lint && typecheck && test:unit && build`. `validate:lifecycle-storage` and `validate:artifact` do not exist yet — they're deferred to Phase 4 and Phase 8 respectively (design decision D6) and are not part of `validate` until then.
 
@@ -73,7 +76,7 @@ Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent,
 
 ## Architecture principles (constitution seed — see phased-design.md §2)
 
-1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals. One narrow exception: `src/domain/prng.ts` may reference `crypto`, because `cryptoSeed` takes an injectable seed source that defaults to `globalThis.crypto` (it throws when none is available and never falls back to `Math.random`); no other domain file may touch `crypto`.
+1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals. One narrow exception: `src/domain/prng.ts` may reference `crypto`, because `cryptoSeed` takes an injectable seed source that defaults to `globalThis.crypto` (it throws when none is available and never falls back to `Math.random`); no other domain file may touch `crypto`. The solver layer is guarded separately by `tests/unit/repo/solverPurity.test.ts` and an ESLint override: it imports only its own siblings and `../domain/name`, uses no `crypto`, and references `self` only in `solver.worker.ts`; `src/features` may not value-import solver code (type imports are fine), because the solver runs in a Web Worker.
 2. **Deterministic by seed.** Every deal comes from a 32-bit seed via mulberry32 + Fisher–Yates. No `Math.random()` in game logic.
 3. **UI renders state, issues commands.** Components dispatch typed commands and render snapshots; they never apply rules themselves.
 4. **Static and offline.** No runtime network dependency; no third-party asset hosts.
@@ -105,7 +108,7 @@ Apply this whenever the work is non-trivial:
 - Research/analysis before planning, so the plan is grounded in what's actually there.
 - Planning before implementation, with the plan reviewed before code starts.
 - Implementation and test-writing as focused, test-first passes.
-- A dedicated verification pass that actually runs the stated checks (build/lint/typecheck/tests) rather than assuming they pass.
+- A dedicated verification pass that actually runs the stated checks (build/lint/typecheck/tests) rather than assuming they pass, including the full, unmodified `rtk npm run validate`.
 - A dedicated review pass, separate from the implementer, checking the diff against the task's stated requirements and this file's Architecture and Engineering principles above.
 
 This repo's OpenSpec change loop (`openspec-apply-change` / `/opsx:apply`) is always run restricted to one task at a time, driven from a planning session. For each task: a scoped read of that task's own stated requirements and files, then test-first implementation, then verification, then review — only after that does the task's checkbox move from `- [ ]` to `- [x]` in `tasks.md`. If a task turns out to need work beyond what it states, stop and surface the added scope rather than silently narrowing, deferring, or absorbing it.
@@ -131,6 +134,8 @@ Documentation is part of the change. Whenever a change alters a documented fact 
 Use concise Conventional Commit subjects. Don't commit generated `dist`, coverage, or Playwright report output once they exist.
 
 Don't commit or push unless explicitly requested — with one standing exception: while implementing an OpenSpec change task-by-task (see "Sub-agent driven workflow" above), commit after each task's checkbox moves to `- [x]`, without needing to ask each time. That exception covers committing only; pushing still requires an explicit request every time.
+
+Before every commit — each OpenSpec task commit, review-fix commit and doc-only commit included — run the full, unmodified `rtk npm run validate` (no exclusions, no `--ignore-pattern`) and fix everything it reports; commit only when it exits 0. The pre-commit hook lints only staged files, so it does not replace `validate`. Sub-agents that commit must be told to do the same.
 
 No work should happen on the master branch. You need to create feature branches if current branch is master.
 
