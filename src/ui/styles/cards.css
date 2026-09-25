@@ -1,0 +1,135 @@
+/* Card faces and backs. Static: the glide and flip transitions arrive with the animation layer. */
+
+.card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--cw);
+    height: var(--ch);
+    perspective: 900px;
+    transform: translate(var(--x), var(--y));
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+
+.card.is-up .card-inner {
+    transform: rotateY(180deg);
+}
+
+.card-side {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--cr, calc(var(--cw) * var(--card-radius-factor)));
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* Only a card that is not buried casts a shadow. */
+.card-face {
+    transform: rotateY(180deg);
+    overflow: hidden;
+    border: 1px solid var(--color-card-edge);
+    background: var(--color-card-face);
+    box-shadow: var(--shadow-card);
+    color: var(--ink);
+}
+
+.card-back {
+    border: 1px solid color-mix(in srgb, var(--back-a) 70%, black);
+    background-color: var(--back-a);
+    background-image:
+        linear-gradient(45deg, var(--back-b) 25%, transparent 25%, transparent 75%, var(--back-b) 75%),
+        linear-gradient(45deg, var(--back-b) 25%, transparent 25%, transparent 75%, var(--back-b) 75%);
+    background-position:
+        0 0,
+        4px 4px;
+    background-size: 8px 8px;
+    box-shadow:
+        inset 0 0 0 calc(var(--cw) * 0.045) var(--color-back-rim),
+        var(--shadow-card);
+}
+
+.card.is-buried .card-side {
+    box-shadow: none;
+}
+
+.card.is-buried .card-back {
+    box-shadow: inset 0 0 0 calc(var(--cw) * 0.045) var(--color-back-rim);
+}
+
+.card[data-suit='0'] {
+    --ink: var(--ink-hearts);
+}
+
+.card[data-suit='1'] {
+    --ink: var(--ink-diamonds);
+}
+
+.card[data-suit='2'] {
+    --ink: var(--ink-clubs);
+}
+
+.card[data-suit='3'] {
+    --ink: var(--ink-spades);
+}
+
+.corner {
+    position: absolute;
+    top: calc(var(--cw) * 0.07);
+    left: calc(var(--cw) * 0.07);
+    display: flex;
+    align-items: baseline;
+    gap: calc(var(--cw) * 0.03);
+    line-height: 1;
+}
+
+.corner .r {
+    font-family: var(--font-pixel);
+    font-size: calc(var(--cw) * 0.15);
+    letter-spacing: -0.04em;
+}
+
+.corner .s {
+    font-size: calc(var(--cw) * 0.19);
+}
+
+.corner--br {
+    top: auto;
+    right: calc(var(--cw) * 0.07);
+    bottom: calc(var(--cw) * 0.07);
+    left: auto;
+    transform: rotate(180deg);
+}
+
+.pip {
+    position: absolute;
+    top: 52%;
+    right: 0;
+    left: 0;
+    transform: translateY(-50%);
+    text-align: center;
+    line-height: 1;
+    font-size: calc(var(--cw) * 0.48);
+}
+
+.pip--face {
+    display: grid;
+    place-items: center;
+    gap: calc(var(--cw) * 0.04);
+    font-size: calc(var(--cw) * 0.2);
+}
+
+.pip--face b {
+    padding: calc(var(--cw) * 0.06) calc(var(--cw) * 0.07);
+    border: 2px solid currentColor;
+    border-radius: calc(var(--cw) * 0.06);
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+    font-family: var(--font-pixel);
+    font-size: calc(var(--cw) * 0.3);
+    font-weight: 400;
+}

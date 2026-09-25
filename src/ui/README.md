@@ -5,8 +5,9 @@ snapshots; they never apply game rules.
 
 - `components/` — small shared components (`BuildStamp.tsx`).
 - `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`).
-- `styles/` — the CSS token contract (`tokens.css`) and global rules (`global.css`).
-- `board/` — the table: pure layout geometry, listed below.
+- `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`) and global rules
+  (`global.css`, which imports both).
+- `board/` — the table: pure layout geometry and naming, listed below, and the React card view.
 
 ## Pure board modules
 
@@ -25,6 +26,23 @@ Modules in `board/` that compute geometry are pure functions of their inputs (ea
   board.
 - `board/names.ts` — `cardName(id, faceUp)` and `pileName(ref, count)`, the English accessible names of cards
   ("Queen of Spades", "Face-down card") and piles ("Column 3, empty", "Hearts foundation, 2 cards").
+
+## Board rendering
+
+Components in `board/` render the placements the pure modules compute. They are React, so they are not part of the
+purity rule below.
+
+- `board/CardView.tsx` — `CardView`, a memoised card at a fixed position. Its props are all primitives: `id`, `x`,
+  `y`, `z`, `faceUp`, `buried` and `compact`. The outer `div.card` is a `role="img"` named by `cardName` and carries
+  `data-card-id`, `data-suit`, the inline `--x` / `--y` / `z-index` and the `is-up`, `is-buried` and `is-compact`
+  classes. Both sides are always in the DOM so a later flip can rotate them; each side is `aria-hidden`, so a
+  face-down card exposes only "Face-down card". The face has a corner index (rank plus a suit glyph followed by
+  U+FE0E, so it stays text), a centre pip or a boxed J/Q/K, and a rotated bottom-right corner that a compact card
+  omits.
+- `styles/cards.css` — the static card styles: `transform: translate(var(--x), var(--y))`, sizes in `--cw` units,
+  the 3D flip structure with `-webkit-backface-visibility`, `--ink-*` inks per suit, the `--back-a` / `--back-b`
+  checker (a fixed 8 px) with the `--color-back-rim` rim, and `box-shadow: none` on a buried card. It has no
+  transitions and no colour literals.
 
 ## Board purity rule
 

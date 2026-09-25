@@ -222,7 +222,7 @@
       - all 52 names are unique.
     - **Verify:** `rtk npx vitest run tests/unit/ui/board/names` passes.
 
-- [ ] 3.2 Render a card face and back with `CardView` (static)
+- [x] 3.2 Render a card face and back with `CardView` (static)
     - **Implements:** BR "Card faces follow the mockup", "Card backs", "Shadows and layering"
       (buried), "Accessible names for cards and piles" (card part); *KS-A11Y-05*, *KS-A11Y-01*; D3,
       D4, D11.
