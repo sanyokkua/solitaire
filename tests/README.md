@@ -34,7 +34,10 @@ Layers:
 
 Vitest runs in `jsdom` by default (document URL `http://localhost/solitaire/`). A test file that starts a worker (the
 worker and deal-service suites) declares `// @vitest-environment node` as its first line; pure solver tests keep jsdom; `setup.ts` skips
-its DOM-only `matchMedia` stub when there is no `window`, so it loads in either environment.
+its DOM-only `matchMedia` stub when there is no `window`, so it loads in either environment. The stub is query-aware:
+it returns a fresh list per call that matches nothing by default and really registers and removes its listeners (both
+`addEventListener` and the legacy `addListener`). A test that needs a query to match, or to fire `change`, installs its own
+fake (`appLifecycle.wiring.test.tsx` returns one controllable fake per query).
 
 Worker entry modules run in-process, with no browser: a test imports `@vitest/web-worker` at the top of the file and then
 constructs the real module with `new Worker(new URL('../../../src/solver/solver.worker.ts', import.meta.url), { type: 'module' })`

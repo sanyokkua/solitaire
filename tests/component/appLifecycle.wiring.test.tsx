@@ -12,6 +12,8 @@ import { playedGame } from '../fixtures/games';
 import { memoryStorage, type MemoryStorage } from '../fixtures/storage';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const DARK_QUERY = '(prefers-color-scheme: dark)';
+const APPEARANCE_ATTRIBUTES = ['data-theme', 'data-night-cards', 'data-four-color', 'data-back', 'data-motion'];
 
 /** A `matchMedia` result the test can flip: it records its listeners and can fire a `change` event. */
 type MediaListener = (event: { matches: boolean }) => void;
@@ -45,13 +47,20 @@ function fakeMediaQuery(matches: boolean): FakeMediaQuery {
 
 const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
 
-/** Replaces `window.matchMedia` (or removes it); `afterEach` puts the setup file's stub back. */
-function installMatchMedia(query: FakeMediaQuery | undefined): Mock<() => FakeMediaQuery | undefined> {
-    const matchMedia = vi.fn(() => query);
+/**
+ * Replaces `window.matchMedia` (or removes it, when `reduced` is undefined) with one that returns a separate fake per
+ * query: `reduced` for the reduced-motion query and `dark` for the colour-scheme query. `afterEach` puts the setup
+ * file's stub back.
+ */
+function installMatchMedia(
+    reduced: FakeMediaQuery | undefined,
+    dark: FakeMediaQuery = fakeMediaQuery(false),
+): Mock<(query: string) => FakeMediaQuery | undefined> {
+    const matchMedia = vi.fn((query: string) => (query === DARK_QUERY ? dark : reduced));
     Object.defineProperty(window, 'matchMedia', {
         configurable: true,
         writable: true,
-        value: query === undefined ? undefined : matchMedia,
+        value: reduced === undefined ? undefined : matchMedia,
     });
     return matchMedia;
 }
@@ -115,6 +124,9 @@ afterEach(() => {
         });
     });
     Reflect.deleteProperty(document, 'visibilityState');
+    APPEARANCE_ATTRIBUTES.forEach((name) => {
+        document.documentElement.removeAttribute(name);
+    });
     if (originalMatchMedia === undefined) Reflect.deleteProperty(window, 'matchMedia');
     else Object.defineProperty(window, 'matchMedia', originalMatchMedia);
     vi.restoreAllMocks();
@@ -187,7 +199,8 @@ describe('application lifecycle wiring', () => {
 
     it('removes every listener and timer on dispose and writes nothing afterwards', () => {
         const query = fakeMediaQuery(false);
-        installMatchMedia(query);
+        const dark = fakeMediaQuery(false);
+        installMatchMedia(query, dark);
         const documentAdd = vi.spyOn(document, 'addEventListener');
         const documentRemove = vi.spyOn(document, 'removeEventListener');
         const windowAdd = vi.spyOn(window, 'addEventListener');
@@ -202,21 +215,28 @@ describe('application lifecycle wiring', () => {
         const visibilityListener = documentAdd.mock.calls.find(([type]) => type === 'visibilitychange')?.[1];
         const pageHideListener = windowAdd.mock.calls.find(([type]) => type === 'pagehide')?.[1];
         const changeListener = query.addEventListener.mock.calls[0]?.[1];
+        const darkListener = dark.addEventListener.mock.calls[0]?.[1];
         expect(visibilityListener).toBeTypeOf('function');
         expect(pageHideListener).toBeTypeOf('function');
         expect(changeListener).toBeTypeOf('function');
+        expect(darkListener).toBeTypeOf('function');
         expect(documentRemove).toHaveBeenCalledWith('visibilitychange', visibilityListener);
         expect(windowRemove).toHaveBeenCalledWith('pagehide', pageHideListener);
         expect(query.removeEventListener).toHaveBeenCalledWith('change', changeListener);
+        expect(dark.removeEventListener).toHaveBeenCalledWith('change', darkListener);
         expect(clearInterval).toHaveBeenCalledWith('ticker-handle');
         expect(root.childElementCount).toBe(0);
 
         app.store.dispatch(preferenceSet({ key: 'theme', value: 'dark' }));
+        app.store.dispatch(preferenceSet({ key: 'cardBack', value: 'coral' }));
         fireVisibilityChange('hidden');
         act(() => {
             window.dispatchEvent(new Event('pagehide'));
             query.change(true);
+            dark.change(true);
         });
+        expect(document.documentElement.getAttribute('data-back')).toBe('harbour');
+        expect(document.documentElement.getAttribute('data-theme')).toBe('light');
         expect(storage.getItem(STORAGE_KEY)).toBeNull();
         expect(app.store.getState().app.documentVisible).toBe(true);
         expect(app.store.getState().app.systemReducedMotion).toBe(false);
@@ -226,6 +246,51 @@ describe('application lifecycle wiring', () => {
                 app.dispose();
             });
         }).not.toThrow();
+    });
+
+    it('starts the theme controller against the two media queries and writes the attributes to the document', () => {
+        const reduced = fakeMediaQuery(false);
+        const dark = fakeMediaQuery(true);
+        const matchMedia = installMatchMedia(reduced, dark);
+
+        start();
+
+        expect(matchMedia).toHaveBeenCalledWith(DARK_QUERY);
+        expect(dark.addEventListener).toHaveBeenCalledWith('change', expect.any(Function));
+        const html = document.documentElement;
+        expect(html.getAttribute('data-theme')).toBe('dark');
+        expect(html.getAttribute('data-night-cards')).toBe('false');
+        expect(html.getAttribute('data-four-color')).toBe('false');
+        expect(html.getAttribute('data-back')).toBe('harbour');
+        expect(html.getAttribute('data-motion')).toBe('on');
+    });
+
+    it('lets the System theme follow the dark query and the motion flag follow the reduced-motion query', () => {
+        const reduced = fakeMediaQuery(false);
+        const dark = fakeMediaQuery(false);
+        installMatchMedia(reduced, dark);
+        start();
+        const html = document.documentElement;
+        expect(html.getAttribute('data-theme')).toBe('light');
+
+        act(() => {
+            dark.change(true);
+        });
+        expect(html.getAttribute('data-theme')).toBe('dark');
+
+        act(() => {
+            reduced.change(true);
+        });
+        expect(html.getAttribute('data-motion')).toBe('off');
+    });
+
+    it('applies the attributes without matchMedia, resolving System to light', () => {
+        installMatchMedia(undefined);
+
+        start();
+
+        expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+        expect(document.documentElement.getAttribute('data-motion')).toBe('on');
     });
 
     it('disposes the deal service on dispose', () => {

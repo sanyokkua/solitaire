@@ -27,7 +27,7 @@ If `specification.md` and `research.md` conflict, fix the documents — don't si
 - `src/domain/` — pure game engine (cards, deal, rules, scoring, hints). No React/Redux/DOM/storage imports.
 - `src/solver/` — pure bounded-DFS solver, run in a Web Worker.
 - `src/features/` — deal service (Phase 3); game state thunks and history (Phase 4); statistics, preferences, persistence layers with codec, storage gateway, loader, writer and reset thunks (Phase 4).
-- `src/app/` — Redux store (combines the `app` slice with the `features` slices), selectors and hooks, thunk dependencies (`thunkExtra.ts`), lifecycle bootstrap (`lifecycle.tsx`).
+- `src/app/` — Redux store (combines the `app` slice with the `features` slices), selectors and hooks, thunk dependencies (`thunkExtra.ts`), the theme controller that applies appearance preferences to the document (`themeController.ts`), lifecycle bootstrap (`lifecycle.tsx`).
 - `src/i18n/` — typed English/Ukrainian catalogs (Phase 7).
 - `src/pwa/` — service-worker registration, install, update lifecycle (Phase 8).
 - `src/ui/` — screens, board, sheets, components, CSS tokens (Phases 5–7).

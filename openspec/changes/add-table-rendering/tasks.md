@@ -72,7 +72,7 @@
         the surface in light and dark (AS "Text meets the contrast floor").
     - **Verify:** `rtk npx vitest run tests/unit/ui` passes.
 
-- [ ] 1.2 Apply appearance preferences to the document with a theme controller
+- [x] 1.2 Apply appearance preferences to the document with a theme controller
     - **Implements:** AP "The theme follows the preference, including System", "Night cards change
       the cards only", "Four-colour deck and card back selection" and "The page exposes one motion
       flag" (attribute side); *KS-SET-02*, *KS-SET-03*, *KS-SET-04*; D9, D10.

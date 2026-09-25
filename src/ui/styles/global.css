@@ -26,6 +26,10 @@ body {
         color 250ms ease;
 }
 
+:root[data-motion='off'] body {
+    transition: none;
+}
+
 button {
     font: inherit;
     cursor: pointer;

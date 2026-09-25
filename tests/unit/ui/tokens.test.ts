@@ -239,6 +239,21 @@ describe('stylesheets other than tokens.css', () => {
     });
 });
 
+describe('the single no-motion switch', () => {
+    const stylesheets = readdirSync(STYLES_DIR).filter((file) => file.endsWith('.css'));
+
+    it.each(stylesheets)('%s does not use prefers-reduced-motion', (file) => {
+        expect(readFileSync(resolve(STYLES_DIR, file), 'utf-8')).not.toContain('prefers-reduced-motion');
+    });
+
+    it("turns the body transition off under :root[data-motion='off'] in global.css", () => {
+        const globalCss = readFileSync(resolve(STYLES_DIR, 'global.css'), 'utf-8');
+        const rule = /:root\[data-motion=['"]off['"]\]\s+body\s*\{([^}]*)\}/.exec(globalCss);
+
+        expect(rule?.[1]).toMatch(/transition:\s*none/);
+    });
+});
+
 describe('bundled font licences', () => {
     it.each(['Inter-Variable.woff2', 'PressStart2P-Regular.ttf'])(
         'documents a licence for %s in src/assets/fonts/README.md',
