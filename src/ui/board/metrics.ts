@@ -122,9 +122,21 @@ function cardWidth(inner: BoardSize, gap: number, columns: number, rows: number)
 }
 
 /**
+ * The column gap that lets `columns` columns of `cw` px fit the inner width: `gap` itself unless the card floor made
+ * the cards too wide for it, in which case the gap shrinks just enough, but never below 0.
+ */
+function fittedGap(inner: BoardSize, gap: number, cw: number, columns: number): number {
+    if (cw > MIN_CARD_WIDTH) {
+        return gap;
+    }
+    return Math.min(gap, Math.max(0, (inner.width - columns * cw) / (columns - 1)));
+}
+
+/**
  * Measures the table for a board size: padding, gap, card size, and whether the stacked or the wide table is used.
  * The wide table is chosen exactly when the stacked worst-case strip is below the pointer's minimum and the wide
- * strip is thicker.
+ * strip is thicker. Wide/stacked choice and card width use the unclamped gap; only when the 30 px card floor binds
+ * does the returned `gap` shrink so the columns fit the board.
  */
 export function measure(size: BoardSize, options: { readonly coarse: boolean }): Metrics {
     const { width, height } = size;
@@ -142,14 +154,15 @@ export function measure(size: BoardSize, options: { readonly coarse: boolean }):
     const columns = wide ? WIDE_COLUMNS : STACKED_COLUMNS;
     const cw = wide ? wideCw : stackedCw;
     const ch = cw * CARD_ASPECT;
+    const columnGap = fittedGap(inner, gap, cw, columns);
     return {
         width,
         height,
         pad,
-        gap,
+        gap: columnGap,
         cw,
         ch,
-        ox: pad + (inner.width - (cw * columns + gap * (columns - 1))) / 2,
+        ox: pad + (inner.width - (cw * columns + columnGap * (columns - 1))) / 2,
         wide,
         compact: cw < COMPACT_BELOW,
         top: pad,

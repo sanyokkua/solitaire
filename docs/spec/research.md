@@ -258,7 +258,7 @@ Per mode: games played, games won, win rate, best time, best score (Vegas: best 
 - **Top row:** stock, waste, an empty slot, then 4 foundations. When "stock on the right" is on, it's mirrored: foundations on the left, waste fans to the left.
 - **Tableau** starts below the top row, separated by `max(1.4g, 10 px)`.
 - **Vertical offsets:** 0.11 × card height for face-down cards and 0.27 × card height for face-up cards (0.30 on touch screens, so the finger strip is thicker). If a column would run past the bottom, **squeeze the face-down cards first**, down to a 0.04 × card-height sliver, since they're never tapped. Only then squeeze the face-up strips.
-- **Small boards** (under 520 px wide): the minimums drop to 4 px padding and 3 px column gap (`pad = max(4, min(18, 2.2% of width))`, `g = max(3, min(14, 1.6% of width))`), so every pixel goes to the cards; from 520 px up the minimums are 8 px and 4 px.
+- **Small boards** (under 520 px wide): the minimums drop to 4 px padding and 3 px column gap (`pad = max(4, min(18, 2.2% of width))`, `g = max(3, min(14, 1.6% of width))`), so every pixel goes to the cards; from 520 px up the minimums are 8 px and 4 px; the gap shrinks below its minimum only when the 30 px card floor would otherwise push the columns past the board.
 - **Draw 3 waste** fans the top 3 cards horizontally by 0.24 × card width.
 - **Positioning:** every card is **absolutely positioned** with `transform: translate(x, y)`, one element per card that lives for the whole game. Moving a card is just a new transform, so CSS transitions give free move animations and undo "rewinds" visually.
 - **Depth:** a stock or foundation of 24 stacked cards compounds drop shadows into a dark halo. **Only the top card of a pile casts a shadow.**

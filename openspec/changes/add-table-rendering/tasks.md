@@ -185,7 +185,7 @@
       - no card outside the board in a wide worst case.
     - **Verify:** `rtk npx vitest run tests/unit/ui/board/layout` passes.
 
-- [ ] 2.4 Sweep the layout over every §8.5 board size
+- [x] 2.4 Sweep the layout over every §8.5 board size
     - **Implements:** BL "Columns compress face-down cards first" (scenario "Worst case fits on every
       device") and "Layout is a pure, deterministic function"; *KS-GEN-03*, *KS-GEN-05*,
       *KS-A11Y-04*; D14 (derivation rule); design "Chrome reservation used by the layout sweep"

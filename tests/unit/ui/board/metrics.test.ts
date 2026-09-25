@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { measure, worstStrip, type Metrics } from '../../../../src/ui/board/metrics';
+import { BASELINES, boardSizeFor } from '../../../fixtures/viewports';
 
 /** The number of tableau-row columns the chosen geometry lays out: seven stacked, nine wide. */
 function columnCount(metrics: Metrics): number {
@@ -64,10 +65,10 @@ describe('measure spacing', () => {
         expect(metrics.gap).toBeCloseTo(Math.max(width < 520 ? 3 : 4, Math.min(14, 0.016 * width)), 10);
     });
 
-    it('binds the small-board minimums of 4 px padding and 3 px gap on a very narrow board', () => {
+    it('binds the small-board minimum of 4 px padding on a very narrow board, where the 30 px card floor takes the gap', () => {
         const metrics = measure({ width: 150, height: 400 }, { coarse: true });
         expect(metrics.pad).toBe(4);
-        expect(metrics.gap).toBe(3);
+        expect(metrics.gap).toBe(0);
     });
 
     it('caps padding at 18 px and the gap at 14 px on a very wide board', () => {
@@ -82,6 +83,49 @@ describe('measure spacing', () => {
             expect(metrics.pad).toBeGreaterThanOrEqual(8);
             expect(metrics.gap).toBeGreaterThanOrEqual(4);
         }
+    });
+});
+
+describe('measure card-floor gap shrink', () => {
+    const baseline = (pointer: 'coarse' | 'fine') => {
+        const screen = BASELINES.find((b) => b.label === '320x480 coarse');
+        if (screen === undefined) {
+            throw new Error('missing 320x480 baseline');
+        }
+        return measure(boardSizeFor(screen, pointer), { coarse: pointer === 'coarse' });
+    };
+
+    it.each(['coarse', 'fine'] as const)(
+        'shrinks the gap on the 320x480 baseline with a %s pointer so the wide grid fits the board',
+        (pointer) => {
+            const metrics = baseline(pointer);
+            const unclamped = Math.max(3, Math.min(14, 0.016 * metrics.width));
+            expect(metrics.wide).toBe(true);
+            expect(metrics.cw).toBe(30);
+            expect(metrics.ox).toBeGreaterThanOrEqual(0);
+            expect(metrics.ox + gridWidth(metrics)).toBeLessThanOrEqual(metrics.width + 1e-9);
+            expect(metrics.gap).toBeLessThan(unclamped);
+            expect(metrics.gap).toBeGreaterThanOrEqual(3);
+        },
+    );
+
+    it.each([
+        [1180, 690],
+        [390, 660],
+    ])('leaves the gap at the formula value on a %ix%i board', (width, height) => {
+        const metrics = measure({ width, height }, { coarse: true });
+        expect(metrics.gap).toBe(Math.max(width < 520 ? 3 : 4, Math.min(14, 0.016 * width)));
+    });
+
+    it('shrinks the gap without going below 0 on a very narrow board, and fits the grid where 30 px cards fit', () => {
+        const fits = measure({ width: 235, height: 400 }, { coarse: true });
+        expect(fits.cw).toBe(30);
+        expect(fits.gap).toBeGreaterThan(0);
+        expect(fits.gap).toBeLessThan(Math.max(3, 0.016 * 235));
+        expect(fits.ox).toBeGreaterThanOrEqual(0);
+        expect(fits.ox + gridWidth(fits)).toBeLessThanOrEqual(fits.width + 1e-9);
+        const tooNarrow = measure({ width: 200, height: 400 }, { coarse: true });
+        expect(tooNarrow.gap).toBe(0);
     });
 });
 

@@ -43,6 +43,11 @@ For a board of inner width W and height H, with `small` meaning W < 520 px, the 
   `cw = max(30, min(104, (iw − 6·gap) / 7, ih / (1.4 · 3.1)))` in the stacked geometry and
   `cw = max(30, min(104, (iw − 8·gap) / 9, ih / (1.4 · 2.5)))` in the wide geometry.
 
+When the 30 px card floor would make the columns wider than the padded board, the gap SHALL shrink just
+enough that the pile grid fits within the padded board (never below 0); the geometry choice and the card
+width SHALL not depend on that shrink. The wide geometry's vertical spacing between stacked side-column
+cards uses the same gap.
+
 The card height SHALL be 1.4 times its width. Cards narrower than 70 px SHALL be marked compact. The
 pile grid SHALL be centred horizontally within the board.
 
@@ -63,7 +68,14 @@ Input-agnostic: pure computation.
 #### Scenario: Small-board spacing
 
 - **WHEN** the layout is computed for a board narrower than 520 px
-- **THEN** the padding is at least 4 px and the gap at least 3 px, following the formulas above
+- **THEN** the padding is at least 4 px and the gap at least 3 px, following the formulas above (except where
+  the card floor forces the gap lower, see above)
+
+#### Scenario: Narrowest board fits
+
+- **WHEN** the layout is computed with a coarse pointer for the board left by a 320×480 screen (about
+  308×245 px)
+- **THEN** every column lies inside the board's width
 
 ### Requirement: Stacked or wide table is chosen by the worst-case strip
 
