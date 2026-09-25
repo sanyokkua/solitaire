@@ -272,7 +272,7 @@
       - slot accessible names.
     - **Verify:** `rtk npx vitest run tests/component/pileSlot tests/unit/ui/tokens` passes.
 
-- [ ] 3.4 Add the board size and pointer hooks
+- [x] 3.4 Add the board size and pointer hooks
     - **Implements:** BM "Re-layout on viewport change within one frame" (scenario "Sub-pixel change
       ignored"); BL "Layout is a pure, deterministic function" (size and pointer inputs); D8, D17.
     - **References:** design D8.

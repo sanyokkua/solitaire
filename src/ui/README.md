@@ -7,7 +7,9 @@ snapshots; they never apply game rules.
 - `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`).
 - `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), pile slots and the stock
   badge (`board.css`) and global rules (`global.css`, which imports all three).
-- `board/` — the table: pure layout geometry and naming, listed below, and the React card, slot and badge components.
+- `board/` — the table: pure layout geometry and naming, listed below, the React card, slot and badge components,
+  and the board size hook.
+- `useMediaQuery.ts` — the media-query hook (see "Board state and hooks").
 
 ## Pure board modules
 
@@ -55,6 +57,20 @@ purity rule below.
   (solid on the stock), `.is-spent` at 45% opacity, faint placeholder ink in `--color-slot-ink`, and the badge as an
   LCD pill (`--color-lcd-panel` / `--color-lcd-time`, `--font-pixel`). It has no transitions, no cursor rules and no
   colour literals.
+
+## Board state and hooks
+
+Both hooks read the browser through `useSyncExternalStore`, so a new value renders in the same frame and no effect
+calls `setState`. They are React and DOM code, so they are not part of the purity rule below.
+
+- **`useBoardSize`** (`board/useBoardSize.ts`) — `useBoardSize()` returns `{ ref, size }`. `ref` is a stable callback
+  ref for the board panel; it observes the element with a `ResizeObserver` and disconnects when React passes `null` on
+  unmount. `size` is a `BoardSize` built from the observer entry's `contentRect`, or `null` before the first entry and
+  wherever `ResizeObserver` is undefined. A change under 1 px on both axes, measured from the last accepted size, is
+  ignored, and the snapshot keeps its identity until a change is accepted.
+- **`useMediaQuery`** (`useMediaQuery.ts`) — `useMediaQuery(query)` returns whether the query matches, follows the
+  `change` event live and returns `false` when `window.matchMedia` is missing (and on the server snapshot). The board
+  uses it with `(pointer: coarse)`.
 
 ## Board purity rule
 
