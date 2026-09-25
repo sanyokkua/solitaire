@@ -45,7 +45,7 @@
 
 ## 1. Appearance
 
-- [ ] 1.1 Rebuild the token contract, scope night cards, and lock the colour contracts
+- [x] 1.1 Rebuild the token contract, scope night cards, and lock the colour contracts
     - **Implements:** AS "Semantic colour tokens for the three palettes" (MODIFIED); AP "Night cards
       change the cards only" and "Four-colour deck and card back selection" (token side);
       *KS-SET-03*, *KS-A11Y-05*; D2, D3.
