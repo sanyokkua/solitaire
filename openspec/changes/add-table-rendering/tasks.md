@@ -168,7 +168,7 @@
       - Same inputs, same placements (a `GameState` and its `BoardPiles` subset give equal output).
     - **Verify:** `rtk npx vitest run tests/unit/ui/board/layout tests/unit/repo/boardPurity` passes.
 
-- [ ] 2.3 Add the wide-table geometry to `positions()`
+- [x] 2.3 Add the wide-table geometry to `positions()`
     - **Implements:** BL "Top row, mirror and Draw 3 fan" (wide parts) and "Stacking order, buried
       cards and anchors" (wide badge anchor); *KS-GEN-07*, *KS-SET-05*; D6, D7.
     - **References:** mockup anchors L860–887 (wide branch), `positions` L889–909, badge L943–945;

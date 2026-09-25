@@ -22,6 +22,10 @@ const FAN_SIZE = 3;
 export const BADGE_INSET_X = 20;
 /** Distance of the stock count badge above the top edge of the stock in the stacked geometry, in px. */
 export const BADGE_RISE = 6;
+/** Distance of the stock count badge below the top edge of the stock in the wide geometry, in px. */
+export const BADGE_DROP = 2;
+/** Vertical step of the Draw 3 waste fan in the wide geometry, as a fraction of the card height. */
+export const FAN_STEP_WIDE = 0.2;
 /** Number of tableau columns. */
 const COLUMNS = 7;
 
@@ -76,6 +80,61 @@ interface TopRow {
 
 const DEFAULT_TOP_ROW: TopRow = { stock: 0, waste: 1, foundations: [3, 4, 5, 6], fanDirection: 1 };
 const MIRRORED_TOP_ROW: TopRow = { stock: 6, waste: 5, foundations: [0, 1, 2, 3], fanDirection: -1 };
+/** Side columns of the wide table: the tableau's seven columns sit between the two. */
+const WIDE_RIGHT_COLUMN = 8;
+
+/** Where the non-tableau piles go: their top left points, the waste fan step and the foundation slots. */
+interface Anchors {
+    stock: Point;
+    waste: Point;
+    /** Offset of each further fanned waste card from the one before it. */
+    wasteStep: Point;
+    foundations: readonly [Point, Point, Point, Point];
+}
+
+/** The left edge of grid column `col` in px. */
+function gridX(metrics: Metrics, col: number): number {
+    return metrics.ox + col * (metrics.cw + metrics.gap);
+}
+
+/** The left edge of tableau column `col` in px; the wide table has a side column to the left of the tableau. */
+function columnX(metrics: Metrics, col: number): number {
+    return gridX(metrics, metrics.wide ? col + 1 : col);
+}
+
+/**
+ * The anchors of the stock, waste and foundations. The stacked table lays them in one row above the tableau, the waste
+ * fanning sideways. The wide table puts the stock and waste in one side column and the foundations in the other,
+ * fanning the waste downward. Its foundations overlap when the board is too short for four full card heights.
+ */
+function anchorsOf(metrics: Metrics, stockRight: boolean): Anchors {
+    if (!metrics.wide) {
+        const row = stockRight ? MIRRORED_TOP_ROW : DEFAULT_TOP_ROW;
+        const topPoint = (col: number): Point => ({ x: gridX(metrics, col), y: metrics.top });
+        const [f0, f1, f2, f3] = row.foundations;
+        return {
+            stock: topPoint(row.stock),
+            waste: topPoint(row.waste),
+            wasteStep: { x: metrics.cw * FAN_STEP * row.fanDirection, y: 0 },
+            foundations: [topPoint(f0), topPoint(f1), topPoint(f2), topPoint(f3)],
+        };
+    }
+    const left = gridX(metrics, 0);
+    const right = gridX(metrics, WIDE_RIGHT_COLUMN);
+    const stockX = stockRight ? right : left;
+    const foundationX = stockRight ? left : right;
+    const foundationStep = Math.max(
+        0,
+        Math.min(metrics.ch + metrics.gap, (metrics.bottom - metrics.top - metrics.ch) / 3),
+    );
+    const foundationAt = (slot: number): Point => ({ x: foundationX, y: metrics.top + slot * foundationStep });
+    return {
+        stock: { x: stockX, y: metrics.top },
+        waste: { x: stockX, y: metrics.top + metrics.ch + metrics.gap },
+        wasteStep: { x: 0, y: metrics.ch * FAN_STEP_WIDE },
+        foundations: [foundationAt(0), foundationAt(1), foundationAt(2), foundationAt(3)],
+    };
+}
 
 /** The vertical steps of one tableau column: from a face-down card and from a face-up card. */
 interface ColumnSteps {
@@ -120,17 +179,12 @@ function dealOrderOf(tableau: BoardPiles['tableau']): CardId[] {
 }
 
 /**
- * Computes where every card, empty-pile slot and the stock badge goes in the stacked table. It depends only on the
- * piles, the metrics and the mirror option, so the same inputs always give the same layout.
+ * Computes where every card, empty-pile slot and the stock badge goes, in the stacked or the wide table as the metrics
+ * choose. It depends only on the piles, the metrics and the mirror option, so the same inputs always give the same
+ * layout.
  */
 export function positions(piles: BoardPiles, metrics: Metrics, options: { readonly stockRight: boolean }): Layout {
-    const row = options.stockRight ? MIRRORED_TOP_ROW : DEFAULT_TOP_ROW;
-    const columnX = (col: number) => metrics.ox + col * (metrics.cw + metrics.gap);
-    const topPoint = (col: number): Point => ({ x: columnX(col), y: metrics.top });
-    const stock = topPoint(row.stock);
-    const waste = topPoint(row.waste);
-    const [f0, f1, f2, f3] = row.foundations;
-    const foundationSlots = [topPoint(f0), topPoint(f1), topPoint(f2), topPoint(f3)] as const;
+    const { stock, waste, wasteStep, foundations: foundationSlots } = anchorsOf(metrics, options.stockRight);
     const cards = new Map<CardId, Placement>();
 
     piles.stock.forEach((id, i) => {
@@ -140,8 +194,14 @@ export function positions(piles: BoardPiles, metrics: Metrics, options: { readon
     const fanned = piles.draw === 3 ? Math.min(FAN_SIZE, piles.waste.length) : 1;
     piles.waste.forEach((id, i) => {
         const fanIndex = i - (piles.waste.length - fanned);
-        const offset = Math.max(fanIndex, 0) * metrics.cw * FAN_STEP * row.fanDirection;
-        cards.set(id, { x: waste.x + offset, y: waste.y, z: WASTE_Z + i, faceUp: true, buried: fanIndex < 0 });
+        const fan = Math.max(fanIndex, 0);
+        cards.set(id, {
+            x: waste.x + fan * wasteStep.x,
+            y: waste.y + fan * wasteStep.y,
+            z: WASTE_Z + i,
+            faceUp: true,
+            buried: fanIndex < 0,
+        });
     });
 
     piles.foundations.forEach((pile, suit) => {
@@ -165,7 +225,7 @@ export function positions(piles: BoardPiles, metrics: Metrics, options: { readon
         const steps = columnSteps(column, metrics);
         let y = metrics.tabY;
         column.forEach((card, i) => {
-            cards.set(card.id, { x: columnX(col), y, z: TABLEAU_Z + i, faceUp: card.up, buried: false });
+            cards.set(card.id, { x: columnX(metrics, col), y, z: TABLEAU_Z + i, faceUp: card.up, buried: false });
             y += card.up ? steps.up : steps.down;
         });
     });
@@ -175,9 +235,15 @@ export function positions(piles: BoardPiles, metrics: Metrics, options: { readon
         slots: {
             stock,
             foundations: foundationSlots,
-            tableau: Array.from({ length: COLUMNS }, (_, col): Point => ({ x: columnX(col), y: metrics.tabY })),
+            tableau: Array.from({ length: COLUMNS }, (_, col): Point => ({
+                x: columnX(metrics, col),
+                y: metrics.tabY,
+            })),
         },
-        badge: { x: stock.x + metrics.cw - BADGE_INSET_X, y: stock.y - BADGE_RISE },
+        badge: {
+            x: stock.x + metrics.cw - BADGE_INSET_X,
+            y: metrics.wide ? stock.y + BADGE_DROP : stock.y - BADGE_RISE,
+        },
         dealOrder: dealOrderOf(piles.tableau),
     };
 }

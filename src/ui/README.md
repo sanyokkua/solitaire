@@ -18,7 +18,10 @@ Modules in `board/` that compute geometry are pure functions of their inputs (ea
   behind that choice.
 - `board/layout.ts` — `positions(piles, metrics, { stockRight })`, which turns the five board piles of a game position
   into a placement (`x`, `y`, stacking order, face-up and buried flags) for every card, the empty-pile slots, the stock
-  count badge and the deal order, for the stacked table: column compression, the mirrored top row and the Draw 3 fan.
+  count badge and the deal order. The stacked table has column compression, the mirrored top row and the sideways
+  Draw 3 fan. The wide table has stock and waste in one side column and the foundations in the other (swapped by
+  `stockRight`), the tableau shifted one column in, a vertical Draw 3 fan and foundations that overlap on a short
+  board.
 
 ## Board purity rule
 

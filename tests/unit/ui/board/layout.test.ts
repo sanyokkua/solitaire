@@ -15,6 +15,8 @@ const TALL_COARSE = measure({ width: 1180, height: 1000 }, { coarse: true });
 const DESKTOP = measure({ width: 1180, height: 690 }, { coarse: false });
 /** A board whose worst-case column fits once its face-down cards squeeze, but before its face-up cards need to. */
 const SQUEEZE_DOWN = measure({ width: 1180, height: 887 }, { coarse: false });
+/** A short, wide board where the stacked table cannot show a face-up strip, so the wide table is chosen. */
+const WIDE = measure({ width: 700, height: 280 }, { coarse: true });
 const EPSILON = 1e-9;
 
 function cardAt(layout: Layout, id: CardId): Placement {
@@ -319,5 +321,151 @@ describe('positions purity', () => {
 
     it('gives the same placements on every call', () => {
         expect(positions(state, DESKTOP, DEFAULT)).toEqual(positions(state, DESKTOP, DEFAULT));
+    });
+});
+
+describe('positions wide table', () => {
+    const step = WIDE.cw + WIDE.gap;
+    const leftX = WIDE.ox;
+    const rightX = WIDE.ox + 8 * step;
+    /** Every pile holds cards, with no card in two piles. */
+    const PILES = makeState({
+        stock: [45, 46],
+        waste: [47, 48],
+        foundations: foundationsOf(1, 1, 1, 1),
+        tableau: tableauOf(faceUp(30), faceUp(31)),
+    });
+
+    it('is measured as the wide table', () => {
+        expect(WIDE.wide).toBe(true);
+    });
+
+    it('puts the stock and waste in the left side column and the foundations in the right one', () => {
+        const layout = positions(PILES, WIDE, DEFAULT);
+        expect(layout.slots.stock).toEqual({ x: leftX, y: WIDE.top });
+        expect(cardAt(layout, 45).x).toBe(leftX);
+        expect(cardAt(layout, 45).y).toBe(WIDE.top);
+        expect(cardAt(layout, 48).x).toBe(leftX);
+        expect(cardAt(layout, 48).y).toBeCloseTo(WIDE.top + WIDE.ch + WIDE.gap, 9);
+        expect(layout.slots.foundations.every((slot) => slot.x === rightX)).toBe(true);
+    });
+
+    it('mirrors the side columns with Stock on the right and leaves the tableau where it is', () => {
+        const plain = positions(PILES, WIDE, DEFAULT);
+        const mirrored = positions(PILES, WIDE, MIRRORED);
+        expect(mirrored.slots.stock).toEqual({ x: rightX, y: WIDE.top });
+        expect(cardAt(mirrored, 45).x).toBe(rightX);
+        expect(cardAt(mirrored, 48).x).toBe(rightX);
+        expect(cardAt(mirrored, 48).y).toBeCloseTo(WIDE.top + WIDE.ch + WIDE.gap, 9);
+        expect(mirrored.slots.foundations.every((slot) => slot.x === leftX)).toBe(true);
+        expect(mirrored.slots.tableau).toEqual(plain.slots.tableau);
+        expect(cardAt(mirrored, 30)).toEqual(cardAt(plain, 30));
+        expect(cardAt(mirrored, 31)).toEqual(cardAt(plain, 31));
+    });
+
+    it('shifts the tableau one column right of the left side column', () => {
+        const layout = positions(PILES, WIDE, DEFAULT);
+        expect(layout.slots.tableau).toHaveLength(7);
+        layout.slots.tableau.forEach((slot, col) => {
+            expect(slot.x).toBeCloseTo(WIDE.ox + (col + 1) * step, 9);
+            expect(slot.y).toBe(WIDE.tabY);
+        });
+        expect(cardAt(layout, 30).x).toBeCloseTo(WIDE.ox + step, 9);
+        expect(cardAt(layout, 31).x).toBeCloseTo(WIDE.ox + 2 * step, 9);
+        expect(cardAt(layout, 30).y).toBe(WIDE.tabY);
+    });
+
+    it('fans the top three waste cards downward in Draw 3, the lower cards sharing the first position', () => {
+        const layout = positions(makeState({ draw: 3, mode: 'draw3', waste: [10, 11, 12, 13, 14] }), WIDE, DEFAULT);
+        const base = cardAt(layout, 12);
+        expect(cardAt(layout, 10).y).toBeCloseTo(base.y, 9);
+        expect(cardAt(layout, 11).y).toBeCloseTo(base.y, 9);
+        expect(cardAt(layout, 13).y - base.y).toBeCloseTo(0.2 * WIDE.ch, 9);
+        expect(cardAt(layout, 14).y - base.y).toBeCloseTo(2 * 0.2 * WIDE.ch, 9);
+        for (const id of [10, 11, 12, 13, 14]) {
+            expect(cardAt(layout, id).x).toBe(leftX);
+        }
+        expect(buriedFlags(layout, [10, 11, 12, 13, 14])).toEqual([true, true, false, false, false]);
+    });
+
+    it('does not fan the waste in Draw 1', () => {
+        const layout = positions(makeState({ waste: [10, 11, 12] }), WIDE, DEFAULT);
+        const first = cardAt(layout, 10);
+        for (const id of [11, 12]) {
+            expect(cardAt(layout, id).x).toBe(first.x);
+            expect(cardAt(layout, id).y).toBe(first.y);
+        }
+    });
+
+    it('overlaps the foundations on a short board', () => {
+        const ys = positions(PILES, WIDE, DEFAULT).slots.foundations.map((slot) => slot.y);
+        expect(nth(ys, 0)).toBe(WIDE.top);
+        const gaps = steps(ys);
+        expect(gaps).toHaveLength(3);
+        for (const gap of gaps) {
+            expect(gap).toBeGreaterThan(0);
+            expect(gap).toBeLessThan(WIDE.ch + WIDE.gap);
+        }
+        expect(nth(ys, 3) + WIDE.ch).toBeLessThanOrEqual(WIDE.bottom + EPSILON);
+    });
+
+    it('spaces the foundations a card height and a gap apart when the board is tall enough', () => {
+        const tall: Metrics = { ...WIDE, bottom: 10_000 };
+        const ys = positions(PILES, tall, DEFAULT).slots.foundations.map((slot) => slot.y);
+        for (const gap of steps(ys)) {
+            expect(gap).toBeCloseTo(WIDE.ch + WIDE.gap, 9);
+        }
+    });
+
+    it('never gives the foundations a negative step on a degenerate board', () => {
+        const flat: Metrics = { ...WIDE, bottom: WIDE.top };
+        const ys = positions(PILES, flat, DEFAULT).slots.foundations.map((slot) => slot.y);
+        expect(ys).toEqual([WIDE.top, WIDE.top, WIDE.top, WIDE.top]);
+    });
+
+    it('places each foundation suit in its slot in the order hearts, clubs, diamonds, spades', () => {
+        const layout = positions(PILES, WIDE, DEFAULT);
+        FOUNDATION_DISPLAY_ORDER.forEach((suit, slot) => {
+            const card = nth(PILES.foundations[suit], 0);
+            expect(cardAt(layout, card).x).toBe(nth(layout.slots.foundations, slot).x);
+            expect(cardAt(layout, card).y).toBe(nth(layout.slots.foundations, slot).y);
+        });
+    });
+
+    it('anchors the stock count badge 2 px below the stock top, on either side', () => {
+        const layout = positions(makeState({ stock: [40] }), WIDE, DEFAULT);
+        expect(layout.badge).toEqual({ x: leftX + WIDE.cw - 20, y: WIDE.top + 2 });
+        const mirrored = positions(makeState({ stock: [40] }), WIDE, MIRRORED);
+        expect(mirrored.badge).toEqual({ x: rightX + WIDE.cw - 20, y: WIDE.top + 2 });
+    });
+
+    it('keeps every card of a worst-case table inside the board', () => {
+        const state = makeState({
+            draw: 3,
+            mode: 'draw3',
+            stock: [200],
+            waste: [201, 202, 203],
+            foundations: foundationsOf(2, 2, 2, 2),
+            tableau: tableauOf(worstColumn().map((card) => ({ ...card, id: card.id + 100 }))),
+        });
+        /** 700×280 has room to spare below the fan; the height-limited boards push the fan past `bottom`. */
+        const boards = [
+            WIDE,
+            measure({ width: 1000, height: 300 }, { coarse: true }),
+            measure({ width: 900, height: 260 }, { coarse: false }),
+        ];
+        for (const board of boards) {
+            expect(board.wide).toBe(true);
+            for (const options of [DEFAULT, MIRRORED]) {
+                const layout = positions(state, board, options);
+                expect(layout.cards.size).toBe(1 + 3 + 8 + 19);
+                for (const placement of layout.cards.values()) {
+                    expect(placement.x).toBeGreaterThanOrEqual(0);
+                    expect(placement.x + board.cw).toBeLessThanOrEqual(board.width);
+                    expect(placement.y).toBeGreaterThanOrEqual(0);
+                    expect(placement.y + board.ch).toBeLessThanOrEqual(board.height);
+                }
+            }
+        }
     });
 });
