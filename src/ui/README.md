@@ -5,10 +5,10 @@ snapshots; they never apply game rules.
 
 - `components/` — small shared components (`BuildStamp.tsx`).
 - `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`).
-- `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), pile slots and the stock
-  badge (`board.css`) and global rules (`global.css`, which imports all three).
-- `board/` — the table: pure layout geometry and naming, listed below, the React card, slot and badge components,
-  and the board size hook.
+- `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), the board panel, pile slots
+  and the stock badge (`board.css`) and global rules (`global.css`, which imports all three).
+- `board/` — the table: pure layout geometry and naming, listed below, the React card, slot, badge and `Board`
+  components, the board size hook and the board selectors.
 - `useMediaQuery.ts` — the media-query hook (see "Board state and hooks").
 
 ## Pure board modules
@@ -53,15 +53,28 @@ purity rule below.
   The caller derives `spent` as an empty stock that cannot be recycled (`!canRecycle(state)`).
 - `board/StockBadge.tsx` — `StockBadge`, the count of cards left in the stock at its top-right corner. It renders
   nothing at 0; otherwise an `aria-hidden` `div.stock-count` with the inline `--x` / `--y` and `z-index` `BADGE_Z`.
-- `styles/board.css` — the static slot and badge styles, tokens only: dashed slot outline in `--color-slot-line`
+- `board/Board.tsx` — `Board`, the table. It always renders the `div.board-panel` that `useBoardSize` measures and
+  renders nothing inside it until the first size arrives. With a size it measures the table
+  (`useMemo(measure(size, { coarse }))`, `coarse` from `useMediaQuery('(pointer: coarse)')`) and places it with
+  `useMemo(positions(piles ?? EMPTY_PILES, metrics, { stockRight }))`, so nothing is laid out again unless the piles,
+  the size, the pointer or the `stockRight` preference change. The `div.board` inside carries `data-wide` and the
+  inline `--cw`, `--ch` and `--cr` (`max(5, cw * 0.09)` px), and holds, in order: the stock slot, the four
+  foundation slots in display order, the seven column slots, the stock badge and, only while a game is in play, one
+  `CardView` per placed card id 0 to 51 in id order (`key` is the id). The elements therefore persist across moves, undo and
+  redo: only their inline position changes. Without a game the slots render as for empty piles and no card renders.
+  It has no animation attributes and no pointer handlers yet.
+- `styles/board.css` — the static board, slot and badge styles, tokens only: the `.board-panel` felt
+  (`--color-table` with a `--color-table-dot` dot texture, `--radius-lg`, `isolation: isolate` so no card's stacking
+  order leaves the panel) and the `.board` inset over it; dashed slot outline in `--color-slot-line`
   (solid on the stock), `.is-spent` at 45% opacity, faint placeholder ink in `--color-slot-ink`, and the badge as an
   LCD pill (`--color-lcd-panel` / `--color-lcd-time`, `--font-pixel`). It has no transitions, no cursor rules and no
   colour literals.
 
 ## Board state and hooks
 
-Both hooks read the browser through `useSyncExternalStore`, so a new value renders in the same frame and no effect
-calls `setState`. They are React and DOM code, so they are not part of the purity rule below.
+The two hooks read the browser through `useSyncExternalStore`, so a new value renders in the same frame and no effect
+calls `setState`. The hooks are React and DOM code and the selectors are Redux code, so none of them is part of the
+purity rule below.
 
 - **`useBoardSize`** (`board/useBoardSize.ts`) — `useBoardSize()` returns `{ ref, size }`. `ref` is a stable callback
   ref for the board panel; it observes the element with a `ResizeObserver` and disconnects when React passes `null` on
@@ -71,6 +84,11 @@ calls `setState`. They are React and DOM code, so they are not part of the purit
 - **`useMediaQuery`** (`useMediaQuery.ts`) — `useMediaQuery(query)` returns whether the query matches, follows the
   `change` event live and returns `false` when `window.matchMedia` is missing (and on the server snapshot). The board
   uses it with `(pointer: coarse)`.
+- **`selectors`** (`board/selectors.ts`) — `selectBoardPiles` is a memoised selector over the tableau, stock, waste,
+  foundations and draw of the game in play: a `BoardPiles`, or `null` while there is no game. It keeps its identity
+  while those five references do, so an `accrued` clock tick (which replaces the position but shares its piles) gives
+  the board no new layout input. `selectStockSpent` is `true` for an empty stock that `canRecycle` refuses, and dims
+  the stock slot.
 
 ## Board purity rule
 

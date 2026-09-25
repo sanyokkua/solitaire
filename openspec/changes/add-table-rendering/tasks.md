@@ -292,7 +292,7 @@
     - **Verify:** `rtk npx vitest run tests/component/useBoardSize tests/component/useMediaQuery`
       passes.
 
-- [ ] 3.5 Assemble the `Board`: 52 persistent cards and memoised geometry
+- [x] 3.5 Assemble the `Board`: 52 persistent cards and memoised geometry
     - **Implements:** BR "One persistent element per card", "Shadows and layering" (stacking
       context); BL "Layout is a pure, deterministic function" (clock ticks do not re-lay out); BM
       "Re-layout on viewport change within one frame" (no cards before the first size); *KS-PERF-01*;

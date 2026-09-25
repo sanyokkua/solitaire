@@ -1,4 +1,24 @@
-/* Pile slots, their placeholders and the stock badge. Static: no transitions, no motion. */
+/* The board panel, pile slots, their placeholders and the stock badge. Static: no transitions, no motion. */
+
+/* The felt the cards lie on. `isolation: isolate` keeps every card's stacking order inside the panel. */
+.board-panel {
+    position: relative;
+    flex: 1;
+    min-height: 14rem;
+    border: 1px solid var(--color-outline-soft);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-table);
+    background-image: radial-gradient(var(--color-table-dot) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.board {
+    position: absolute;
+    inset: 0;
+}
 
 .slot {
     position: absolute;
