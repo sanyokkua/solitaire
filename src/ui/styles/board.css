@@ -1,0 +1,63 @@
+/* Pile slots, their placeholders and the stock badge. Static: no transitions, no motion. */
+
+.slot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: var(--cw);
+    height: var(--ch);
+    border: 2px dashed var(--color-slot-line);
+    border-radius: var(--cr);
+    color: var(--color-slot-ink);
+    font-size: calc(var(--cw) * 0.36);
+    line-height: 1;
+    transform: translate(var(--x), var(--y));
+}
+
+.slot--stock {
+    border-style: solid;
+}
+
+.slot--stock svg {
+    width: 38%;
+    height: 38%;
+}
+
+.slot--stock.is-spent {
+    opacity: 0.45;
+}
+
+.slot--found .r {
+    position: absolute;
+    top: calc(var(--cw) * 0.09);
+    left: calc(var(--cw) * 0.09);
+    font-family: var(--font-pixel);
+    font-size: calc(var(--cw) * 0.16);
+}
+
+.slot--tab {
+    border-color: color-mix(in srgb, var(--color-slot-line) 70%, transparent);
+}
+
+.slot--tab .r {
+    font-family: var(--font-pixel);
+    font-size: calc(var(--cw) * 0.2);
+}
+
+.stock-count {
+    position: absolute;
+    top: 0;
+    left: 0;
+    min-width: 1.5rem;
+    padding: 0.18rem 0.35rem;
+    border-radius: 999px;
+    background: var(--color-lcd-panel);
+    color: var(--color-lcd-time);
+    font-family: var(--font-pixel);
+    font-size: 0.45rem;
+    text-align: center;
+    pointer-events: none;
+    transform: translate(var(--x), var(--y));
+}

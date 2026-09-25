@@ -5,9 +5,9 @@ snapshots; they never apply game rules.
 
 - `components/` — small shared components (`BuildStamp.tsx`).
 - `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`).
-- `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`) and global rules
-  (`global.css`, which imports both).
-- `board/` — the table: pure layout geometry and naming, listed below, and the React card view.
+- `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), pile slots and the stock
+  badge (`board.css`) and global rules (`global.css`, which imports all three).
+- `board/` — the table: pure layout geometry and naming, listed below, and the React card, slot and badge components.
 
 ## Pure board modules
 
@@ -43,6 +43,18 @@ purity rule below.
   the 3D flip structure with `-webkit-backface-visibility`, `--ink-*` inks per suit, the `--back-a` / `--back-b`
   checker (a fixed 8 px) with the `--color-back-rim` rim, and `box-shadow: none` on a buried card. It has no
   transitions and no colour literals.
+- `board/PileSlot.tsx` — `PileSlot`, a memoised slot beneath a stock, foundation or tableau pile (the waste has none).
+  Props: `pile`, `count`, `x`, `y` and an optional `spent`. The `div.slot` is a `role="group"` named by
+  `pileName(pile, count)` with the inline `--x` / `--y`, the `slot--stock` / `slot--found` / `slot--tab` class and
+  `is-spent` when `spent`. Its children are `aria-hidden`: the recycle mark (an inline SVG in `currentColor`, always
+  drawn on the stock) on the stock, "A" plus the suit glyph (followed by U+FE0E) on a foundation and "K" on a column.
+  The caller derives `spent` as an empty stock that cannot be recycled (`!canRecycle(state)`).
+- `board/StockBadge.tsx` — `StockBadge`, the count of cards left in the stock at its top-right corner. It renders
+  nothing at 0; otherwise an `aria-hidden` `div.stock-count` with the inline `--x` / `--y` and `z-index` `BADGE_Z`.
+- `styles/board.css` — the static slot and badge styles, tokens only: dashed slot outline in `--color-slot-line`
+  (solid on the stock), `.is-spent` at 45% opacity, faint placeholder ink in `--color-slot-ink`, and the badge as an
+  LCD pill (`--color-lcd-panel` / `--color-lcd-time`, `--font-pixel`). It has no transitions, no cursor rules and no
+  colour literals.
 
 ## Board purity rule
 

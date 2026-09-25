@@ -5,7 +5,7 @@ import type { CardId } from '../../domain/types';
 import { cardName } from './names';
 
 /** Forces the text (monochrome) presentation of a suit glyph, so it is never drawn as a colour emoji. */
-const TEXT_PRESENTATION = '\uFE0E';
+export const TEXT_PRESENTATION = '\uFE0E';
 
 /** Ranks above this are court cards (J, Q, K): they show a boxed letter instead of a centre suit. */
 const LAST_NUMBER_RANK = 10;

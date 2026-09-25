@@ -252,7 +252,7 @@
         (BR "Buried stock cards") and the checker's `background-size` is in px (BR "Card backs").
     - **Verify:** `rtk npx vitest run tests/component/cardView tests/unit/ui` passes.
 
-- [ ] 3.3 Render pile slots, placeholders, the stock states and the badge
+- [x] 3.3 Render pile slots, placeholders, the stock states and the badge
     - **Implements:** BR "Slots, placeholders and the stock", "Accessible names for cards and piles"
       (pile part); D11, D12.
     - **References:** mockup slots and badge CSS L232–239, slot markup L817–821, badge placement
