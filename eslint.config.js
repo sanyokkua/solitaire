@@ -57,6 +57,23 @@ export default tseslint.config(
         },
     },
     {
+        files: ['src/ui/board/metrics.ts', 'src/ui/board/layout.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            regex: '^(?!\\./[A-Za-z]+(\\.js)?$|\\.\\./\\.\\./domain/[A-Za-z]+(\\.js)?$)',
+                            message:
+                                'The pure board modules may import only their own siblings (./name) and ../../domain/name.',
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+    {
         files: ['src/features/**/*.{ts,tsx}'],
         rules: {
             'no-restricted-imports': 'off',

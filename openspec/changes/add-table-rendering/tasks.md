@@ -108,7 +108,7 @@
 
 ## 2. Pure board layout
 
-- [ ] 2.1 Build `measure()`: card size, spacing, stacked-or-wide choice and the purity guard
+- [x] 2.1 Build `measure()`: card size, spacing, stacked-or-wide choice and the purity guard
     - **Implements:** BL "Layout is a pure, deterministic function", "Card size and spacing follow
       the board size", "Stacked or wide table is chosen by the worst-case strip"; *KS-GEN-05*,
       *KS-GEN-07*; D6, D7.

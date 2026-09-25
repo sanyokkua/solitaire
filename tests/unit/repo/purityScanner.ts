@@ -1,6 +1,6 @@
 /**
  * Source scanners shared by the layer-purity guards (`domainPurity.test.ts`, `solverPurity.test.ts`,
- * `storageBoundary.test.ts`). This is a helper,
+ * `boardPurity.test.ts`, `storageBoundary.test.ts`). This is a helper,
  * not a test file: Vitest only collects `*.test.ts`.
  */
 
