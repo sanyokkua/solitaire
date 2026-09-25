@@ -40,13 +40,17 @@ describe('a complete game played through commands alone', () => {
         expect(state.passes).toBe(WINNING_LINE.passes);
     });
 
-    it('never changes the clock, seed, mode, rules or provenance at any step of the line', () => {
+    it('never changes the clock, undo charges, seed, mode, rules or provenance at any step of the line', () => {
         const owned = (state: GameState) => {
-            const { elapsedMs, seed, mode, draw, scoring, verdict, attempts } = state;
-            return { elapsedMs, seed, mode, draw, scoring, verdict, attempts };
+            const { elapsedMs, undos, seed, mode, draw, scoring, verdict, attempts } = state;
+            return { elapsedMs, undos, seed, mode, draw, scoring, verdict, attempts };
         };
-        // A non-default clock and provenance, so resetting them to their defaults would be caught.
-        let state = deepFreeze({ ...dealFromSeed(seed, mode, { verdict: 'win', attempts: 3 }), elapsedMs: 12_345 });
+        // A non-default clock, undo count and provenance, so resetting them to their defaults would be caught.
+        let state = deepFreeze({
+            ...dealFromSeed(seed, mode, { verdict: 'win', attempts: 3 }),
+            elapsedMs: 12_345,
+            undos: 4,
+        });
         const expected = owned(state);
         for (const [step, command] of parseLine(WINNING_LINE.line).entries()) {
             state = applyCommand(state, command).state;

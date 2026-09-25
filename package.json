@@ -23,7 +23,8 @@
         "e2e": "playwright test",
         "e2e:headed": "playwright test --headed",
         "prepare": "husky",
-        "validate": "npm run format:check && npm run lint && npm run typecheck && npm run test:unit && npm run build"
+        "validate:lifecycle-storage": "node scripts/validate-lifecycle-storage.mjs",
+        "validate": "npm run format:check && npm run lint && npm run typecheck && npm run validate:lifecycle-storage && npm run test:unit && npm run build"
     },
     "lint-staged": {
         "*.{ts,tsx}": [

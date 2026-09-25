@@ -18,6 +18,7 @@ export function makeState(partial: Partial<GameState> = {}): GameState {
         moves: 0,
         passes: 1,
         elapsedMs: 0,
+        undos: 0,
         started: false,
         status: 'playing',
     };

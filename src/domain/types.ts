@@ -35,12 +35,17 @@ export interface GameState {
     readonly waste: Pile;
     /** Indexed by suit. */
     readonly foundations: Foundations;
-    /** Stored move score; the displayed score also applies the time penalty and win bonus. */
+    /** Stored move score; the displayed score also applies the time penalty, undo charges and win bonus. */
     readonly score: number;
     readonly moves: number;
     /** Ordinal of the pass in progress; a fresh deal starts at 1. */
     readonly passes: number;
     readonly elapsedMs: number;
+    /**
+     * Undo charges taken in this game; 0 on a fresh deal, never changed by the engine, incremented
+     * by undo, and kept through undo and redo.
+     */
+    readonly undos: number;
     readonly started: boolean;
     readonly status: 'playing' | 'won';
 }

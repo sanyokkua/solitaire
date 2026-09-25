@@ -12,6 +12,7 @@ const playwrightConfig = readRepoFile('playwright.config.ts');
 const ciWorkflow = readRepoFile('.github/workflows/ci.yml');
 const pagesWorkflow = readRepoFile('.github/workflows/pages.yml');
 const indexHtml = readRepoFile('index.html');
+const packageJson = JSON.parse(readRepoFile('package.json')) as { scripts: Record<string, string> };
 
 const PINNED_ACTION_VERSION = /^v\d+\.\d+\.\d+$/;
 
@@ -26,6 +27,20 @@ describe('base path agreement across configurations', () => {
         ['playwright.config.ts', playwrightConfig],
     ])('%s carries the /solitaire/ base path', (_name, text) => {
         expect(text).toContain('/solitaire/');
+    });
+});
+
+describe('package.json scripts', () => {
+    it('exposes the lifecycle-storage guard', () => {
+        expect(packageJson.scripts['validate:lifecycle-storage']).toBe('node scripts/validate-lifecycle-storage.mjs');
+    });
+
+    it('runs the whole gate in order, with the guard after type checking', () => {
+        const steps = ['format:check', 'lint', 'typecheck', 'validate:lifecycle-storage', 'test:unit', 'build'].map(
+            (name) => `npm run ${name}`,
+        );
+
+        expect(packageJson.scripts.validate).toBe(steps.join(' && '));
     });
 });
 

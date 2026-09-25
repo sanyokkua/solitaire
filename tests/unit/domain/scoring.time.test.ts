@@ -79,4 +79,26 @@ describe('displayedScore', () => {
         expect(displayedScore(state)).toBe(7_030);
         expect(state.score).toBe(50);
     });
+
+    it('subtracts undo charges from the displayed Standard score', () => {
+        const state = deepFreeze(makeState({ scoring: 'standard', score: 50, elapsedMs: 5_000, undos: 3 }));
+        expect(displayedScore(state)).toBe(44);
+    });
+
+    it('never takes the Standard score below zero for undo charges', () => {
+        const state = deepFreeze(makeState({ scoring: 'standard', score: 4, undos: 3 }));
+        expect(displayedScore(state)).toBe(0);
+    });
+
+    it('floors the undo charge before adding the win bonus on top', () => {
+        const state = deepFreeze(
+            makeState({ scoring: 'standard', score: 4, undos: 3, elapsedMs: 31_000, status: 'won' }),
+        );
+        expect(displayedScore(state)).toBe(Math.floor(700_000 / 31));
+    });
+
+    it('ignores undo charges under Vegas', () => {
+        const state = deepFreeze(makeState({ scoring: 'vegas', score: -27, undos: 3 }));
+        expect(displayedScore(state)).toBe(-27);
+    });
 });

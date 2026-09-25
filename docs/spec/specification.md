@@ -113,9 +113,9 @@ Tapping the stock draws cards; tapping the empty stock turns the waste over (sub
 - **Finish** becomes available when a finish plan completes under the ordinary rules (*R§6.3*), which requires every tableau card to be face up; it plays every remaining card home in a quick sequence. Its draws and recycles are scored, counted and pass-limited like the player's; there is no pass-penalty exemption.
 
 ### 4.4 Undo and redo
-- Unlimited undo back to the start of the deal; redo until a new move is made.
+- Unlimited undo back to the start of the deal; redo until a new move is made. A saved game keeps its newest 200 undo steps and its nearest 200 redo steps, so a reload after more than 200 moves can undo only that far (*KS-PER-01*).
 - Automatic follow-up moves (flip, safe auto-moves) are undone together with the move that caused them.
-- Standard scoring charges −2 per undo; Vegas undo just restores the previous bankroll.
+- Undo restores the earlier position's score exactly; Standard scoring additionally charges 2 points per undo, which stay charged (redo does not refund them). Vegas undo just restores the previous bankroll, with no extra fee.
 - Undo is unavailable after a win.
 
 ### 4.5 Hints
@@ -148,7 +148,7 @@ Tapping the stock draws cards; tapping the empty stock turns the waste over (sub
 ## 5. Scoring and statistics
 - **Standard** and **Vegas** scoring exactly as in *R§5.1–5.2*, plus the project's undo decisions (§4.4).
 - Standard scores never go below 0.
-- The stored score is the move score. The displayed score is derived: the move score minus the time penalty (floored at 0 under Standard only), plus the win bonus once the game is won. The time penalty is a total computed from elapsed *unpaused* play time (Standard: 2 × ⌊seconds ÷ 10⌋); it is never deducted from the stored score as time passes.
+- The stored score is the move score. The displayed score is derived: the move score minus the time penalty and minus 2 points per undo charge (floored at 0 under Standard only), plus the win bonus once the game is won. The time penalty is a total computed from elapsed *unpaused* play time (Standard: 2 × ⌊seconds ÷ 10⌋); it is never deducted from the stored score as time passes.
 - **Statistics** per mode as in *R§7*. A game counts as played at the first move. Starting a different deal while a game is started and unfinished breaks that mode's streak; **Restart this deal** does too.
 - **Daily**: a completed day is recorded once; the daily streak counts consecutive UTC days completed.
 - Records: best time (lowest), best score / best bank (highest), best streak.
@@ -181,7 +181,7 @@ Changing a setting never alters the rules of a game in progress. The mode is fix
 ## 7. Saving and resuming
 - Settings, statistics and the unfinished game (including its undo history, up to a limit) are kept **only on this device**.
 - Leaving, reloading or closing the app keeps an unfinished game; **Continue game** on Home restores it exactly, including time, score, moves and deal code. Finished games aren't resumable.
-- If stored data is missing, damaged or from an unknown version, the app starts with defaults and shows a short notice. It never crashes and never deletes data it couldn't read.
+- If stored data is incomplete (a record that exists but lacks required parts), damaged or from an unknown version, the app starts with defaults and shows a short notice. A first run with nothing stored is silent. It never crashes and never deletes data it couldn't read: the unreadable value is copied to a backup key before anything is written over it.
 - If the device refuses to save (private mode or full storage), play continues and a non-blocking notice explains that progress won't be kept.
 
 ---
@@ -307,7 +307,7 @@ Legend: **Ubiquitous** "The system shall…" · **Event** "WHEN … the system s
 ### 9.6 Scoring and time (SCO)
 - **KS-SCO-01** WHILE the mode uses Standard scoring, the system shall apply the points of *R§5.1*, never letting the score drop below 0.
 - **KS-SCO-02** WHILE the mode uses Vegas scoring, the system shall start at −$52, add $5 per card to a foundation, subtract $5 per card leaving one, and display the value as money.
-- **KS-SCO-03** WHEN the player undoes in Standard scoring, the system shall subtract 2 points from the restored score.
+- **KS-SCO-03** WHEN the player undoes in Standard scoring, the system shall restore the score of the restored position and charge 2 points that stay charged; redo does not refund.
 - **KS-SCO-04** WHEN a Standard game is won after more than 30 s, the system shall add a bonus of floor(700,000 ÷ seconds).
 - **KS-SCO-05** The system shall start the timer on the first move and count only unpaused play time.
 - **KS-SCO-06** WHILE the Game screen is hidden, a sheet is open or the document is hidden, the system shall pause the timer and the time penalty.
@@ -329,9 +329,9 @@ Legend: **Ubiquitous** "The system shall…" · **Event** "WHEN … the system s
 - **KS-SET-06** The system shall not change the rules of a game in progress when settings change.
 
 ### 9.9 Persistence (PER)
-- **KS-PER-01** The system shall store settings, statistics and the unfinished game (with up to 200 undo steps) on the device.
+- **KS-PER-01** The system shall store settings, statistics and the unfinished game (with its newest 200 undo steps and nearest 200 redo steps) on the device.
 - **KS-PER-02** WHEN the app is reopened with an unfinished game stored, the system shall offer Continue game and restore that game exactly.
-- **KS-PER-03** IF stored data is missing, unreadable or from an unknown version, THEN the system shall start with defaults, keep the unreadable data untouched, and show a non-blocking notice.
+- **KS-PER-03** IF stored data is incomplete, unreadable or from an unknown version, THEN the system shall start with defaults, keep the unreadable data untouched, and show a non-blocking notice.
 - **KS-PER-04** IF saving fails, THEN the system shall keep the current game playable and show a non-blocking notice.
 - **KS-PER-05** WHEN the player confirms Reset all local data, the system shall clear stored data and restore defaults.
 
@@ -363,7 +363,7 @@ Legend: **Ubiquitous** "The system shall…" · **Event** "WHEN … the system s
 
 ## 10. Key acceptance scenarios
 1. **First launch, full game:** Home → Draw 1 → Deal cards. The chip shows Winnable; the player wins by tapping only. Win sheet; statistics show 1 played, 1 won, streak 1.
-2. **Drag a run:** drag a 3-card run onto a legal column; it lands and the uncovered card flips (+5). Undo returns everything, including the face-down card, and the score shows the −2.
+2. **Drag a run:** drag a 3-card run onto a legal column; it lands and the uncovered card flips (+5). Undo returns everything, including the face-down card, and charges 2 points (the displayed score's 0-floor can hide it).
 3. **Illegal drop:** drag a red 7 onto a red 8; the cards glide back and nothing changes.
 4. **Draw 3 fan and recycle:** three waste cards show fanned; only the top one moves. On the 3rd recycle −20 applies.
 5. **Vegas limit:** after 3 passes, tapping the empty stock shows "No redeals left".

@@ -8,6 +8,9 @@ The pure Klondike game engine (Phase 2 — Card engine).
 - `deal.ts` — `orderedDeck`, Fisher–Yates `shuffle`, `modeConfig`, `dealFromSeed()` (records the seed reduced to unsigned 32 bits)
 - `rules.ts` — `canDrop`, `legalTargets`, `isMovable`, `groupAt`, `canRecycle`, `passLimit`, `isWon`, guarded pile accessors
 - `engine.ts` — `applyCommand(state, cmd) → { state, events }`
+- `validate.ts` — `isValidGameState(value): value is GameState`, the total, never-throwing shape and
+  invariant check reused by the Phase 4 persistence decoder (design D13); reuses `isCardId` (cards.ts),
+  `modeConfig` (deal.ts) and `isWon` (rules.ts)
 - `scoring.ts` — `startingScore`, per-event and per-command deltas (`eventDelta`, `commandDelta`), the clamped `applyDelta`, `timePenalty`, `winBonus`, `undoCost`, `displayedScore`
 - `assist.ts` — `hint`, `isSafe`, `nextSafeMove`, `finishPlan`, `isDeadEnd`, `bestTarget`
 - `types.ts` — shared domain types
@@ -25,6 +28,10 @@ This layer imports nothing from React, Redux, the DOM or storage, and nothing fr
 - **Scoring seam.** `applyCommand` stores the _move score_ in `GameState.score`, scoring only the
   events it produced. The time penalty, undo cost and win bonus are separate pure functions applied
   outside the engine, and the _displayed_ score is derived from them (`displayedScore`): the move score
-  minus the time penalty (floored at 0 under Standard only), plus the win bonus once won.
+  minus the time penalty and `undos × undoCost` (floored at 0 under Standard only), plus the win bonus
+  once won.
+- **Undo charges.** `GameState.undos` counts undo charges taken in this game; `dealFromSeed` sets it to
+  0 and the engine never touches it (a later feature layer increments it on undo). Like `elapsedMs`, it
+  survives undo and redo, and it only affects the displayed score, never the stored one.
 - **Rejection.** A refused command returns the same state object plus one `rejected` event with a
   typed reason; `applyCommand` never throws.

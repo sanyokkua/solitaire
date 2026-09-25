@@ -96,7 +96,7 @@ src/
     deal/solverClient.ts       worker client: lazy start, request ids, cancellation
     deal/dealService.ts        deal per mode, provenance, overlay timing, timeouts, hint answering
     game/gameSlice.ts          session, history, future, timer accrual
-    game/gameClock.ts          injected-clock ticker (250 ms) as in Minesweeper
+    game/clockTicker.ts        injected-clock ticker (250 ms)
     stats/statsSlice.ts
     preferences/preferencesSlice.ts
     persistence/{recordCodec,storageGateway,persistenceController}.ts
@@ -136,7 +136,9 @@ interface GameState {                             // every field readonly, array
   foundations: readonly [Pile, Pile, Pile, Pile]  // by suit
   score: number                                   // stored move score; displayed score is derived
   moves: number; passes: number                   // passes = ordinal of the pass in progress; fresh deal = 1
-  elapsedMs: number; started: boolean; status: 'playing' | 'won'
+  elapsedMs: number
+  undos: number                                   // undo charges; engine never changes it
+  started: boolean; status: 'playing' | 'won'
 }
 type Command =
   | { type: 'draw' }
@@ -154,7 +156,7 @@ type GameEvent =
 | Slice         | Holds                                                                                                                                            | Notes                                                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
 | `app`         | route (`home`/`game`), open sheet, notices, document visibility, dealing overlay                                                                 | As in Minesweeper.                                                                                                       |
-| `game`        | `current: GameState \| null`, `history: GameState[]` (cap 200), `future: GameState[]`, `selection`, `hint`, `busy` (finish/cascade)              | Thunks: `startGame(mode, seed?)`, `play(cmd)` (snapshot → apply → auto-safe chain), `undo`, `redo`, `finish`, `restart`. |
+| `game`        | `current: GameState \| null`, `history: GameState[]` and `future: GameState[]` (both unlimited in memory; 200 + 200 stored), `dailyKey`, `counted`, `selection`, `hint`, `busy` (finish/cascade)              | Thunks: `startGame(mode, seed?)`, `play(cmd)` (snapshot → apply → auto-safe chain), `undo`, `redo`, `finish`, `restart`. |
 | `preferences` | theme, nightCards, fourColor, cardBack, tapMode, highlight, autoSafe, stockRight, animations, locale, winnableOnly, selectedMode                 |                                                                                                                          |
 | `stats`       | per-mode `{ played, won, streak, bestStreak, bestTimeMs, bestScore }`, `daily: { completed: string[] (last 400 UTC dates), streak, bestStreak }` |                                                                                                                          |
 | `persistence` | hydration status, errors                                                                                                                         | Writes are debounced (250 ms) and flushed on `pagehide`/`visibilitychange`.                                              |
@@ -163,12 +165,21 @@ type GameEvent =
 ```text
 solitaire.local-state → {
   version: 1,
-  preferences: {...},                     // §3.3
-  stats: {...},
-  session?: { current: GameState, history: GameState[] ≤ 200 }  // only when status = playing
+  preferences: {...},                     // §3.3, the twelve preferences in a fixed key order
+  stats: {...},                           // per-mode stats + daily: { completed (≤ 400 dates), bestStreak }
+  session?: {                             // only when the game is started and status = playing
+    current: GameState,
+    history: Step[],                      // the newest 200 undo steps, oldest first
+    future: Step[],                       // the nearest 200 redo steps, the next redo last
+    dailyKey: string | null,              // the UTC date a Daily deal was selected for
+    counted: boolean                      // whether the game already counts as played in the statistics
+  }
 }
+Step = { tableau, stock, waste, foundations, score, moves, passes, elapsedMs, undos, started }
 ```
-Decode defensively: validate the shape and invariants (52 unique cards, legal pile structure). On failure use defaults, keep the raw value untouched and raise a notice (*KS-PER-03*). Add a `validate:lifecycle-storage` script as in Minesweeper.
+History and future are unlimited in memory (undo reaches the start of the deal, spec §4.4); the record keeps only the newest 200 undo steps and the nearest 200 redo steps. A stored step is compact: it carries just the ten fields above. `elapsedMs`, `undos` and `started` are stored because a snapshot keeps the values it had when it was captured, so they cannot be copied from `current`. The constant fields (`seed`, `mode`, `draw`, `scoring`, `verdict`, `attempts`) are copied from `current` on decode and `status` is `playing`, so every step belongs to the same deal by construction. A won or unstarted game is not stored.
+
+Decode defensively and whole: validate the exact key set of every object, the enum values, non-negative integer counts, real `YYYY-MM-DD` dates (≤ 400, strictly ascending) and the game invariants (52 unique cards, legal pile structure; `isValidGameState` for `current` and every rebuilt step). A record that is not valid JSON is `malformed`, one with a version above 1 is `future`, anything else that fails validation is `invalid`; a partly valid record is never salvaged. On any of these use defaults and raise a notice (*KS-PER-03*), and before anything is written over the unreadable value copy it unchanged to the backup key `solitaire.local-state.unreadable`; if that key already holds a different value or the copy fails, do not write the record for the rest of the session. No stored value at all (a first run) is silent. Add a `validate:lifecycle-storage` script as in Minesweeper.
 
 ---
 
@@ -195,7 +206,7 @@ Decode defensively: validate the shape and invariants (52 unique cards, legal pi
 | Keyboard           | Roving focus across piles; Arrow keys move between piles and cards; Enter/Space = tap; global shortcuts per spec §4.8.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | R§9            |
 | Deal animation     | Park all cards at the stock with transitions off → force reflow → enable transitions with `--d = k·28 ms` and the flip delay `--fd = --d + 200 ms`; clear afterwards. Ignore resize events without an actual size change.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | R§12.3         |
 | Cascade            | WAAPI keyframes per card (gravity 0.5, bounce 0.72, 70 ms stagger), `fill: forwards`; cancel on the next deal; skipped with reduced motion.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | —              |
-| Timer              | Injected clock, 250 ms ticker; accrue `elapsedMs` only while `clockEligible` (Game route, no sheet, document visible, started, not won). The clock only accrues `elapsedMs`; the Standard time penalty is a total derived from it (`2 × floor(s / 10)`), never deducted as time passes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | spec §4.7      |
+| Timer              | Injected clock, 250 ms ticker; accrue `elapsedMs` only while `clockEligible` (Game route, no sheet, document visible, started, not won). Each accrual step adds at most 1 s in whole milliseconds (the anchor advances by what was added, so `elapsedMs` stays an integer on the fractional `performance.now` clock), and the anchor is reset whenever the clock is ineligible, so resuming never counts the gap. The clock only accrues `elapsedMs`; the Standard time penalty is a total derived from it (`2 × floor(s / 10)`), never deducted as time passes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | spec §4.7      |
 | Dark themes        | Token sets for light, dark and night cards (spec §8.1) on `:root` via `data-theme`, with the `system` media query, plus `.night-cards` and `.four-color` classes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | spec §8        |
 
 ---
@@ -283,7 +294,7 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
 - **Goal:** the app state model around the engine.
 - **Scope:**
   - Slices `app`, `game`, `preferences`, `stats`, `persistence` (§3.3).
-  - Thunks: start, play, undo/redo (snapshot history, cap 200), restart, finish.
+  - Thunks: start, play, undo/redo (unlimited snapshot history in memory, 200 + 200 stored), restart, finish.
   - Auto-safe chain as one history entry; statistics rules; the clock with eligibility rules.
   - Codec v1 + storage gateway + hydrate/flush; Continue game; reset actions.
 - **Requirements:** KS-AST-04/07/08, KS-SCO-05/06, KS-STA-01…05, KS-PER-01…05, KS-SET-06, KS-GEN-04.
@@ -291,7 +302,7 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
   - Reducer tests cover every command.
   - Codec tests cover corrupt, future-version and quota-failure cases.
   - Reload restores an identical state in a jsdom test.
-- **Seed:** *"Build the Redux Toolkit state layer for Klondike Solitaire per docs/spec/phased-design.md §3.3–3.4: app/game/preferences/stats/persistence slices, game thunks (start, play, undo, redo, restart, finish, auto-safe chain), snapshot history capped at 200, statistics and streak rules (spec §5), injected-clock timer with pause eligibility, and a versioned localStorage record 'solitaire.local-state' v1 with defensive decoding. No visual UI beyond test harnesses."*
+- **Seed:** *"Build the Redux Toolkit state layer for Klondike Solitaire per docs/spec/phased-design.md §3.3–3.4: app/game/preferences/stats/persistence slices, game thunks (start, play, undo, redo, restart, finish, auto-safe chain), unlimited snapshot history in memory with 200 undo + 200 redo steps stored, statistics and streak rules (spec §5), injected-clock timer with pause eligibility, and a versioned localStorage record 'solitaire.local-state' v1 with defensive decoding. No visual UI beyond test harnesses."*
 
 ### Phase 5 — Table rendering, layout & motion
 - **Goal:** the board looks like the mockup and animates, with static interactions stubbed.

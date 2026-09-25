@@ -32,6 +32,10 @@ describe('dealFromSeed', () => {
             expect(state.seed).toBe(seed);
             expect(state.mode).toBe(mode);
         });
+
+        it('starts with no undo charges', () => {
+            expect(state.undos).toBe(0);
+        });
     });
 
     it('is deterministic for the same seed and mode and varies across seeds', () => {

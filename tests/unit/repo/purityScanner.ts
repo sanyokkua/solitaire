@@ -1,5 +1,6 @@
 /**
- * Source scanners shared by the layer-purity guards (`domainPurity.test.ts`, `solverPurity.test.ts`). This is a helper,
+ * Source scanners shared by the layer-purity guards (`domainPurity.test.ts`, `solverPurity.test.ts`,
+ * `storageBoundary.test.ts`). This is a helper,
  * not a test file: Vitest only collects `*.test.ts`.
  */
 
@@ -45,6 +46,11 @@ export function forbiddenGlobals(source: string): string[] {
     const found: string[] = code.match(FORBIDDEN_IDENTIFIERS) ?? [];
     if (/\bMath\s*\.\s*random\b/.test(code)) found.push('Math.random');
     return found;
+}
+
+/** Whole-identifier `localStorage` and `sessionStorage` references in code (comments excluded). */
+export function storageReferences(source: string): string[] {
+    return stripComments(source).match(/\b(?:localStorage|sessionStorage)\b/g) ?? [];
 }
 
 export function usesCrypto(source: string): boolean {

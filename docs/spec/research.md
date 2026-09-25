@@ -165,7 +165,7 @@ The talon-as-a-set simplification doesn't hold, because the order of the stock a
 - The score never drops below 0.
 - Draw 3 gets three free passes: four successive recycles score 0, 0, −20, −20.
 - Theoretical maximum with the bonus is **24,078** (SolitaireCat). The original report's "~745" refers to move points without the bonus.
-- **Undo:** not part of the original table. The mockup charges −2 per undo on top of restoring the previous score. **Decision for this project:** keep −2 per undo in Standard.
+- **Undo:** not part of the original table. Classic Windows Solitaire reverses the undone move's points exactly (the Windows reversal; Play-Solitaire.com, a clone with Windows-identical scoring); Microsoft Solitaire Collection documents no fixed undo fee. **Decision for this project:** that exact reversal plus a 2-point charge per undo in Standard, which redo never refunds (Vegas: no fee, §5.2).
 - Scoring quirk: waste → tableau → foundation earns 15 points, versus 10 for going straight to the foundation.
 
 ### 5.2 Vegas
@@ -291,7 +291,7 @@ Per mode: games played, games won, win rate, best time, best score (Vegas: best 
 5. **Stacking contexts:** the cascade used card z-indexes of 2000+ and flew *over* the win dialog. Give the board container `isolation: isolate`.
 6. **Compounded shadows** on deep piles (§10).
 7. **Only show the "shuffling…" overlay** if verification takes longer than about 160 ms; most deals are verified in a few milliseconds.
-8. **Undo by snapshots** (serialised state before each move) is trivial and cheap: about 1 KB per snapshot, capped at 400.
+8. **Undo by snapshots** (serialised state before each move) is trivial and cheap: about 1 KB per snapshot. This project keeps them unlimited in memory and stores the newest 200 undo and the nearest 200 redo steps (compact positions, about 300 KB at most).
 9. **Themes:** in dark mode, near-white cards glare. Dim the card faces (#D2DDE5) by default and offer a "night cards" variant (navy faces, light ink, pale card backs).
 
 ---
@@ -351,6 +351,7 @@ All 13 screens were checked in portrait and landscape, in the browser and as an 
 - Bjarnason, Fern & Tadepalli, *Searching Solitaire in Real Time*, ICGA Journal (2007)
 - [Klondike (solitaire) — Wikipedia](https://en.wikipedia.org/wiki/Klondike_(solitaire)) (Windows scoring table, time bonus)
 - [How does Solitaire scoring work? — SolitaireCat](https://www.solitairecat.com/articles/rules/solitaire-scoring/) (Draw 3 recycle −20 after the 3rd pass, maximum 24,078)
+- [Klondike Solitaire: questions and answers — Play-Solitaire.com](https://www.play-solitaire.com/questions-and-answers) (Windows-identical scoring; undo loses the undone move's points)
 - WCAG 2.2 Understanding SC 2.5.8 / 2.5.5; Apple Human Interface Guidelines; Material Design touch targets
 - The Verge (Tom Warren, 22 May 2020): Microsoft Solitaire player figures
 - Repositories: paultranvan/solitaire, Two9A/solitaire-js, ruchira088/solitaire, wmcmurray/klondike-solitaire, sigoden/klondike, ShootMe/Klondike-Solver, sanyokkua/minesweeper

@@ -6,7 +6,7 @@ Guidance for AI coding agents (Claude Code, Codex, etc.) working in this reposit
 
 This repository will become **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
 
-**Repository state: Phase 1 scaffolding complete; the Phase 2 card engine (pure domain in `src/domain`) and the Phase 3 solver (`src/solver`) and deal service (`src/features/deal`) now exist.** The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks all exist. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
+**Repository state: Phases 1–4 complete.** The pure Klondike engine (`src/domain`), bounded-DFS solver (`src/solver`), and deal service (`src/features/deal`) exist. The application state layer is wired: Redux slices for `app`, `game`, `preferences`, `stats`, and `persistence`; game thunks (start, play, undo/redo, restart, finish); undo/redo history unbounded in memory, with at most 200 undo and 200 redo steps saved; versioned `solitaire.local-state` persistence (codec, defensive decode, storage gateway, debounced writer, read-only mode); injected-clock timer; and lifecycle bootstrap that loads and restores games on reload. The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
 
 OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
 
@@ -22,18 +22,18 @@ Use these sources in this order:
 
 If `specification.md` and `research.md` conflict, fix the documents — don't silently pick one. See `docs/spec/README.md` for the full authority note.
 
-## Repository layout (see phased-design.md §3.1 for full detail; `domain`, `solver` and `features/deal` are implemented, the rest is planned)
+## Repository layout (see phased-design.md §3.1 for full detail; `domain`, `solver`, `features` and `app` are implemented, `ui` has the Home/Game shell only, `i18n` and `pwa` are planned)
 
 - `src/domain/` — pure game engine (cards, deal, rules, scoring, hints). No React/Redux/DOM/storage imports.
 - `src/solver/` — pure bounded-DFS solver, run in a Web Worker.
-- `src/features/` — deal service, game/stats/preferences slices, persistence (codec + storage gateway).
-- `src/app/` — Redux store, route/sheet state, theme handling.
-- `src/i18n/` — typed English/Ukrainian catalogs.
-- `src/pwa/` — service-worker registration, install, update lifecycle.
-- `src/ui/` — screens, board, sheets, components, CSS tokens.
+- `src/features/` — deal service (Phase 3); game state thunks and history (Phase 4); statistics, preferences, persistence layers with codec, storage gateway, loader, writer and reset thunks (Phase 4).
+- `src/app/` — Redux store (combines the `app` slice with the `features` slices), selectors and hooks, thunk dependencies (`thunkExtra.ts`), lifecycle bootstrap (`lifecycle.tsx`).
+- `src/i18n/` — typed English/Ukrainian catalogs (Phase 7).
+- `src/pwa/` — service-worker registration, install, update lifecycle (Phase 8).
+- `src/ui/` — screens, board, sheets, components, CSS tokens (Phases 5–7).
 - `public/` — manifest, icons.
 - `tests/{unit,component,e2e,bench}/` — Vitest/RTL and Playwright coverage, plus the informational latency benchmark in `bench/`.
-- `scripts/` — artifact validation.
+- `scripts/` — repository validation scripts (`validate-lifecycle-storage.mjs`; artifact validation is planned for Phase 8).
 - `docs/spec/` — this spec pack; treat as historical input once real docs (`docs/index.md`, `architecture.md`, etc., per Phase 10) exist.
 
 Keep domain and solver logic out of React components: UI dispatches typed commands and renders state snapshots (`applyCommand(state, cmd)` is pure); Redux owns application state; persistence goes through a codec + storage gateway.
@@ -59,12 +59,13 @@ rtk npm run test:coverage
 rtk npm run bench
 rtk npm run e2e
 rtk npm run e2e:headed
+rtk npm run validate:lifecycle-storage
 rtk npm run validate
 ```
 
 `bench` runs the informational winnable-search latency benchmark (`tests/bench/`) and reports median and p95 against KS-PERF-02; it never asserts on timings, exits zero, and is not part of `test:unit`, `validate`, the git hooks or CI.
 
-`validate` runs `format:check && lint && typecheck && test:unit && build`. `validate:lifecycle-storage` and `validate:artifact` do not exist yet — they're deferred to Phase 4 and Phase 8 respectively (design decision D6) and are not part of `validate` until then.
+`validate` runs `format:check && lint && typecheck && validate:lifecycle-storage && test:unit && build`. `validate:lifecycle-storage` (`scripts/validate-lifecycle-storage.mjs`) fails when a `tests/component/appLifecycle*.test.tsx` file refers to ambient browser storage (`localStorage`, `sessionStorage`, `Storage.prototype`), builds a bare `createStorageGateway()` or calls `startApp` without an injected `gateway`, so the reload test always injects its storage gateway. `validate:artifact` does not exist yet — it is deferred to Phase 8 (design decision D6) and is not part of `validate` until then.
 
 Git hooks (husky, installed via the `prepare` script): `.husky/pre-commit` runs `npx lint-staged` (Prettier+ESLint on staged `*.{ts,tsx}`; Prettier on staged `*.{json,css,html,md,yml,yaml}`), then `npm run typecheck`, then `npm run test:unit`. `.husky/pre-push` runs `npm run e2e`.
 

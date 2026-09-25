@@ -86,6 +86,7 @@ describe('deal service: provenance per mode', () => {
             status: 'dealt',
             state: dealFromSeed(expected.seed, 'draw1', { verdict: 'win', attempts: expected.attempts }),
         });
+        expect(outcome).not.toHaveProperty('dayKey');
     });
 
     it('deals a state whose deal code reproduces the same layout without the solver', async () => {
@@ -152,6 +153,7 @@ describe('deal service: provenance per mode', () => {
             status: 'dealt',
             state: dealFromSeed(firstSeed, mode, { verdict: 'random', attempts: 1 }),
         });
+        expect(outcome).not.toHaveProperty('dayKey');
         expect(createWorker).not.toHaveBeenCalled();
         expect(onProgress).not.toHaveBeenCalled();
     });
@@ -178,6 +180,7 @@ describe('deal service: provenance per mode', () => {
             expect(outcome).toEqual({
                 status: 'dealt',
                 state: dealFromSeed(golden.seed, 'daily', { verdict: 'win', attempts: golden.attempts }),
+                dayKey: day,
             });
         },
     );
@@ -197,6 +200,7 @@ describe('deal service: provenance per mode', () => {
         expect(outcome).toEqual({
             status: 'dealt',
             state: dealFromSeed(golden.seed, 'daily', { verdict: 'win', attempts: golden.attempts }),
+            dayKey: '2027-01-01',
         });
     });
 });
@@ -430,6 +434,7 @@ describe('deal service: fallback when the background thread fails', () => {
         expect(await deal).toEqual({
             status: 'dealt',
             state: dealFromSeed(dailySeed(day, 1), 'daily', { verdict: 'random', attempts: 1 }),
+            dayKey: day,
         });
     });
 
@@ -453,6 +458,7 @@ describe('deal service: fallback when the background thread fails', () => {
         expect(daily).toEqual({
             status: 'dealt',
             state: dealFromSeed(dailySeed(day, 1), 'daily', { verdict: 'random', attempts: 1 }),
+            dayKey: day,
         });
         expect(createWorker).toHaveBeenCalledTimes(2);
     });

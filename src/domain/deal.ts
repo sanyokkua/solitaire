@@ -82,6 +82,7 @@ export function dealFromSeed(seed: number, mode: Mode, meta: DealMeta = {}): Gam
         moves: 0,
         passes: 1,
         elapsedMs: 0,
+        undos: 0,
         started: false,
         status: 'playing',
     };

@@ -83,18 +83,20 @@ bankroll. *(KS-SCO-02)*
 
 ### Requirement: Time penalty, win bonus and undo penalty
 
-With *s* = elapsed play time in whole seconds (fraction discarded):
+With *s* = elapsed play time in whole seconds (fraction discarded) and *u* = the game's undo charges:
 - **Time penalty** (Standard only): 2 × floor(*s* / 10), computed as a total from the elapsed time,
   never accrued into the stored score.
 - **Win bonus** (Standard only): floor(700,000 / *s*) once the game is won and *s* > 30; otherwise 0.
-- **Undo cost:** 2 under Standard, 0 under Vegas. The domain only provides the amount; the phase
-  owning undo history applies it.
-- **Displayed score:** the stored move score minus the time penalty, floored at 0 under Standard
-  only, plus the win bonus once won. Computing it SHALL NOT change the stored move score.
+- **Undo cost:** 2 under Standard, 0 under Vegas. Undo itself restores the earlier position's stored
+  move score exactly; the cost is charged through the undo charges, which never rewind and are
+  never refunded by redo.
+- **Displayed score:** the stored move score minus the time penalty and minus *u* × the undo cost,
+  floored at 0 under Standard only, plus the win bonus once won. Computing it SHALL NOT change the
+  stored move score.
 
-Vegas has no time penalty and no bonus. Input-agnostic: a function of time and rules. Deterministic:
-the same elapsed time and rules always yield the same penalty, bonus and displayed score.
-*(KS-SCO-01, KS-SCO-03, KS-SCO-04)*
+Vegas has no time penalty, no bonus and no undo cost. Input-agnostic: a function of time, undo
+charges and rules. Deterministic: the same elapsed time, undo charges and rules always yield the
+same penalty, bonus and displayed score. *(KS-SCO-01, KS-SCO-03, KS-SCO-04)*
 
 #### Scenario: The time penalty accrues every ten seconds
 
@@ -123,6 +125,22 @@ the same elapsed time and rules always yield the same penalty, bonus and display
 
 - **WHEN** the cost of an undo is requested under Standard scoring and again under Vegas scoring
 - **THEN** it is 2 points under Standard and nothing under Vegas
+
+#### Scenario: Undo charges lower the displayed Standard score
+
+- **WHEN** a Standard position with a stored move score of 50, 5 seconds of play and 3 undo charges
+  is displayed
+- **THEN** the displayed score is 44
+
+#### Scenario: Undo charges never take the Standard score below zero
+
+- **WHEN** a Standard position with a stored move score of 4 and 3 undo charges is displayed
+- **THEN** the displayed score is 0
+
+#### Scenario: Vegas ignores undo charges
+
+- **WHEN** a Vegas position with a bank of −$27 and 3 undo charges is displayed
+- **THEN** the displayed bank is −$27
 
 #### Scenario: The displayed score is derived, not stored
 

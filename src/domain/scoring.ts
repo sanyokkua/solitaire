@@ -101,9 +101,13 @@ export function undoCost(scoring: ScoringMode): number {
     return scoring === 'vegas' ? 0 : STANDARD_UNDO_COST;
 }
 
-/** Score to show: Standard subtracts the time penalty (floored at 0), adds the win bonus once won; Vegas as stored. */
+/**
+ * Score to show: Standard subtracts the time penalty and `undos × undoCost` (floored at 0), adds the win bonus
+ * once won; Vegas as stored (no undo cost, no floor).
+ */
 export function displayedScore(state: GameState): number {
     if (state.scoring === 'vegas') return state.score;
-    const base = Math.max(0, state.score - timePenalty(state.elapsedMs, state.scoring));
+    const charges = timePenalty(state.elapsedMs, state.scoring) + state.undos * undoCost(state.scoring);
+    const base = Math.max(0, state.score - charges);
     return state.status === 'won' ? base + winBonus(state.elapsedMs, state.scoring) : base;
 }

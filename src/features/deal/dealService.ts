@@ -31,7 +31,14 @@ export interface DealRequest {
 }
 
 /** A delivered game, or `cancelled` when a newer deal or `dispose()` replaced the request (nothing is delivered). */
-export type DealOutcome = { readonly status: 'dealt'; readonly state: GameState } | { readonly status: 'cancelled' };
+export type DealOutcome =
+    | {
+          readonly status: 'dealt';
+          readonly state: GameState;
+          /** The UTC `YYYY-MM-DD` key a Daily deal was selected for; absent for every other mode. */
+          readonly dayKey?: string;
+      }
+    | { readonly status: 'cancelled' };
 
 /**
  * How a hint request ended: a suggestion and who produced it, `none` for a won position or one nothing can move in,
@@ -67,7 +74,9 @@ export interface DealService {
      * seeds on the worker; Daily (whatever `winnableOnly` says) tries the day's v1 candidates on the worker; anything
      * else deals one fresh seed on the calling thread. `onProgress` is called only for the two worker cases, while the
      * request is pending. If the worker fails, the fallback game is dealt from the first seed as `random`, 1 attempt.
-     * Settles `cancelled` when a newer `deal()` or `dispose()` replaced it. Rejects only when no entropy source exists.
+     * A Daily deal, worker-verified or the worker-failure fallback, also reports the UTC day key (`dayKey`) its
+     * candidate seeds came from; every other mode omits `dayKey`. Settles `cancelled` when a newer `deal()` or
+     * `dispose()` replaced it. Rejects only when no entropy source exists.
      */
     readonly deal: (request: DealRequest, onProgress?: (progress: DealProgress) => void) => Promise<DealOutcome>;
     /**
@@ -86,6 +95,8 @@ export interface DealService {
 interface SearchPlan {
     readonly seeds: readonly number[];
     readonly budget: number;
+    /** The UTC day key the seeds were derived from, for a Daily plan; absent for a winnable-Draw-1 plan. */
+    readonly dayKey?: string;
 }
 
 /** Creates a deal service with one lazily started solver worker; see {@link DealService}. */
@@ -105,7 +116,8 @@ export function createDealService(options: DealServiceOptions = {}): DealService
 
     function searchPlan({ mode, winnableOnly }: DealRequest): SearchPlan | undefined {
         if (mode === 'daily') {
-            return { seeds: dailySeeds(utcDayKey(now())), budget: DAILY_V1.budget };
+            const dayKey = utcDayKey(now());
+            return { seeds: dailySeeds(dayKey), budget: DAILY_V1.budget, dayKey };
         }
         if (mode === 'draw1' && winnableOnly) {
             return {
@@ -145,13 +157,14 @@ export function createDealService(options: DealServiceOptions = {}): DealService
         if (outcome.status === 'cancelled' || mine !== generation) {
             return { status: 'cancelled' };
         }
+        const day = plan.dayKey === undefined ? {} : { dayKey: plan.dayKey };
         if (outcome.status === 'ok') {
             const { seed, verdict, attempts } = outcome.result;
-            return { status: 'dealt', state: dealFromSeed(seed, mode, { verdict, attempts }) };
+            return { status: 'dealt', state: dealFromSeed(seed, mode, { verdict, attempts }), ...day };
         }
         // The worker failed or could not start: deal the first candidate, unverified, so the player is never left waiting.
         const [first = 0] = plan.seeds;
-        return { status: 'dealt', state: dealFromSeed(first, mode) };
+        return { status: 'dealt', state: dealFromSeed(first, mode), ...day };
     }
 
     async function deal(request: DealRequest, onProgress?: (progress: DealProgress) => void): Promise<DealOutcome> {
