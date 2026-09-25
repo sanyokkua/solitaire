@@ -257,7 +257,7 @@ While a winnable deal is being searched, the previous table stays visible, as in
   foundation 200 + i + slot·20, tableau 300+i; badge 400). Foundation slots map through
   `FOUNDATION_DISPLAY_ORDER`. The badge anchor is `(stock.x + cw − 20, stock.y + (wide ? 2 : −6))`.
 
-Both import only `../../domain/<name>`. Two guards enforce this:
+Both import only their sibling (`./name`, for the `Metrics` type) and `../../domain/<name>`. Two guards enforce this:
 - an ESLint override on `src/ui/board/{metrics,layout}.ts` restricting imports;
 - `tests/unit/repo/boardPurity.test.ts`, which lists the pure modules from `src/ui/README.md` with
   `readmeModules` (as the solver guard does) and uses `purityScanner.ts` to ban React, DOM globals,

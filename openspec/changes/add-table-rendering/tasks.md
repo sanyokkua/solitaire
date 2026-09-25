@@ -140,7 +140,7 @@
       - "Same inputs, same placements" for `measure`.
     - **Verify:** `rtk npx vitest run tests/unit/ui/board/metrics tests/unit/repo/boardPurity` passes.
 
-- [ ] 2.2 Build `positions()` for the stacked geometry
+- [x] 2.2 Build `positions()` for the stacked geometry
     - **Implements:** BL "Layout is a pure, deterministic function" (`BoardPiles` input), "Columns
       compress face-down cards first", "Top row, mirror and Draw 3 fan", "Stacking order, buried
       cards and anchors" (stacked parts); *KS-MOVE-06*, *KS-SET-05*, *KS-A11Y-04* (strip); D6.
