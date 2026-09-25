@@ -23,11 +23,13 @@ Modules in `board/` that compute geometry are pure functions of their inputs (ea
   Draw 3 fan. The wide table has stock and waste in one side column and the foundations in the other (swapped by
   `stockRight`), the tableau shifted one column in, a vertical Draw 3 fan and foundations that overlap on a short
   board.
+- `board/names.ts` — `cardName(id, faceUp)` and `pileName(ref, count)`, the English accessible names of cards
+  ("Queen of Spades", "Face-down card") and piles ("Column 3, empty", "Hearts foundation, 2 cards").
 
 ## Board purity rule
 
 - A pure board module imports only its own siblings (`./name`) and domain modules (`../../domain/name`). It imports
   nothing from React, Redux, the DOM, storage or the network, and never from `src/features` or `src/app`.
 - It uses no `Math.random` and no `crypto`.
-- Two guards enforce this: an ESLint override on `src/ui/board/{metrics,layout}.ts` (`eslint.config.js`) and
+- Two guards enforce this: an ESLint override on `src/ui/board/{metrics,layout,names}.ts` (`eslint.config.js`) and
   `tests/unit/repo/boardPurity.test.ts`, which scans every module listed above.

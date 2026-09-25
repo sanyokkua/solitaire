@@ -57,7 +57,7 @@ export default tseslint.config(
         },
     },
     {
-        files: ['src/ui/board/metrics.ts', 'src/ui/board/layout.ts'],
+        files: ['src/ui/board/metrics.ts', 'src/ui/board/layout.ts', 'src/ui/board/names.ts'],
         rules: {
             'no-restricted-imports': [
                 'error',

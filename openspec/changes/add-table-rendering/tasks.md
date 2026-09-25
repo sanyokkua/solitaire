@@ -209,7 +209,7 @@
 
 ## 3. Board rendering
 
-- [ ] 3.1 Name every card and pile
+- [x] 3.1 Name every card and pile
     - **Implements:** BR "Accessible names for cards and piles"; *KS-A11Y-01*; D11.
     - **References:** `src/domain/cards.ts` (`cardLabels`); spec §9.
     - **Files:**
