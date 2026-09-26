@@ -163,3 +163,5 @@ test-results/
 
 # Claude Code agent worktrees
 .claude/worktrees/
+
+.idea
