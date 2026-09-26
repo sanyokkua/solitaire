@@ -89,7 +89,8 @@ loader for defensive decode and hydration, writer for debounced persistence, and
   resolved at call time, to `performance.now` and the global timers. It takes a structural store and returns
   `{ dispose }`, which clears the interval and unsubscribes (idempotent)
 - `src/app/lifecycle.tsx` (outside this layer) wires the ticker and the writer into the running app: `startApp(root, deps?)`
-  loads the record, creates the store, raises the loader's notices, starts both, attaches the page listeners
+  loads the record, creates the store, raises the loader's notices, applies the appearance attributes to the document
+  element with `themeController.ts` (before the first render), starts the ticker and the writer, attaches the page listeners
   (`visibilitychange` updates `documentVisible` and flushes the writer when hidden, `pagehide` flushes, the
   reduced-motion media query updates `systemReducedMotion`), renders, and returns `{ store, dispose }`
 - `stats/statsSlice.ts` — per-mode statistics (`played`, `won`, `streak`, `bestStreak`, `bestTimeMs`, `bestScore` for

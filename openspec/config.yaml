@@ -6,8 +6,8 @@ context: |
   Project: Klondike Solitaire - a calm, retro-styled, offline-capable static SPA/PWA
   (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under /solitaire/.
   No backend/API/database/accounts; all state lives in a versioned `solitaire.local-state`
-  localStorage record. The repository may still be pre-implementation - trust what's
-  actually implemented (src/, package.json, CI) over this text whenever they exist.
+  localStorage record. Phases 1-5 are implemented - trust what's actually
+  implemented (src/, package.json, CI) over this text.
 
   Source of truth, in order: (1) current source/config/tests/CI, (2) docs/spec/specification.md
   (KS-* EARS requirements), (3) docs/spec/research.md (R§n game-rules/UX/a11y facts),
@@ -18,7 +18,7 @@ context: |
 
   Layout: src/domain (pure game engine), src/solver (pure bounded-DFS, Web Worker),
   src/features (deal service, slices, persistence), src/app (store, routing, theme),
-  src/i18n, src/pwa, src/ui, tests/{unit,component,e2e}, scripts/.
+  src/i18n, src/pwa, src/ui, tests/{unit,component,e2e,bench,fixtures}, scripts/.
 
   Constitution (AGENTS.md "Architecture principles" holds the authoritative numbered list -
   do not diverge from it): pure domain/solver with no React/Redux/DOM/storage imports;

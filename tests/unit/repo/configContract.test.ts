@@ -69,6 +69,18 @@ describe('ci.yml', () => {
     });
 });
 
+describe('ci.yml visual-parity upload', () => {
+    const steps = ciWorkflow.split(/\n\s+- (?=\S)/);
+    const uploadStep = steps.find((step) => step.includes('name: visual-parity')) ?? '';
+
+    it('uploads the screenshots on every run, after the e2e step', () => {
+        expect(ciWorkflow.indexOf('name: visual-parity')).toBeGreaterThan(ciWorkflow.indexOf('run: npm run e2e'));
+        expect(uploadStep).toContain('uses: actions/upload-artifact@v');
+        expect(uploadStep).toContain('if: always()');
+        expect(uploadStep).toContain('path: test-results/visual-parity/');
+    });
+});
+
 describe('pages.yml', () => {
     const deployIndex = pagesWorkflow.indexOf('\n    deploy:');
     const buildSlice = pagesWorkflow.slice(0, deployIndex);

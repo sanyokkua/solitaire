@@ -189,21 +189,44 @@ Changing a setting never alters the rules of a game in progress. The mode is fix
 ## 8. Look and feel
 
 ### 8.1 Palette (from the chosen "icy, heroic, crisp" + "bold, clean" references)
-| Role                    | Light                                                                | Dark                     |
-| ----------------------- | -------------------------------------------------------------------- | ------------------------ |
-| Page background         | #E8F0F5                                                              | #0B2545                  |
-| Surface / raised        | #F8FBFB / #EEF4ED                                                    | #13315C / #1A3A66        |
-| Table                   | #D4E4EE (dot texture)                                                | #102C52                  |
-| Text / muted            | #0B2545 / #4F6A88                                                    | #EEF4ED / #8DA9C4        |
-| Primary action          | #457B9D                                                              | #5BC0EB                  |
-| Accent / highlight      | #A8DADC, #5BC0EB                                                     | #1D3F70, #A8DADC         |
-| LCD panel / digits      | #0B2545; score #F4A7AD, moves #A8DADC, time #5BC0EB                  | #06172D; same digits     |
-| Hint (only warm colour) | #F2B25C                                                              | #F2C078                  |
-| Card face / edge        | #FBFDFB / #C8D7E3                                                    | dimmed #D2DDE5 / #06172D |
-| Suit ink red / black    | #D44B56 / #1D3557 (navy)                                             | #CC4450 / #13315C        |
-| Four-colour ♦ / ♣       | #2F93BF / #3A8F7C                                                    | #2A86B0 / #2F7D6B        |
-| Night cards             | face #1C3D68, edge #36608F, ink #DCE8EF / red #F28B93, backs #8DA9C4 | same                     |
-| Card backs              | #457B9D · #13315C · #5BC0EB · #D9555F, with a lighter checker        | same                     |
+| Role                    | Light                                                                                                | Dark                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Page background         | #E8F0F5                                                                                              | #0B2545                                                |
+| Surface / raised        | #F8FBFB / #EEF4ED                                                                                    | #13315C / #1A3A66                                      |
+| Table / dot texture     | #D4E4EE / rgb(19 49 92 / 8%)                                                                         | #102C52 / rgb(168 218 220 / 6%)                        |
+| Slot line / slot ink    | #9FB8CF / rgb(69 123 157 / 45%)                                                                      | #2D5282 / rgb(168 218 220 / 28%)                       |
+| Text / muted            | #0B2545 / #4F6A88                                                                                    | #EEF4ED / #8DA9C4                                      |
+| Primary action          | #457B9D                                                                                              | #5BC0EB                                                |
+| Accent / highlight      | #A8DADC, #5BC0EB                                                                                     | #1D3F70, #A8DADC                                       |
+| Soft outline            | #C8D7E3                                                                                              | #24466F                                                |
+| Hover                   | rgb(69 123 157 / 10%)                                                                                | rgb(91 192 235 / 12%)                                  |
+| Chrome shadow           | 0 1px 2px rgb(11 37 69 / 8%), 0 1px 1px rgb(11 37 69 / 5%)                                           | 0 1px 2px rgb(0 0 0 / 35%), 0 1px 1px rgb(0 0 0 / 25%) |
+| LCD panel / outline     | #0B2545 / #06172D                                                                                    | #06172D / #030D1A                                      |
+| LCD digits              | score #F4A7AD, moves #A8DADC, time #5BC0EB                                                           | same                                                   |
+| LCD label               | #8DA9C4                                                                                              | #6F8FB0                                                |
+| Hint (only warm colour) | #F2B25C                                                                                              | #F2C078                                                |
+| Card face / edge        | #FBFDFB / #C8D7E3                                                                                    | dimmed #D2DDE5 / #06172D                               |
+| Card shadow             | 0 1px 2px rgb(11 37 69 / 16%), 0 2px 6px rgb(11 37 69 / 8%)                                          | 0 1px 2px rgb(0 0 0 / 45%), 0 3px 8px rgb(0 0 0 / 25%) |
+| Suit ink red / black    | #D1404C / #1D3557 (navy)                                                                             | #B1303C / #13315C                                      |
+| Four-colour ♦ / ♣       | #287DA2 / #348170                                                                                    | #206788 / #286B5C                                      |
+| Card backs (tone a / b) | Harbour #457B9D / #5A8FB0 · Navy #13315C / #1D3F70 · Sky #5BC0EB / #7DCDEF · Coral #D9555F / #E46E77 | same                                                   |
+| Card back rim           | #F1FAEE                                                                                              | #B9C9D6                                                |
+
+**Ink contrast.** Every suit ink meets 4.5:1 against the card face of the palette it is used on. The
+mockup's red and four-colour inks did not, so they are darkened here (same hue, the least amount that
+passes); `tests/unit/ui/contrast.test.ts` keeps them at or above 4.5:1.
+
+**Night cards** (Appearance setting, independent of the theme) change the cards only; the page, chrome,
+table and LCD keep the light or dark theme. Night card roles:
+
+| Role                    | Night cards                                                                                   |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| Card face / edge        | #1C3D68 / #36608F                                                                             |
+| Card shadow             | 0 1px 2px rgb(0 0 0 / 50%), 0 3px 8px rgb(0 0 0 / 30%)                                       |
+| Suit ink red / black    | #F28B93 / #DCE8EF                                                                             |
+| Four-colour ♦ / ♣       | #7FD3F3 / #8FD6B8                                                                             |
+| Card backs (tone a / b) | Harbour, Sky and Coral all #8DA9C4 / #A4BCD2 · Navy #0B2545 / #13315C                         |
+| Card back rim           | #0B2545; the Navy back uses #8DA9C4 so it stays visible against the night card face          |
 
 ### 8.2 Typography and shapes
 - **Inter** for all running text and controls. **Press Start 2P** for the wordmark, card indices, LCD digits, chips and tiny labels.

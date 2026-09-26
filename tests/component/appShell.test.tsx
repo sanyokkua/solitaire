@@ -8,13 +8,13 @@ import { App } from '../../src/App';
 import { dealingEnded, dealingProgressed } from '../../src/app/appSlice';
 import { createAppStore, type AppStoreOptions } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
-import type { GameState } from '../../src/domain/types';
-import { gameReducer, initialGameState, installed, selectDisplayedScore } from '../../src/features/game/gameSlice';
+import { selectDisplayedScore } from '../../src/features/game/gameSlice';
 import { play } from '../../src/features/game/gameThunks';
 import { preferenceSet } from '../../src/features/preferences/preferencesSlice';
+import { formatMoves, formatScore } from '../../src/ui/format';
 import { WINNING_LINE, parseLine } from '../fixtures/deals';
 import { fakeDealService } from '../fixtures/dealService';
-import { playedGame } from '../fixtures/games';
+import { gameOf, playedGame } from '../fixtures/games';
 
 // Drag is not asserted here: the shell has no draggable object at this point in the
 // build — card dragging is introduced with the board in a later phase.
@@ -30,11 +30,6 @@ function renderApp(preloadedState: AppStoreOptions['preloadedState'] = {}) {
         </Provider>,
     );
     return { store, dealService };
-}
-
-/** A game slice holding `state`, installed the way a deal delivers it. */
-function gameOf(state: GameState) {
-    return gameReducer(initialGameState, installed({ state, dailyKey: null }));
 }
 
 const dealCards = () => screen.getByRole('button', { name: /deal cards/i });
@@ -229,8 +224,29 @@ describe('Continue game', () => {
     });
 });
 
-describe('Game status', () => {
-    it('shows the mode, moves and displayed score of the game in play', async () => {
+describe('Game frame', () => {
+    it('names the screen with a level-one heading "Klondike"', async () => {
+        const user = userEvent.setup();
+        renderApp();
+
+        await user.click(dealCards());
+
+        expect(screen.getByRole('heading', { level: 1, name: 'Klondike' })).toBeInTheDocument();
+    });
+
+    it('holds the build stamp in the frame footer on Game and once on Home, never twice', async () => {
+        const user = userEvent.setup();
+        renderApp();
+        expect(screen.getAllByLabelText(/^App build:/)).toHaveLength(1);
+
+        await user.click(dealCards());
+
+        const stamps = screen.getAllByLabelText(/^App build:/);
+        expect(stamps).toHaveLength(1);
+        expect(stamps[0]?.closest('.game-footer')).not.toBeNull();
+    });
+
+    it('shows the mode-appropriate HUD values of the game in play, with the displayed score', async () => {
         const user = userEvent.setup();
         const played = playedGame();
         if (played.current === null) throw new Error('expected a game');
@@ -244,30 +260,34 @@ describe('Game status', () => {
 
         await user.click(continueGameButton());
 
-        expect(screen.getByText(/mode/i)).toHaveTextContent(
-            `Mode: ${current.mode} · Moves: ${String(current.moves)} · Score: ${String(displayed)}`,
-        );
+        const value = (label: string) => screen.getByText(label).nextElementSibling;
+        expect(value('Score')).toHaveTextContent(formatScore(displayed));
+        expect(value('Moves')).toHaveTextContent(formatMoves(current.moves));
+        expect(value('Time')).toBeInTheDocument();
     });
 
-    it('shows no status line without a game', async () => {
+    it('shows no HUD values without a game', async () => {
         const user = userEvent.setup();
         renderApp();
 
         await user.click(dealCards());
 
         expect(screen.queryByText(/moves/i)).toBeNull();
+        expect(screen.queryByText('Score')).toBeNull();
     });
 
     it('announces a dealing status while a deal is in flight and removes it afterwards', async () => {
         const user = userEvent.setup();
         const { store } = renderApp();
         await user.click(dealCards());
+        expect(screen.getAllByRole('status')).toHaveLength(1);
         expect(screen.getByRole('status')).toBeEmptyDOMElement();
 
         act(() => {
             store.dispatch(dealingProgressed({ overlay: true, attempt: 2 }));
         });
-        expect(screen.getByRole('status')).toHaveTextContent(/dealing/i);
+        expect(screen.getAllByRole('status')).toHaveLength(1);
+        expect(screen.getByRole('status')).toHaveTextContent('Dealing…');
 
         act(() => {
             store.dispatch(dealingEnded());

@@ -1,4 +1,8 @@
 @import './tokens.css';
+@import './cards.css';
+@import './board.css';
+@import './hud.css';
+@import './layout.css';
 
 * {
     box-sizing: border-box;
@@ -24,6 +28,10 @@ body {
     transition:
         background-color 250ms ease,
         color 250ms ease;
+}
+
+:root[data-motion='off'] body {
+    transition: none;
 }
 
 button {

@@ -1,0 +1,23 @@
+/* HUD stat displays: colour only, all from the LCD tokens. Size and layout live in layout.css. */
+
+.stat-display {
+    border: 2px solid var(--color-lcd-outline);
+    background: var(--color-lcd-panel);
+    box-shadow: var(--shadow-lcd-inset);
+}
+
+.stat-display__label {
+    color: var(--color-lcd-label);
+}
+
+.stat-display__value {
+    color: var(--color-lcd-score);
+}
+
+.stat-display--moves .stat-display__value {
+    color: var(--color-lcd-moves);
+}
+
+.stat-display--timer .stat-display__value {
+    color: var(--color-lcd-time);
+}

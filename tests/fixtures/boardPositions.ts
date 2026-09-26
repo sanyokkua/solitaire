@@ -1,0 +1,132 @@
+import { cardId, DECK_SIZE, type Rank } from '../../src/domain/cards';
+import { dealFromSeed } from '../../src/domain/deal';
+import type { CardId, Column, GameState, Suit, TableauCard } from '../../src/domain/types';
+import { faceUp, foundationsOf, makeState, tableauOf } from './states';
+
+/** Index of the column that holds the worst case. */
+const WORST_COLUMN = 6;
+/** Face-down cards under the run. */
+const FACE_DOWN_COUNT = 6;
+/** Highest rank of the run. */
+const RUN_TOP = 13;
+const HEARTS: Suit = 0;
+const SPADES: Suit = 3;
+
+/** Every card id not in `used`, in id order: the cards a fixture leaves in the stock or under its own piles. */
+function restOfDeck(used: readonly CardId[]): CardId[] {
+    const taken = new Set<CardId>(used);
+    return Array.from({ length: DECK_SIZE }, (_, id) => id).filter((id) => !taken.has(id));
+}
+
+/** The K to A run with alternating colours: K of spades, Q of hearts, J of spades, and so on down to the ace of spades. */
+function worstRun(): TableauCard[] {
+    return Array.from({ length: RUN_TOP }, (_, i): TableauCard => {
+        const rank = (RUN_TOP - i) as Rank;
+        return { id: cardId(i % 2 === 0 ? SPADES : HEARTS, rank), up: true };
+    });
+}
+
+/**
+ * The worst-case position for the layout: column 7 holds 6 face-down cards under a 13-card face-up run from king to
+ * ace, alternating in colour. The other 33 cards are in the stock, so all 52 cards appear once. The game is started
+ * and playing in Draw 1, which keeps it encodable.
+ */
+export function worstColumnState(): GameState {
+    const run = worstRun();
+    const rest = restOfDeck(run.map((card) => card.id));
+    const faceDown = rest.slice(0, FACE_DOWN_COUNT).map((id): TableauCard => ({ id, up: false }));
+    const emptyColumns = Array.from({ length: WORST_COLUMN }, (): Column => []);
+    return makeState({
+        started: true,
+        status: 'playing',
+        tableau: tableauOf(...emptyColumns, [...faceDown, ...run]),
+        stock: rest.slice(FACE_DOWN_COUNT),
+    });
+}
+
+/**
+ * A started, playing Draw 3 game whose waste holds four face-up cards, one per suit (ace of hearts, diamonds, clubs
+ * and spades, the last on top), so the fan shows every suit ink. The other 48 cards are in the stock. The score,
+ * move count and elapsed time are distinctive, so a browser spec can tell that the clock carries on.
+ */
+export function drawThreeFanState(): GameState {
+    const waste = [cardId(0, 1), cardId(1, 1), cardId(2, 1), cardId(3, 1)];
+    return makeState({
+        mode: 'draw3',
+        draw: 3,
+        started: true,
+        status: 'playing',
+        waste,
+        stock: restOfDeck(waste),
+        score: 40,
+        moves: 4,
+        elapsedMs: 65_000,
+    });
+}
+
+/**
+ * A started, playing Draw 1 game with one undoable move: the position before it has column 2 holding a face-down
+ * card under the ace of hearts; the move sends the ace to the hearts foundation and turns the card over. The other
+ * cards are in the stock. `history` holds the earlier position, so undo has a step to restore.
+ */
+export function undoMovePosition(): { readonly current: GameState; readonly history: readonly GameState[] } {
+    const buried = cardId(3, 13);
+    const ace = cardId(0, 1);
+    const stock = restOfDeck([buried, ace]);
+    const before = makeState({
+        started: true,
+        status: 'playing',
+        tableau: tableauOf(
+            [],
+            [],
+            [
+                { id: buried, up: false },
+                { id: ace, up: true },
+            ],
+        ),
+        stock,
+    });
+    const current = makeState({
+        started: true,
+        status: 'playing',
+        tableau: tableauOf([], [], faceUp(buried)),
+        foundations: foundationsOf(1, 0, 0, 0),
+        stock,
+        score: 15,
+        moves: 1,
+    });
+    return { current, history: [before] };
+}
+
+/** The seed of the fresh deals below; any 32-bit seed works, this one only fixes the picture. */
+const FRESH_DEAL_SEED = 42;
+
+/**
+ * A started, playing Draw 1 game a moment after the first draw, as on the mockup's game screens: a seeded deal with
+ * the top stock card turned onto the waste, one move counted and one second on the clock. The other cards stay where
+ * the deal put them, so all 52 cards appear once.
+ */
+export function freshDrawOneState(): GameState {
+    const deal = dealFromSeed(FRESH_DEAL_SEED, 'draw1');
+    const drawn = deal.stock.at(-1);
+    if (drawn === undefined) throw new RangeError('a fresh deal has a stock');
+    return { ...deal, stock: deal.stock.slice(0, -1), waste: [drawn], started: true, moves: 1, elapsedMs: 1_000 };
+}
+
+/**
+ * A started, playing Draw 3 game a moment after two draws, as on the mockup's Draw 3 screen: a seeded deal with the
+ * top six stock cards turned onto the waste in draws of three, so the waste shows a fan of three cards on top of
+ * three more. Two moves are counted and one second is on the clock.
+ */
+export function freshDrawThreeState(): GameState {
+    const deal = dealFromSeed(FRESH_DEAL_SEED, 'draw3');
+    const drawn = deal.stock.slice(-6).reverse();
+    return {
+        ...deal,
+        stock: deal.stock.slice(0, -6),
+        waste: drawn,
+        started: true,
+        moves: 2,
+        elapsedMs: 1_000,
+    };
+}

@@ -12,16 +12,18 @@ Source repository: <https://github.com/sanyokkua/solitaire>
 
 ## Current status
 
-**Phases 1–4 are complete.** The build, lint, test, CI and deployment tooling are in place.
+**Phases 1–5 are complete.** The build, lint, test, CI and deployment tooling are in place.
 The pure Klondike engine lives in `src/domain/`, the bounded-DFS solver in `src/solver/`,
 and the deal service (deals per mode, Daily v1, solver hints) in `src/features/deal/`. The
 application state layer (`app`, `preferences`, `stats`, `game` and `persistence` slices, with
 thunks for start, play, undo/redo, restart and finish) plays, scores and times a game. Preferences,
 statistics and an unfinished game are saved in the versioned `solitaire.local-state` record and
 restored on reload. The Home and Game shell is wired to it: Home "Deal cards" starts a game,
-"Continue game" appears while one can be resumed, and Back keeps it. There is still no board, so
-the game cannot yet be played on screen.
-Phases 5–11 (table rendering and motion, interaction and assistance UI, screens and
+"Continue game" appears while one can be resumed, and Back keeps it. The Game screen now draws the table: 52
+named cards, slots, a stock badge, four card backs, night cards and the four-colour deck, with glide, flip and
+deal motion (or none, under reduced motion), a read-only HUD and an Undo/Redo toolbar, laid out to fit every
+supported screen without scrolling. The board takes no input yet, so the game cannot yet be played on screen.
+Phases 6–11 (interaction and assistance UI, screens and
 localisation, PWA hardening, verification, documentation and release, and the optional Draw 3
 winnable deals) are pending — see `docs/spec/phased-design.md` for the full phase list. There is
 no deployed build yet.
@@ -67,7 +69,7 @@ npm run preview
 | `npm run test:unit`                  | Run unit and component tests.                                                                      |
 | `npm run test:coverage`              | Run unit/component tests with V8 coverage thresholds.                                              |
 | `npm run bench`                      | Run the informational winnable-search latency benchmark.                                           |
-| `npm run e2e`                        | Run the Playwright suite across desktop and touch projects.                                        |
+| `npm run e2e`                        | Run the Playwright suite across desktop, touch and device-fit projects.                            |
 | `npm run e2e:headed`                 | Run the Playwright suite with visible browsers.                                                    |
 | `npm run prepare`                    | Install the Husky git hooks (runs automatically after `npm install`).                              |
 | `npm run validate:lifecycle-storage` | Check that the application lifecycle tests inject their storage gateway.                           |
@@ -90,7 +92,8 @@ This mirrors the repository's git hooks: `.husky/pre-commit` runs lint-staged, `
 
 ```text
 src/app/          Redux store, application state slices, lifecycle bootstrap
-src/ui/           Screens, reusable components, and token-based CSS (layout and interaction planned)
+src/ui/           Board (pure layout, cards, slots, motion), Game frame, HUD, toolbar, token-based CSS
+                  (board input, sheets and localisation planned)
 src/assets/       Bundled fonts and other static assets
 src/domain/       Pure Klondike engine: cards, seeded deals, rules, scoring, commands, hints
 src/solver/       Pure bounded-DFS solver and its Web Worker message protocol

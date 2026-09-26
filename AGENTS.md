@@ -4,9 +4,9 @@ Guidance for AI coding agents (Claude Code, Codex, etc.) working in this reposit
 
 ## Current project
 
-This repository will become **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
+This repository is **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
 
-**Repository state: Phases 1–4 complete.** The pure Klondike engine (`src/domain`), bounded-DFS solver (`src/solver`), and deal service (`src/features/deal`) exist. The application state layer is wired: Redux slices for `app`, `game`, `preferences`, `stats`, and `persistence`; game thunks (start, play, undo/redo, restart, finish); undo/redo history unbounded in memory, with at most 200 undo and 200 redo steps saved; versioned `solitaire.local-state` persistence (codec, defensive decode, storage gateway, debounced writer, read-only mode); injected-clock timer; and lifecycle bootstrap that loads and restores games on reload. The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
+**Repository state: Phases 1–5 complete.** The pure Klondike engine (`src/domain`), bounded-DFS solver (`src/solver`), and deal service (`src/features/deal`) exist. The application state layer is wired: Redux slices for `app`, `game`, `preferences`, `stats`, and `persistence`; game thunks (start, play, undo/redo, restart, finish); undo/redo history unbounded in memory, with at most 200 undo and 200 redo steps saved; versioned `solitaire.local-state` persistence (codec, defensive decode, storage gateway, debounced writer, read-only mode); injected-clock timer; and lifecycle bootstrap that loads and restores games on reload. The table renders and animates (Phase 5): a pure board layout (`src/ui/board/metrics.ts`, `layout.ts`), 52 persistent card elements with faces, backs, night cards and the four-colour deck, glide, flip and deal motion with one no-motion path, and a Game frame with a read-only HUD and an Undo/Redo toolbar in the stacked and side-rails profiles; a theme controller applies the appearance preferences to the page; a 52-case device-fit matrix runs in its own Playwright project. There is no board input yet (Phase 6). The repository has a full Vite + React + TypeScript + Redux Toolkit toolchain: `package.json`, a `src/` tree, `tests/`, GitHub Actions CI/Pages workflows, and husky/lint-staged git hooks. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
 
 OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
 
@@ -14,24 +14,24 @@ OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementat
 
 Use these sources in this order:
 
-1. Current source, configuration, tests, and GitHub Actions workflows, once they exist — always prefer what's actually implemented over what's planned.
+1. Current source, configuration, tests, and GitHub Actions workflows — always prefer what's actually implemented over what's planned.
 2. `docs/spec/specification.md` — product behavior and the `KS-*` EARS requirements.
 3. `docs/spec/research.md` — game rules, algorithms and UX/accessibility facts (cited as `R§n`); source of truth for game-logic details.
-4. `docs/spec/phased-design.md` — tech stack, architecture, data model, and the phase-by-phase build plan with Speckit seed prompts (§7). May be revised by a phase's `/speckit.plan`; if so, record the change here.
+4. `docs/spec/phased-design.md` — tech stack, architecture, data model, and the phase-by-phase build plan with Speckit seed prompts (§7). May be revised by a phase's OpenSpec change; if so, record the change here.
 5. `docs/spec/mockup/klondike-mockup.html` and `docs/spec/mockup/screens/` — visual/behavioral reference only. Do not port its code structure into production code.
 
 If `specification.md` and `research.md` conflict, fix the documents — don't silently pick one. See `docs/spec/README.md` for the full authority note.
 
-## Repository layout (see phased-design.md §3.1 for full detail; `domain`, `solver`, `features` and `app` are implemented, `ui` has the Home/Game shell only, `i18n` and `pwa` are planned)
+## Repository layout (see phased-design.md §3.1 for full detail; `domain`, `solver`, `features` and `app` are implemented, `ui` has the board, layout, motion and the Game frame, `i18n` and `pwa` are planned)
 
 - `src/domain/` — pure game engine (cards, deal, rules, scoring, hints). No React/Redux/DOM/storage imports.
 - `src/solver/` — pure bounded-DFS solver, run in a Web Worker.
 - `src/features/` — deal service (Phase 3); game state thunks and history (Phase 4); statistics, preferences, persistence layers with codec, storage gateway, loader, writer and reset thunks (Phase 4).
-- `src/app/` — Redux store (combines the `app` slice with the `features` slices), selectors and hooks, thunk dependencies (`thunkExtra.ts`), lifecycle bootstrap (`lifecycle.tsx`).
+- `src/app/` — Redux store (combines the `app` slice with the `features` slices), selectors and hooks, thunk dependencies (`thunkExtra.ts`), the theme controller that applies appearance preferences to the document (`themeController.ts`), lifecycle bootstrap (`lifecycle.tsx`).
 - `src/i18n/` — typed English/Ukrainian catalogs (Phase 7).
 - `src/pwa/` — service-worker registration, install, update lifecycle (Phase 8).
-- `src/ui/` — screens, board, sheets, components, CSS tokens (Phases 5–7).
-- `public/` — manifest, icons.
+- `src/ui/` — the board (pure layout, cards, slots, motion), the Game frame with its read-only HUD and Undo/Redo toolbar, and CSS tokens (Phase 5); input, sheets and the styled screens follow in Phases 6–7.
+- `public/` — manifest, icons (planned for Phase 8; the directory does not exist yet).
 - `tests/{unit,component,e2e,bench}/` — Vitest/RTL and Playwright coverage, plus the informational latency benchmark in `bench/`.
 - `scripts/` — repository validation scripts (`validate-lifecycle-storage.mjs`; artifact validation is planned for Phase 8).
 - `docs/spec/` — this spec pack; treat as historical input once real docs (`docs/index.md`, `architecture.md`, etc., per Phase 10) exist.
@@ -77,7 +77,7 @@ Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent,
 
 ## Architecture principles (constitution seed — see phased-design.md §2)
 
-1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals. One narrow exception: `src/domain/prng.ts` may reference `crypto`, because `cryptoSeed` takes an injectable seed source that defaults to `globalThis.crypto` (it throws when none is available and never falls back to `Math.random`); no other domain file may touch `crypto`. The solver layer is guarded separately by `tests/unit/repo/solverPurity.test.ts` and an ESLint override: it imports only its own siblings and `../domain/name`, uses no `crypto`, and references `self` only in `solver.worker.ts`; `src/features` may not value-import solver code (type imports are fine), because the solver runs in a Web Worker.
+1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals. One narrow exception: `src/domain/prng.ts` may reference `crypto`, because `cryptoSeed` takes an injectable seed source that defaults to `globalThis.crypto` (it throws when none is available and never falls back to `Math.random`); no other domain file may touch `crypto`. The solver layer is guarded separately by `tests/unit/repo/solverPurity.test.ts` and an ESLint override: it imports only its own siblings and `../domain/name`, uses no `crypto`, and references `self` only in `solver.worker.ts`; `src/features` may not value-import solver code (type imports are fine), because the solver runs in a Web Worker. The pure board layout is guarded the same way: `src/ui/board/metrics.ts`, `layout.ts` and `names.ts` import only their siblings and `../../domain/name` (an ESLint override), and `tests/unit/repo/boardPurity.test.ts` bans React, DOM globals, storage, `crypto` and `Math.random` in every module listed in `src/ui/README.md`.
 2. **Deterministic by seed.** Every deal comes from a 32-bit seed via mulberry32 + Fisher–Yates. No `Math.random()` in game logic.
 3. **UI renders state, issues commands.** Components dispatch typed commands and render snapshots; they never apply rules themselves.
 4. **Static and offline.** No runtime network dependency; no third-party asset hosts.
