@@ -359,7 +359,7 @@
       - accessible names.
     - **Verify:** `rtk npx vitest run tests/component/toolbar` passes.
 
-- [ ] 4.3 Build the Game frame with the stacked and side-rails profiles
+- [x] 4.3 Build the Game frame with the stacked and side-rails profiles
     - **Implements:** GS "Two chrome profiles" (including "Back touch target"), "The Game screen
       never scrolls and respects safe areas" (scenario "Safe areas"), "Read-only HUD" (scenario
       "Narrow phone hides Moves"), "Undo and Redo toolbar" (scenario "Touch target size"), "The Game

@@ -11,7 +11,7 @@ export function App() {
     return (
         <>
             {route === 'home' ? <HomeScreen /> : <GameScreen />}
-            <BuildStamp />
+            {route !== 'game' && <BuildStamp />}
         </>
     );
 }

@@ -2,6 +2,7 @@
 @import './cards.css';
 @import './board.css';
 @import './hud.css';
+@import './layout.css';
 
 * {
     box-sizing: border-box;

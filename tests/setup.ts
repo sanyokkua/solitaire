@@ -37,4 +37,16 @@ if (typeof window !== 'undefined') {
         writable: true,
         value: (query: string) => stubMediaQueryList(query),
     });
+
+    // jsdom has no `ResizeObserver`. This stub never reports a size, so `Board` shows its empty panel; it is writable and
+    // configurable, so tests that need real entries (or none) replace it with `vi.stubGlobal('ResizeObserver', ...)`.
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+        configurable: true,
+        writable: true,
+        value: class InertResizeObserver {
+            observe = (): void => undefined;
+            unobserve = (): void => undefined;
+            disconnect = (): void => undefined;
+        },
+    });
 }

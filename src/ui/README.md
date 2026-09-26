@@ -4,10 +4,10 @@ The screens, components and styles that render application state. Components dis
 snapshots; they never apply game rules.
 
 - `components/` — small shared components (`BuildStamp.tsx`, `Hud.tsx` and `Toolbar.tsx`, described below).
-- `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`).
+- `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`) and `profiles.ts`, described below.
 - `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), the board panel, pile slots
-  and the stock badge (`board.css`), the HUD stat-display colours (`hud.css`) and global rules (`global.css`, which
-  imports the other four sheets).
+  and the stock badge (`board.css`), the HUD stat-display colours (`hud.css`), the Game frame layout (`layout.css`) and
+  global rules (`global.css`, which imports the other five sheets).
 - `board/` — the table: pure layout geometry and naming, listed below, the React card, slot, badge and `Board`
   components, the board size hook and the board selectors.
 - `format.ts` — the pure HUD text formatters: `formatScore` and `formatMoves` (three-digit zero pad), `formatBank`
@@ -17,12 +17,34 @@ snapshots; they never apply game rules.
   fragment (no frame): a `div.hud-group` with the Score (Bank in Vegas) and Moves stat displays, then the Time stat
   display. Each `div.stat-display` holds a `span.stat-display__label` (text "Score" / "Bank" / "Moves" / "Time", exposed
   to assistive technology) and a `span.stat-display__value`. It renders nothing without a game. Its colours come from
-  `styles/hud.css` (colour-only, LCD tokens; size and layout arrive with the Game frame).
+  `styles/hud.css` (colour-only, LCD tokens); `styles/layout.css` sizes and arranges it.
 - `components/Toolbar.tsx` — `Toolbar`, the Undo and Redo controls: a `nav.toolbar` labelled "Game actions" holding two
   `button.tool` elements whose visible text ("Undo", "Redo") is the accessible name and whose decorative SVG icons are
   `aria-hidden`. Each is disabled from `selectCanUndo` / `selectCanRedo` (which already fold in the finish-sequence
   `busy` flag) and dispatches the `undo` / `redo` thunk. Native buttons give Enter and Space and the global focus ring;
-  size and layout arrive with the Game frame.
+  `styles/layout.css` sizes and arranges it.
+- `screens/GameScreen.tsx` — `GameScreen`, the Game frame. In DOM order: a visually hidden `h1.sr-only` "Klondike"; one
+  always-mounted, visually hidden `p[role=status]` that reads "Dealing…" while `state.app.dealing` is set and is empty
+  otherwise; the stacked profile's `header.game-topbar` (the Back control and the reserved, empty `div.game-chips` slot,
+  rendered only outside the rails); `main.game-body` holding `div.game-hud` (in the rails, Back first; then `Hud`, then
+  the reserved, empty, `aria-hidden` `div.game-face` New-deal slot), the reserved, empty `p.game-hint`, `Board` and
+  `Toolbar`; and `div.game-footer` holding `BuildStamp` (`App` renders `BuildStamp` itself only outside the Game
+  screen). Back is a `button.game-back` named "Back to Home" that dispatches `setRoute('home')`; the DOM holds exactly
+  one, placed by `useMediaQuery(RAILS_QUERY)`. CSS chooses the profile; the hook only decides where Back lives.
+- `screens/profiles.ts` — `RAILS_QUERY`, `'(orientation: landscape) and (max-height: 720px)'`, the side-rails
+  condition. `layout.css` repeats it literally in its rails `@media` rule and `tests/unit/ui/layoutCss.test.ts` fails if
+  the two drift apart.
+- `styles/layout.css` — the Game frame, tokens only (no colour literals, no `prefers-reduced-motion`). `.screen--game`
+  is `100dvh`, `overflow: hidden`, padded by `env(safe-area-inset-top/right/bottom/left)` on every edge in both
+  profiles. The stacked profile (`.game-body` capped at `min(100%, 64rem)`) has the region sizes of the mockup: the HUD
+  ordered Score/Moves, New-deal slot, Time by CSS `order` (slot 2.9rem, 2.6rem at 460 px wide or narrower, 2.5rem in the
+  rails), the hint line at one `0.7rem` line (`0.64rem` at 480 px or narrower), the chip slot at Back's height with
+  `flex: 1; min-width: 0; overflow: hidden`, the 3rem tools; the footer is hidden at 480 px or narrower, the hint line
+  in portrait at 600 px tall or less and Moves at 360 px or narrower. The rails (`RAILS_QUERY`) hide the top bar, hint
+  line and footer and lay out a 5.4rem HUD rail, the table (`min-height: 0`) and a 4.4rem toolbar rail at full width,
+  always showing Moves. Under `(pointer: coarse)` Back and the tools are at least 2.75rem (44 px) square in both
+  profiles. Hover uses `--color-hover`; every transition is off under `:root[data-motion='off']`. The chrome it leaves
+  around the table is what `tests/fixtures/viewports.ts` `CHROME_BUDGET` records (measured, rounded up).
 - `useMediaQuery.ts` — the media-query hook (see "Board state and hooks").
 
 ## Pure board modules

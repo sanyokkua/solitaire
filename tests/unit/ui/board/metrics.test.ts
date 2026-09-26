@@ -95,19 +95,25 @@ describe('measure card-floor gap shrink', () => {
         return measure(boardSizeFor(screen, pointer), { coarse: pointer === 'coarse' });
     };
 
-    it.each(['coarse', 'fine'] as const)(
-        'shrinks the gap on the 320x480 baseline with a %s pointer so the wide grid fits the board',
-        (pointer) => {
-            const metrics = baseline(pointer);
-            const unclamped = Math.max(3, Math.min(14, 0.016 * metrics.width));
-            expect(metrics.wide).toBe(true);
-            expect(metrics.cw).toBe(30);
-            expect(metrics.ox).toBeGreaterThanOrEqual(0);
-            expect(metrics.ox + gridWidth(metrics)).toBeLessThanOrEqual(metrics.width + 1e-9);
-            expect(metrics.gap).toBeLessThan(unclamped);
-            expect(metrics.gap).toBeGreaterThanOrEqual(3);
-        },
-    );
+    it('shrinks the gap on the 320x480 baseline with a coarse pointer so the wide grid fits the board', () => {
+        const metrics = baseline('coarse');
+        const unclamped = Math.max(3, Math.min(14, 0.016 * metrics.width));
+        expect(metrics.wide).toBe(true);
+        expect(metrics.cw).toBe(30);
+        expect(metrics.ox).toBeGreaterThanOrEqual(0);
+        expect(metrics.ox + gridWidth(metrics)).toBeLessThanOrEqual(metrics.width + 1e-9);
+        expect(metrics.gap).toBeLessThan(unclamped);
+        expect(metrics.gap).toBeGreaterThanOrEqual(3);
+    });
+
+    it('gives the 320x480 baseline a fine pointer the stacked table with cards above the 30 px floor', () => {
+        // The measured frame leaves a mouse-driven 320x480 window a board tall enough for a 9 px strip when stacked.
+        const metrics = baseline('fine');
+        expect(metrics.wide).toBe(false);
+        expect(metrics.cw).toBeGreaterThan(30);
+        expect(metrics.ox).toBeGreaterThanOrEqual(0);
+        expect(metrics.ox + gridWidth(metrics)).toBeLessThanOrEqual(metrics.width + 1e-9);
+    });
 
     it.each([
         [1180, 690],
