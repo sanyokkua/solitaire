@@ -8,13 +8,12 @@ import { App } from '../../src/App';
 import { dealingEnded, dealingProgressed } from '../../src/app/appSlice';
 import { createAppStore, type AppStoreOptions } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
-import type { GameState } from '../../src/domain/types';
-import { gameReducer, initialGameState, installed, selectDisplayedScore } from '../../src/features/game/gameSlice';
+import { selectDisplayedScore } from '../../src/features/game/gameSlice';
 import { play } from '../../src/features/game/gameThunks';
 import { preferenceSet } from '../../src/features/preferences/preferencesSlice';
 import { WINNING_LINE, parseLine } from '../fixtures/deals';
 import { fakeDealService } from '../fixtures/dealService';
-import { playedGame } from '../fixtures/games';
+import { gameOf, playedGame } from '../fixtures/games';
 
 // Drag is not asserted here: the shell has no draggable object at this point in the
 // build — card dragging is introduced with the board in a later phase.
@@ -30,11 +29,6 @@ function renderApp(preloadedState: AppStoreOptions['preloadedState'] = {}) {
         </Provider>,
     );
     return { store, dealService };
-}
-
-/** A game slice holding `state`, installed the way a deal delivers it. */
-function gameOf(state: GameState) {
-    return gameReducer(initialGameState, installed({ state, dailyKey: null }));
 }
 
 const dealCards = () => screen.getByRole('button', { name: /deal cards/i });

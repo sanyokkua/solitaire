@@ -2,8 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore, type AppStoreOptions } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
-import type { GameState } from '../../src/domain/types';
-import { accrued, gameReducer, initialGameState, installed } from '../../src/features/game/gameSlice';
+import { accrued } from '../../src/features/game/gameSlice';
 import { undo } from '../../src/features/game/gameThunks';
 import { defaultPreferences } from '../../src/features/preferences/preferencesSlice';
 import type * as LayoutModule from '../../src/ui/board/layout';
@@ -12,7 +11,7 @@ import { positions } from '../../src/ui/board/layout';
 import { measure, type BoardSize } from '../../src/ui/board/metrics';
 import { selectBoardPiles } from '../../src/ui/board/selectors';
 import { fakeDealService } from '../fixtures/dealService';
-import { playedGame } from '../fixtures/games';
+import { gameOf, playedGame } from '../fixtures/games';
 import { faceUp, makeState, tableauOf } from '../fixtures/states';
 
 vi.mock('../../src/ui/board/layout', async (importOriginal) => {
@@ -64,11 +63,6 @@ afterEach(() => {
     vi.unstubAllGlobals();
     window.matchMedia = originalMatchMedia;
 });
-
-/** A game slice holding `state`, installed the way a deal delivers it. */
-function gameOf(state: GameState) {
-    return gameReducer(initialGameState, installed({ state, dailyKey: null }));
-}
 
 function renderBoard(preloadedState: AppStoreOptions['preloadedState'] = {}, size: BoardSize | null = STACKED) {
     const store = createAppStore({ preloadedState, deps: { dealService: fakeDealService() } });

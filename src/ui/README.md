@@ -3,7 +3,7 @@
 The screens, components and styles that render application state. Components dispatch typed commands and render
 snapshots; they never apply game rules.
 
-- `components/` — small shared components (`BuildStamp.tsx` and `Hud.tsx`, described below).
+- `components/` — small shared components (`BuildStamp.tsx`, `Hud.tsx` and `Toolbar.tsx`, described below).
 - `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`).
 - `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), the board panel, pile slots
   and the stock badge (`board.css`), the HUD stat-display colours (`hud.css`) and global rules (`global.css`, which
@@ -18,6 +18,11 @@ snapshots; they never apply game rules.
   display. Each `div.stat-display` holds a `span.stat-display__label` (text "Score" / "Bank" / "Moves" / "Time", exposed
   to assistive technology) and a `span.stat-display__value`. It renders nothing without a game. Its colours come from
   `styles/hud.css` (colour-only, LCD tokens; size and layout arrive with the Game frame).
+- `components/Toolbar.tsx` — `Toolbar`, the Undo and Redo controls: a `nav.toolbar` labelled "Game actions" holding two
+  `button.tool` elements whose visible text ("Undo", "Redo") is the accessible name and whose decorative SVG icons are
+  `aria-hidden`. Each is disabled from `selectCanUndo` / `selectCanRedo` (which already fold in the finish-sequence
+  `busy` flag) and dispatches the `undo` / `redo` thunk. Native buttons give Enter and Space and the global focus ring;
+  size and layout arrive with the Game frame.
 - `useMediaQuery.ts` — the media-query hook (see "Board state and hooks").
 
 ## Pure board modules

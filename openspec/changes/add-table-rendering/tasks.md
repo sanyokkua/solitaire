@@ -343,7 +343,7 @@
         dispatch; labels are exposed.
     - **Verify:** `rtk npx vitest run tests/unit/ui/format tests/component/hud` passes.
 
-- [ ] 4.2 Add the Undo/Redo toolbar component
+- [x] 4.2 Add the Undo/Redo toolbar component
     - **Implements:** GS "Undo and Redo toolbar" (component side); *KS-AST-07*, *KS-AST-08*
       (controls), *KS-A11Y-03*; D1.
     - **References:** `src/features/game/gameThunks.ts` (`undo`, `redo`), `selectCanUndo`,

@@ -4,20 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { createAppStore } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
 import type { GameState } from '../../src/domain/types';
-import {
-    accrued,
-    gameReducer,
-    initialGameState,
-    installed,
-    selectDisplayedScore,
-} from '../../src/features/game/gameSlice';
+import { accrued, selectDisplayedScore } from '../../src/features/game/gameSlice';
 import { WINNING_LINE } from '../fixtures/deals';
 import { fakeDealService } from '../fixtures/dealService';
+import { gameOf } from '../fixtures/games';
 import { Hud } from '../../src/ui/components/Hud';
-
-function gameOf(state: GameState) {
-    return gameReducer(initialGameState, installed({ state, dailyKey: null }));
-}
 
 function renderHud(state?: GameState) {
     const store = createAppStore({
