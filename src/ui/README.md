@@ -3,12 +3,21 @@
 The screens, components and styles that render application state. Components dispatch typed commands and render
 snapshots; they never apply game rules.
 
-- `components/` — small shared components (`BuildStamp.tsx`).
+- `components/` — small shared components (`BuildStamp.tsx` and `Hud.tsx`, described below).
 - `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`).
 - `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), the board panel, pile slots
-  and the stock badge (`board.css`) and global rules (`global.css`, which imports all three).
+  and the stock badge (`board.css`), the HUD stat-display colours (`hud.css`) and global rules (`global.css`, which
+  imports the other four sheets).
 - `board/` — the table: pure layout geometry and naming, listed below, the React card, slot, badge and `Board`
   components, the board size hook and the board selectors.
+- `format.ts` — the pure HUD text formatters: `formatScore` and `formatMoves` (three-digit zero pad), `formatBank`
+  (`$47`, `-$52`) and `formatTime` (`m:ss`, then `h:mm:ss` from one hour). It takes plain numbers and is not a board
+  module.
+- `components/Hud.tsx` — `Hud`, the read-only HUD. It reads the game in play and the displayed score and returns a
+  fragment (no frame): a `div.hud-group` with the Score (Bank in Vegas) and Moves stat displays, then the Time stat
+  display. Each `div.stat-display` holds a `span.stat-display__label` (text "Score" / "Bank" / "Moves" / "Time", exposed
+  to assistive technology) and a `span.stat-display__value`. It renders nothing without a game. Its colours come from
+  `styles/hud.css` (colour-only, LCD tokens; size and layout arrive with the Game frame).
 - `useMediaQuery.ts` — the media-query hook (see "Board state and hooks").
 
 ## Pure board modules

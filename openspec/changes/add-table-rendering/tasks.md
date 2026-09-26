@@ -325,7 +325,7 @@
 
 ## 4. Game screen
 
-- [ ] 4.1 Show the read-only HUD with pure formatters
+- [x] 4.1 Show the read-only HUD with pure formatters
     - **Implements:** GS "Read-only HUD" (component side); *KS-SCO-02* (money display), *KS-SCO-05*
       (timer display); D1.
     - **References:** spec §3.2 and §4.7; mockup HUD L173–183 and HUD text L951–953;

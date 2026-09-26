@@ -1,6 +1,7 @@
 @import './tokens.css';
 @import './cards.css';
 @import './board.css';
+@import './hud.css';
 
 * {
     box-sizing: border-box;
