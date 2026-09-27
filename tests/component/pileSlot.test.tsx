@@ -19,7 +19,7 @@ describe('PileSlot', () => {
     it('shows a faint "A" and the suit symbol on an empty foundation', () => {
         renderSlot(SPADES_FOUNDATION, 0);
 
-        const slot = screen.getByRole('group', { name: 'Spades foundation, empty' });
+        const slot = screen.getByRole('button', { name: 'Spades foundation, empty' });
         expect(slot).toHaveClass('slot', 'slot--found');
         expect(slot).toHaveTextContent(`A♠${VS15}`);
         expect(slot.querySelector('.r')).toHaveTextContent('A');
@@ -28,7 +28,7 @@ describe('PileSlot', () => {
     it('shows a faint "K" on an empty column', () => {
         renderSlot({ pile: 'tableau', col: 2 }, 0);
 
-        const slot = screen.getByRole('group', { name: 'Column 3, empty' });
+        const slot = screen.getByRole('button', { name: 'Column 3, empty' });
         expect(slot).toHaveClass('slot', 'slot--tab');
         expect(slot).toHaveTextContent('K');
     });
@@ -36,7 +36,7 @@ describe('PileSlot', () => {
     it('positions the slot with the --x and --y custom properties and hides its children', () => {
         renderSlot(STOCK, 3);
 
-        const slot = screen.getByRole('group', { name: 'Stock, 3 cards' });
+        const slot = screen.getByRole('button', { name: 'Stock, 3 cards' });
         expect(slot.style.getPropertyValue('--x')).toBe('10px');
         expect(slot.style.getPropertyValue('--y')).toBe('20px');
         expect(slot).toHaveClass('slot--stock');
@@ -45,14 +45,61 @@ describe('PileSlot', () => {
         }
     });
 
+    it('carries the pile key of its pile in data-pile', () => {
+        renderSlot(STOCK, 3);
+        renderSlot(SPADES_FOUNDATION, 0);
+        renderSlot({ pile: 'tableau', col: 5 }, 2);
+
+        expect(screen.getByRole('button', { name: 'Stock, 3 cards' })).toHaveAttribute('data-pile', 'stock');
+        expect(screen.getByRole('button', { name: 'Spades foundation, empty' })).toHaveAttribute(
+            'data-pile',
+            'foundation:3',
+        );
+        expect(screen.getByRole('group', { name: 'Column 6, 2 cards' })).toHaveAttribute('data-pile', 'tableau:5');
+    });
+
     it('names each slot by its pile and card count', () => {
         renderSlot(STOCK, 18);
         renderSlot({ pile: 'tableau', col: 3 }, 1);
         renderSlot(HEARTS_FOUNDATION, 2);
 
-        expect(screen.getByRole('group', { name: 'Stock, 18 cards' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Stock, 18 cards' })).toBeInTheDocument();
         expect(screen.getByRole('group', { name: 'Column 4, 1 card' })).toBeInTheDocument();
         expect(screen.getByRole('group', { name: 'Hearts foundation, 2 cards' })).toBeInTheDocument();
+    });
+
+    it('makes the stock and every empty pile a button and a non-empty pile a group', () => {
+        renderSlot(STOCK, 18);
+        renderSlot({ pile: 'tableau', col: 3 }, 0);
+        renderSlot(HEARTS_FOUNDATION, 0);
+        renderSlot({ pile: 'tableau', col: 4 }, 1);
+        renderSlot(SPADES_FOUNDATION, 2);
+
+        expect(screen.getAllByRole('button').map((slot) => slot.getAttribute('aria-label'))).toEqual([
+            'Stock, 18 cards',
+            'Column 4, empty',
+            'Hearts foundation, empty',
+        ]);
+        expect(screen.getAllByRole('group').map((slot) => slot.getAttribute('aria-label'))).toEqual([
+            'Column 5, 1 card',
+            'Spades foundation, 2 cards',
+        ]);
+    });
+
+    it('applies the tab stop to a button slot only', () => {
+        render(
+            <>
+                <PileSlot pile={STOCK} count={3} x={0} y={0} tabIndex={0} />
+                <PileSlot pile={{ pile: 'tableau', col: 0 }} count={0} x={0} y={0} tabIndex={-1} />
+                <PileSlot pile={{ pile: 'tableau', col: 1 }} count={2} x={0} y={0} tabIndex={0} />
+                <PileSlot pile={HEARTS_FOUNDATION} count={0} x={0} y={0} />
+            </>,
+        );
+
+        expect(screen.getByRole('button', { name: 'Stock, 3 cards' })).toHaveAttribute('tabindex', '0');
+        expect(screen.getByRole('button', { name: 'Column 1, empty' })).toHaveAttribute('tabindex', '-1');
+        expect(screen.getByRole('group', { name: 'Column 2, 2 cards' })).not.toHaveAttribute('tabindex');
+        expect(screen.getByRole('button', { name: 'Hearts foundation, empty' })).not.toHaveAttribute('tabindex');
     });
 
     it('dims a spent Vegas stock and shows no badge', () => {
@@ -61,7 +108,7 @@ describe('PileSlot', () => {
         renderSlot(STOCK, state.stock.length, spent);
         render(<StockBadge count={state.stock.length} x={5} y={6} />);
 
-        const slot = screen.getByRole('group', { name: 'Stock, empty' });
+        const slot = screen.getByRole('button', { name: 'Stock, empty' });
         expect(spent).toBe(true);
         expect(slot).toHaveClass('is-spent');
         expect(slot.querySelector('svg')).not.toBeNull();
@@ -73,7 +120,7 @@ describe('PileSlot', () => {
         const spent = !canRecycle(state);
         renderSlot(STOCK, state.stock.length, spent);
 
-        const slot = screen.getByRole('group', { name: 'Stock, empty' });
+        const slot = screen.getByRole('button', { name: 'Stock, empty' });
         expect(spent).toBe(false);
         expect(slot).not.toHaveClass('is-spent');
         expect(slot.querySelector('svg')).not.toBeNull();

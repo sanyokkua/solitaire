@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
 import { createAppStore } from '../../../../src/app/store';
+import { cardId } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import { displayedScore } from '../../../../src/domain/scoring';
 import type { Command, GameState } from '../../../../src/domain/types';
@@ -9,6 +10,7 @@ import { play, redo, undo } from '../../../../src/features/game/gameThunks';
 import { statsReset } from '../../../../src/features/stats/statsSlice';
 import { fakeDealService } from '../../../fixtures/dealService';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
+import { faceDown, faceUp, makeState, tableauOf, vegasAtLimit } from '../../../fixtures/states';
 
 const DRAW: Command = { type: 'draw' };
 /** Refused on a fresh deal: the waste is empty. */
@@ -92,6 +94,60 @@ describe('play', () => {
         expect(after.stats).toBe(before.stats);
         expect(current(env).moves).toBe(1);
         expect(current(env).elapsedMs).toBe(400);
+    });
+});
+
+describe('play: reporting the outcome', () => {
+    it('reports a draw as accepted with its drew event', async () => {
+        const env = setup();
+
+        const result = await env.store.dispatch(play(DRAW));
+
+        expect(result).toEqual({ accepted: true, events: [{ type: 'drew', count: 1 }] });
+    });
+
+    it('reports why a move was refused, and changes nothing', async () => {
+        const env = setup(vegasAtLimit({ waste: [cardId(0, 1)], started: true }));
+        const before = env.store.getState();
+
+        const result = await env.store.dispatch(play(DRAW));
+
+        expect(result.accepted).toBe(false);
+        expect(result.events).toContainEqual({ type: 'rejected', reason: 'pass-limit' });
+        const { game, stats } = env.store.getState();
+        expect(game.current).toBe(before.game.current);
+        expect(game.history).toBe(before.game.history);
+        expect(game.future).toBe(before.game.future);
+        expect(stats).toBe(before.stats);
+    });
+
+    it('reports the rejected event of an illegal command', async () => {
+        const env = setup();
+
+        const result = await env.store.dispatch(play(ILLEGAL));
+
+        expect(result.accepted).toBe(false);
+        expect(result.events).toEqual([{ type: 'rejected', reason: 'not-movable' }]);
+    });
+
+    it('reports the move and the flip of a move that turns a card face up', async () => {
+        const hidden = cardId(2, 5);
+        const moving = cardId(0, 6);
+        const target = cardId(3, 7);
+        const env = setup(makeState({ tableau: tableauOf([...faceDown(hidden), ...faceUp(moving)], faceUp(target)) }));
+
+        const result = await env.store.dispatch(
+            play({ type: 'move', from: { pile: 'tableau', col: 0 }, index: 1, to: { pile: 'tableau', col: 1 } }),
+        );
+
+        expect(result.accepted).toBe(true);
+        expect(result.events).toContainEqual({
+            type: 'moved',
+            cards: [moving],
+            from: { pile: 'tableau', col: 0 },
+            to: { pile: 'tableau', col: 1 },
+        });
+        expect(result.events).toContainEqual({ type: 'flipped', card: hidden });
     });
 });
 
@@ -270,20 +326,30 @@ describe('play: ignored', () => {
         env.store.dispatch(busySet(true));
         const before = env.store.getState();
 
-        await env.store.dispatch(play(DRAW));
+        const result = await env.store.dispatch(play(DRAW));
 
+        expect(result).toEqual({ accepted: false, events: [] });
         expect(env.store.getState().game).toBe(before.game);
         expect(env.store.getState().stats).toBe(before.stats);
+    });
+
+    it('reports nothing for a command on a won game', async () => {
+        const env = setup(makeState({ status: 'won' }));
+
+        const result = await env.store.dispatch(play(DRAW));
+
+        expect(result).toEqual({ accepted: false, events: [] });
     });
 
     it('does nothing without a game', async () => {
         const env = setup(null);
         const before = env.store.getState();
 
-        await env.store.dispatch(play(DRAW));
+        const result = await env.store.dispatch(play(DRAW));
         env.store.dispatch(undo());
         env.store.dispatch(redo());
 
+        expect(result).toEqual({ accepted: false, events: [] });
         expect(env.store.getState()).toBe(before);
     });
 });

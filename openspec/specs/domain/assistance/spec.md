@@ -48,7 +48,8 @@ empty and recycling is permitted; failing that, it SHALL report that no move rem
 receive no suggestion. Ties within a priority SHALL resolve by the canonical scan order (see
 move-rules "Canonical scan order"): the first source, then its first accepting destination. A
 suggestion SHALL identify the command, the cards it moves and the priority that produced it.
-Input-agnostic: how a hint is requested belongs to a later phase. Deterministic: the same position
+Input-agnostic: a hint is requested through the Hint toolbar button or the H shortcut (the
+`requestHint` thunk). Deterministic: the same position
 always yields the same suggestion. *(KS-AST-02)*
 
 #### Scenario: Higher priorities win
@@ -99,7 +100,8 @@ A won position SHALL never be a dead end. Any other position SHALL be a dead end
    not permitted.
 
 A card "could be played" when, in the position as it stands, some foundation or tableau column would
-accept it as a single card. Input-agnostic: a predicate; the notice belongs to a later phase.
+accept it as a single card. Input-agnostic: a predicate; the notice is shown by
+`src/ui/components/Notices.tsx`.
 Deterministic: the same position always yields the same verdict. *(KS-AST-06)*
 
 #### Scenario: A won game is not a dead end
@@ -143,7 +145,8 @@ For a grabbed group, the system SHALL choose the first of:
 
 and otherwise SHALL report no target. The relative scan of step 2 deliberately replaces the
 canonical destination order; step 3 does not use it. Input-agnostic: the shared resolution behind the smart-move tap, the double-activation
-shortcut and the keyboard equivalent, each implemented and tested in a later phase. Deterministic:
+shortcut and the keyboard equivalent, implemented once in `src/ui/board/useBoardActions.ts` and
+shared by `useBoardPointer.ts` and `useBoardKeyboard.ts`/`keyboardController.ts`. Deterministic:
 the same position and grab always yield the same target. *(KS-INP-01, KS-INP-03)*
 
 #### Scenario: A single card prefers its foundation
@@ -206,8 +209,8 @@ the settled won position, its events and the ordered command sequence. The syste
 plan when a step is refused, or when the exhausted stock would have to be recycled a second time
 with no card sent since the first recycle — the stock then holds every remaining card, so the pass
 between the two recycles has shown every waste top that any later pass could show. Finishing SHALL be
-available exactly when a plan exists. Input-agnostic: system-driven; its control belongs to a later
-phase. Deterministic: the same position always yields the same plan. *(KS-AST-05)*
+available exactly when a plan exists. Input-agnostic: system-driven; its control is the Toolbar's
+Finish button (and the A shortcut). Deterministic: the same position always yields the same plan. *(KS-AST-05)*
 
 #### Scenario: Finishing needs every card face up
 
@@ -250,3 +253,50 @@ phase. Deterministic: the same position always yields the same plan. *(KS-AST-05
 - **WHEN** every tableau card is face up in a game at its pass limit whose remaining cards can only
   be reached by another recycle
 - **THEN** no plan is reported and finishing is unavailable
+
+### Requirement: One advice for a position
+
+The domain SHALL offer one advice function for a position that returns exactly one of: a dead end,
+a productive move hint (with its source cards, target and priority), a draw, or a recycle. It SHALL
+return the dead end exactly when dead-end detection reports one, so a position is never both a
+dead end and given a draw or recycle hint. It SHALL be pure and deterministic: the same position
+gives the same advice. The existing hint function, its R§6.1 priority order and the R§6.4 dead-end
+rule are unchanged; the advice function adds the dead-end check in front of the hint. A won position has no advice.
+
+*(KS-AST-02, KS-AST-06)*
+
+#### Scenario: Dead end wins over draw
+- **WHEN** the stock holds cards but none can be played anywhere and no tableau move is productive
+- **THEN** the advice is a dead end, not a draw
+
+#### Scenario: Productive move
+- **WHEN** a card can go to its foundation
+- **THEN** the advice is that move with priority 1
+
+#### Scenario: Draw is useful
+- **WHEN** no tableau move exists but a card in the stock can be played
+- **THEN** the advice is to draw
+
+#### Scenario: Determinism
+- **WHEN** the advice of the same position is computed twice
+- **THEN** the results are equal
+
+### Requirement: Position identity
+
+The domain SHALL offer a position key: a string that depends only on the piles (tableau with face
+states, stock, waste, foundations) and is equal for two positions exactly when those piles are
+equal. It SHALL NOT depend on the score, moves, time, undo count or clock ticks.
+
+*(KS-AST-06)*
+
+#### Scenario: Time does not matter
+- **WHEN** two states differ only in elapsed time
+- **THEN** their keys are equal
+
+#### Scenario: A move changes the key
+- **WHEN** a card moves
+- **THEN** the key differs from the one before
+
+#### Scenario: A flip changes the key
+- **WHEN** a face-down card is turned up
+- **THEN** the key differs

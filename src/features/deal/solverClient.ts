@@ -19,7 +19,7 @@ export type FindWinnableOutcome =
  * How a `hint` request ended. `ok` carries the solver's suggestion, `undefined` when it offers none; `timeout` means
  * the reply did not arrive in time; `busy` means a deal was pending, so nothing was sent.
  */
-export type HintOutcome =
+export type SolverHintOutcome =
     | { readonly status: 'ok'; readonly hint: SolverHint | undefined }
     | { readonly status: 'cancelled' | 'timeout' | 'busy' | 'failed' };
 
@@ -37,7 +37,7 @@ export interface SolverClient {
      * Asks the worker for the solver's hint for `state`. Resolves `busy` at once while a deal is pending, `cancelled`
      * when a newer hint or a deal replaces it, and `timeout` after `timeoutMs` (the worker is left running).
      */
-    readonly hint: (state: GameState, budget: number, timeoutMs: number) => Promise<HintOutcome>;
+    readonly hint: (state: GameState, budget: number, timeoutMs: number) => Promise<SolverHintOutcome>;
     /** Settles only the pending hints as `cancelled`; a pending deal and the worker are left alone. */
     readonly cancelHints: () => void;
     /** Settles every pending request as `cancelled`; a busy worker is terminated, an idle one is kept. */
@@ -54,7 +54,7 @@ interface PendingDeal {
 
 interface PendingHint {
     readonly kind: 'hint';
-    readonly resolve: (outcome: HintOutcome) => void;
+    readonly resolve: (outcome: SolverHintOutcome) => void;
     readonly timer: ReturnType<typeof setTimeout>;
 }
 
@@ -215,7 +215,7 @@ export function createSolverClient(createWorker: () => WorkerLike = defaultCreat
         });
     }
 
-    function hint(state: GameState, budget: number, timeoutMs: number): Promise<HintOutcome> {
+    function hint(state: GameState, budget: number, timeoutMs: number): Promise<SolverHintOutcome> {
         if ([...pending.values()].some((entry) => entry.kind === 'deal')) {
             return Promise.resolve({ status: 'busy' });
         }

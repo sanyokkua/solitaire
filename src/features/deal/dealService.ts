@@ -5,7 +5,7 @@
  * never leaves a deal undelivered. A hint asks the solver only where it applies and falls back to the domain heuristic.
  * Reaches the solver only through `./solverClient` and type-only imports.
  */
-import { hint as heuristicHint } from '../../domain/assist';
+import { hint as heuristicHint } from '../../domain/hint';
 import { dealFromSeed } from '../../domain/deal';
 import { cryptoSeed, type SeedSource } from '../../domain/prng';
 import { isWon, passLimit } from '../../domain/rules';

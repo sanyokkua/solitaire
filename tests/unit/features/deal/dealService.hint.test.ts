@@ -1,7 +1,7 @@
 // @vitest-environment node
 import '@vitest/web-worker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { hint as heuristicHint } from '../../../../src/domain/assist';
+import { hint as heuristicHint } from '../../../../src/domain/hint';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { GameState } from '../../../../src/domain/types';
 import { createDealService, HINT_BUDGET, type DealService } from '../../../../src/features/deal/dealService';

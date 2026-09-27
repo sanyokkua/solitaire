@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { HintOutcome } from '../../../../src/features/deal/dealService';
 import { fakeDealService } from '../../../fixtures/dealService';
 import { makeState } from '../../../fixtures/states';
 
@@ -76,5 +77,36 @@ describe('fakeDealService', () => {
 
     it('answers a hint with none', async () => {
         await expect(fakeDealService().hint(makeState())).resolves.toEqual({ status: 'none' });
+    });
+
+    it('answers a hint with the configured outcome and records the state asked about', async () => {
+        const service = fakeDealService();
+        const state = makeState({ seed: 9 });
+        const outcome: HintOutcome = { status: 'hint', source: 'heuristic', hint: { kind: 'draw' } };
+        service.hintOutcome = outcome;
+
+        await expect(service.hint(state)).resolves.toBe(outcome);
+
+        expect(service.hintRequests).toEqual([state]);
+    });
+
+    it('holds a hint pending while deferred and settles it on command', async () => {
+        const service = fakeDealService();
+        service.deferHints = true;
+        const first = service.hint(makeState({ seed: 1 }));
+        const second = service.hint(makeState({ seed: 2 }));
+
+        service.resolveHint(1, { status: 'cancelled' });
+        service.resolveHint(0);
+
+        await expect(second).resolves.toEqual({ status: 'cancelled' });
+        await expect(first).resolves.toEqual({ status: 'none' });
+        expect(service.hintRequests.map((state) => state.seed)).toEqual([1, 2]);
+        expect(() => {
+            service.resolveHint(0);
+        }).toThrow();
+        expect(() => {
+            service.resolveHint(7);
+        }).toThrow();
     });
 });

@@ -24,10 +24,18 @@ export interface FakeDealService extends DealService {
     readonly progress: (index: number, progress: DealProgress) => void;
     /** Whether `dispose()` was called. */
     disposed: boolean;
+    /** What `hint()` answers unless a hint is deferred; `none` to begin with. Settable. */
+    hintOutcome: HintOutcome;
+    /** Every state `hint()` was asked about, in call order. */
+    readonly hintRequests: GameState[];
+    /** When true a `hint()` call stays pending until `resolveHint` settles it; false (the default) answers at once. */
+    deferHints: boolean;
+    /** Settles deferred hint request `index` with `outcome` (default: `hintOutcome`). Throws if it already settled. */
+    readonly resolveHint: (index: number, outcome?: HintOutcome) => void;
 }
 
 /**
- * Creates a fake deal service: `deal` records the request and waits, `hint` answers `none`, `dispose` is noted. Like
+ * Creates a fake deal service: `deal` records the request and waits, `hint` answers `hintOutcome` (`none` unless set), or waits for `resolveHint` while `deferHints` is on, `dispose` is noted. Like
  * the real service, a new `deal()` and `dispose()` settle every request still pending as `cancelled`, and settling a
  * request that has already settled throws.
  */
@@ -45,6 +53,10 @@ export function fakeDealService(): FakeDealService {
         resolve(outcome);
     }
 
+    const hintRequests: GameState[] = [];
+    /** Each deferred hint's settle function, by request index; entries for immediate answers are `undefined`. */
+    const pendingHints: (((outcome: HintOutcome) => void) | undefined)[] = [];
+
     function cancelPending(): void {
         pending.forEach((resolve, index) => {
             if (resolve !== undefined) settle(index, { status: 'cancelled' });
@@ -61,7 +73,27 @@ export function fakeDealService(): FakeDealService {
                 pending.push(resolve);
             });
         },
-        hint: () => Promise.resolve<HintOutcome>({ status: 'none' }),
+        hintOutcome: { status: 'none' },
+        hintRequests,
+        deferHints: false,
+        hint: (state) => {
+            hintRequests.push(state);
+            if (!fake.deferHints) {
+                pendingHints.push(undefined);
+                return Promise.resolve(fake.hintOutcome);
+            }
+            return new Promise<HintOutcome>((resolve) => {
+                pendingHints.push(resolve);
+            });
+        },
+        resolveHint: (index, outcome) => {
+            const resolve = pendingHints[index];
+            if (resolve === undefined) {
+                throw new Error(`Hint request ${String(index)} is not deferred, does not exist or has already settled`);
+            }
+            pendingHints[index] = undefined;
+            resolve(outcome ?? fake.hintOutcome);
+        },
         dispose: () => {
             cancelPending();
             fake.disposed = true;

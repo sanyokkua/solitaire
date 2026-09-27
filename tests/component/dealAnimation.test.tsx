@@ -10,26 +10,7 @@ import { Board } from '../../src/ui/board/Board';
 import { DealtEpochContext, createDealtEpochStore } from '../../src/ui/board/DealtEpochContext';
 import { fakeDealService } from '../fixtures/dealService';
 import { gameOf, playedGame } from '../fixtures/games';
-
-type Callback = (entries: ResizeObserverEntry[]) => void;
-
-/** A `ResizeObserver` whose first size the test injects. */
-class FakeResizeObserver {
-    static readonly instances: FakeResizeObserver[] = [];
-    readonly observe = vi.fn<(target: Element) => void>();
-    readonly disconnect = vi.fn<() => void>();
-
-    constructor(private readonly callback: Callback) {
-        FakeResizeObserver.instances.push(this);
-    }
-
-    trigger(width: number, height: number): void {
-        const entry = { contentRect: { width, height } } as ResizeObserverEntry;
-        act(() => {
-            this.callback([entry]);
-        });
-    }
-}
+import { FakeResizeObserver } from '../support/fakeResizeObserver';
 
 /** The step between two cards' delays, the glide start of the last card and the whole deal, in ms. */
 const STEP_MS = 28;
@@ -90,7 +71,7 @@ function mount({
     const view = render(tree(true));
     const observer = FakeResizeObserver.instances.at(-1);
     if (!observer) throw new Error('no ResizeObserver was created');
-    observer.trigger(900, 800);
+    observer.trigger({ width: 900, height: 800 });
     return {
         store,
         dealt,
@@ -102,7 +83,7 @@ function mount({
             view.rerender(tree(true));
             const next = FakeResizeObserver.instances.at(-1);
             if (!next) throw new Error('no ResizeObserver was created');
-            next.trigger(900, 800);
+            next.trigger({ width: 900, height: 800 });
         },
     };
 }
@@ -258,7 +239,7 @@ describe('Deal animation', () => {
         advance(DEAL_TOTAL_MS);
         const observer = FakeResizeObserver.instances.at(-1);
 
-        observer?.trigger(700, 700);
+        observer?.trigger({ width: 700, height: 700 });
 
         expect(delayed(container)).toHaveLength(0);
     });

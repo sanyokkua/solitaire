@@ -1,6 +1,6 @@
 import { dealingEnded, noticeDismissed, setRoute, sheetClosed } from '../../app/appSlice';
+import type { AppThunk } from '../../app/appThunk';
 import { cleared, countedSet } from '../game/gameSlice';
-import type { AppThunk } from '../game/gameThunks';
 import { preferencesReset } from '../preferences/preferencesSlice';
 import { resolveLocale } from '../preferences/locale';
 import { statsReset } from '../stats/statsSlice';

@@ -9,49 +9,22 @@ import type * as LayoutModule from '../../src/ui/board/layout';
 import { Board } from '../../src/ui/board/Board';
 import { positions } from '../../src/ui/board/layout';
 import { measure, type BoardSize } from '../../src/ui/board/metrics';
-import { selectBoardPiles } from '../../src/ui/board/selectors';
+import { cardIndex } from '../../src/ui/board/locate';
+import { pileKey } from '../../src/ui/board/landing';
+import { selectBoardPiles, selectCardLocations } from '../../src/ui/board/selectors';
 import { fakeDealService } from '../fixtures/dealService';
 import { gameOf, playedGame } from '../fixtures/games';
 import { faceUp, makeState, tableauOf } from '../fixtures/states';
+import { FakeResizeObserver } from '../support/fakeResizeObserver';
+import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
 
 vi.mock('../../src/ui/board/layout', async (importOriginal) => {
     const actual = await importOriginal<typeof LayoutModule>();
     return { ...actual, positions: vi.fn(actual.positions) };
 });
 
-type Callback = (entries: ResizeObserverEntry[]) => void;
-
-/** A `ResizeObserver` whose entries the test injects with `trigger`. */
-class FakeResizeObserver {
-    static readonly instances: FakeResizeObserver[] = [];
-    readonly observe = vi.fn<(target: Element) => void>();
-    readonly disconnect = vi.fn<() => void>();
-
-    constructor(private readonly callback: Callback) {
-        FakeResizeObserver.instances.push(this);
-    }
-
-    trigger(size: BoardSize): void {
-        const entry = { contentRect: { width: size.width, height: size.height } } as ResizeObserverEntry;
-        act(() => {
-            this.callback([entry]);
-        });
-    }
-}
-
 /** A stacked table with room for a full deal at a fine or a coarse pointer alike. */
 const STACKED: BoardSize = { width: 900, height: 800 };
-const originalMatchMedia = window.matchMedia.bind(window);
-
-/** Makes `(pointer: coarse)` match or not; every other query never matches. */
-function stubPointer(coarse: boolean): void {
-    window.matchMedia = ((query: string) => ({
-        matches: coarse && query === '(pointer: coarse)',
-        media: query,
-        addEventListener: () => undefined,
-        removeEventListener: () => undefined,
-    })) as unknown as typeof window.matchMedia;
-}
 
 beforeEach(() => {
     FakeResizeObserver.instances.length = 0;
@@ -61,7 +34,7 @@ beforeEach(() => {
 
 afterEach(() => {
     vi.unstubAllGlobals();
-    window.matchMedia = originalMatchMedia;
+    restoreMatchMedia();
 });
 
 function renderBoard(preloadedState: AppStoreOptions['preloadedState'] = {}, size: BoardSize | null = STACKED) {
@@ -120,18 +93,18 @@ describe('Board', () => {
         const { container } = renderBoard({ game: gameOf(dealFromSeed(1, 'draw1')) }, null);
 
         expect(container.querySelector('.board-panel')).toBeEmptyDOMElement();
-        expect(screen.queryAllByRole('group')).toHaveLength(0);
+        expect(screen.queryAllByRole('button')).toHaveLength(0);
         expect(cardNodes(container)).toHaveLength(0);
     });
 
     it('renders the slots but no card while there is no game', () => {
         const { container } = renderBoard();
 
-        expect(screen.getAllByRole('group')).toHaveLength(12);
+        expect(screen.getAllByRole('button')).toHaveLength(12);
         expect(cardNodes(container)).toHaveLength(0);
         expect(container.querySelector('.stock-count')).toBeNull();
-        expect(screen.getByRole('group', { name: 'Stock, empty' })).toBeInTheDocument();
-        expect(screen.getByRole('group', { name: 'Column 1, empty' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Stock, empty' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Column 1, empty' })).toBeInTheDocument();
     });
 
     it('identifies each of the 52 cards by a unique data-card-id in card-id order', () => {
@@ -162,20 +135,64 @@ describe('Board', () => {
         expect(after.map(styleOf)).not.toEqual(stylesBefore);
     });
 
+    it('tags every card with its pile and index from the deal, and every slot with its pile', () => {
+        const deal = dealFromSeed(1, 'draw1');
+        const { container } = renderBoard({ game: gameOf(deal) });
+        const expected = cardIndex(deal);
+
+        for (const node of cardNodes(container)) {
+            const location = expected.get(Number(node.dataset.cardId));
+            expect(node.dataset.pile).toBe(location && pileKey(location.from));
+            expect(node.dataset.index).toBe(String(location?.index));
+        }
+        const slots = Array.from(container.querySelectorAll<HTMLElement>('.slot')).map((slot) => slot.dataset.pile);
+        expect(slots).toContain('stock');
+        expect(slots).toContain('foundation:0');
+        expect(slots).toContain('tableau:6');
+    });
+
+    it('keeps the card locations, and so every pile and index attribute, on a clock tick', () => {
+        const { container, store } = renderBoard({ game: playedGame() });
+        const locations = selectCardLocations(store.getState());
+        const attributes = () => cardNodes(container).map((node) => [node.dataset.pile, node.dataset.index]);
+        const before = attributes();
+        expect(locations).not.toBeNull();
+
+        act(() => {
+            store.dispatch(accrued({ atMs: 1500, eligible: true }));
+        });
+
+        expect(selectCardLocations(store.getState())).toBe(locations);
+        expect(attributes()).toEqual(before);
+    });
+
+    it('gives the cards new locations when a card changes place', () => {
+        const { container, store } = renderBoard({ game: playedGame() });
+        const locations = selectCardLocations(store.getState());
+        const before = cardNodes(container).map((node) => [node.dataset.pile, node.dataset.index]);
+
+        act(() => {
+            store.dispatch(undo());
+        });
+
+        expect(selectCardLocations(store.getState())).not.toBe(locations);
+        expect(cardNodes(container).map((node) => [node.dataset.pile, node.dataset.index])).not.toEqual(before);
+    });
+
     it('names the slots and shows the stock count of a fresh deal', () => {
         const { container } = renderBoard({ game: gameOf(dealFromSeed(1, 'draw1')) });
 
-        expect(screen.getByRole('group', { name: 'Stock, 24 cards' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Stock, 24 cards' })).toBeInTheDocument();
         expect(screen.getByRole('group', { name: 'Column 1, 1 card' })).toBeInTheDocument();
         expect(screen.getByRole('group', { name: 'Column 7, 7 cards' })).toBeInTheDocument();
-        expect(screen.getByRole('group', { name: 'Hearts foundation, empty' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Hearts foundation, empty' })).toBeInTheDocument();
         expect(container.querySelector('.stock-count')).toHaveTextContent('24');
     });
 
     it('steps face-up tableau cards further apart under a coarse pointer', () => {
         const state = makeState({ tableau: tableauOf(faceUp(0, 1, 2)) });
         const step = (coarse: boolean): number => {
-            stubPointer(coarse);
+            stubMatchMedia(coarse ? ['(pointer: coarse)'] : []);
             const { container, unmount } = renderBoard({ game: gameOf(state) });
             const y = (id: number) => {
                 const node = cardNodes(container)[id];
@@ -243,16 +260,16 @@ describe('Board', () => {
         const recyclable = makeState({ waste: [0] });
 
         const first = renderBoard({ game: gameOf(spent) });
-        expect(screen.getByRole('group', { name: 'Stock, empty' })).toHaveClass('is-spent');
+        expect(screen.getByRole('button', { name: 'Stock, empty' })).toHaveClass('is-spent');
         first.unmount();
 
         renderBoard({ game: gameOf(recyclable) });
-        expect(screen.getByRole('group', { name: 'Stock, empty' })).not.toHaveClass('is-spent');
+        expect(screen.getByRole('button', { name: 'Stock, empty' })).not.toHaveClass('is-spent');
     });
 
     it('moves the stock slot to the right when the mirror preference is on', () => {
         const game = gameOf(dealFromSeed(1, 'draw1'));
-        const stockX = () => parseFloat(screen.getByRole('group', { name: /^Stock/ }).style.getPropertyValue('--x'));
+        const stockX = () => parseFloat(screen.getByRole('button', { name: /^Stock/ }).style.getPropertyValue('--x'));
 
         const left = renderBoard({ game });
         const leftX = stockX();

@@ -1,3 +1,7 @@
+import { SUITS, TABLEAU_COLS } from '../../src/domain/cards';
+import { dealFromSeed } from '../../src/domain/deal';
+import { applyCommand } from '../../src/domain/engine';
+import { finishPlan } from '../../src/domain/finish';
 import type { Command, GameState, Mode, PileRef } from '../../src/domain/types';
 
 export interface DealFixture {
@@ -80,9 +84,6 @@ export const WINNING_LINE: WinningLine = {
     passes: 2,
 };
 
-const TABLEAU_COLS = [0, 1, 2, 3, 4, 5, 6] as const;
-const SUITS = [0, 1, 2, 3] as const;
-
 /** Reads a pile token: `W` (waste), `0`-`6` (tableau column) or `F0`-`F3` (foundation of that suit). */
 function parsePile(token: string, whole: string, allowWaste: boolean): PileRef {
     if (allowWaste && token === 'W') return { pile: 'waste' };
@@ -117,4 +118,28 @@ export function parseLine(line: string): Command[] {
                 to: parsePile(to, token, false),
             };
         });
+}
+
+/**
+ * The first position on the recorded winning line whose tableau is entirely face up, so a finish plan exists. Built
+ * through the engine, so the position is one a player could really reach.
+ */
+export function allFaceUp(): GameState {
+    let state = dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode);
+    for (const cmd of parseLine(WINNING_LINE.line)) {
+        if (finishPlan(state) !== undefined) return state;
+        state = applyCommand(state, cmd).state;
+    }
+    throw new Error('the winning line never reaches an all-face-up position');
+}
+
+/**
+ * The recorded winning line played to one command before the end, as a game in progress: the next command, the last of
+ * the line, wins. Built through the engine, so the position is one a player could really reach.
+ */
+export function nearlyWonState(): GameState {
+    const commands = parseLine(WINNING_LINE.line);
+    let state = dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode);
+    for (const cmd of commands.slice(0, -1)) state = applyCommand(state, cmd).state;
+    return { ...state, started: true };
 }

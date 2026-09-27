@@ -16,7 +16,8 @@ same elements and SHALL never create, remove or re-order them. Each card SHALL b
 translation, at the position the layout gives it. While no game exists yet, the table SHALL render
 its slots and no cards.
 
-Input-agnostic: rendering only; board input arrives in Phase 6. Motion for these changes is covered
+Input-agnostic: rendering only; board input (drag, tap and keyboard) is handled by
+`src/ui/board/useBoardPointer.ts`, `useBoardActions.ts` and `useBoardKeyboard.ts`. Motion for these changes is covered
 by the board-motion capability, including its no-motion path.
 
 *(KS-PERF-01 rendering, R§10, R§12.2)*
@@ -88,7 +89,7 @@ empty, or the Vegas pass limit is reached), the stock slot SHALL be dimmed. Whil
 least one card, a badge SHALL show the number of cards left in it; it SHALL be hidden while the stock
 is empty. The badge SHALL be visible at the stock's top-right corner in every layout.
 
-Input-agnostic: rendering only; activating the stock is Phase 6. No animation beyond the badge
+Input-agnostic: rendering only; activating the stock is handled by `src/ui/board/useBoardActions.ts`. No animation beyond the badge
 following the stock, which follows the no-motion path.
 
 *(KS-MOVE-06 context; placeholders and badge from spec §3.2; spent state (new), from the mockup)*
@@ -135,16 +136,17 @@ Input-agnostic: rendering only.
 
 ### Requirement: Accessible names for cards and piles
 
-Every face-up card SHALL be exposed to assistive technology as an image named "<Rank> of <Suit>",
-with the rank and suit spelled out and capitalised (for example "Queen of Spades", "Seven of
-Clubs"). Every face-down card SHALL be named "Face-down card". Every pile slot SHALL be named with
-its pile and card count: "Stock, 18 cards", "Hearts foundation, 2 cards", "Column 3, 5 cards",
-using "1 card" for one and "empty" for none (for example "Column 4, empty"). The waste has no slot;
-its name arrives with Phase 6 focus.
+Every face-up card SHALL be exposed to assistive technology with the name "<Rank> of <Suit>", with
+the rank and suit spelled out and capitalised (for example "Queen of Spades", "Seven of Clubs"): as
+an image, or as a button when the rules allow it to move (see `ui/board-keyboard`). Every face-down
+card SHALL be an image named "Face-down card". Every pile slot SHALL be named with its pile and card
+count: "Stock, 18 cards", "Hearts foundation, 2 cards", "Column 3, 5 cards", using "1 card" for one
+and "empty" for none (for example "Column 4, empty"). The waste has no slot; its top card is named
+like any card.
 Decorative parts (corner indices, pips, the recycle mark, the badge) SHALL be hidden from assistive
 technology. Names are English until the language catalogs arrive.
 
-Input-agnostic: names are exposed regardless of input; focus handling is Phase 6.
+Input-agnostic: names are exposed regardless of input; focus handling is in `ui/board-keyboard`.
 
 *(KS-A11Y-01; foundation, one-card and empty-pile names (new))*
 
@@ -162,3 +164,8 @@ Input-agnostic: names are exposed regardless of input; focus handling is Phase 6
 
 - **WHEN** the stock holds 18 cards and column 3 is empty
 - **THEN** the stock is named "Stock, 18 cards" and column 3 is named "Column 3, empty"
+
+#### Scenario: Movable card is a button
+
+- **WHEN** a face-up column card can move
+- **THEN** it is exposed as a button with the same name

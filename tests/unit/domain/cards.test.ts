@@ -3,6 +3,7 @@ import {
     DECK_SIZE,
     FOUNDATION_DISPLAY_ORDER,
     RANK_LABELS,
+    SUITS,
     SUIT_KEYS,
     SUIT_SYMBOLS,
     cardId,
@@ -15,10 +16,9 @@ import {
 } from '../../../src/domain/cards';
 import * as cardsModule from '../../../src/domain/cards';
 import type { Rank } from '../../../src/domain/cards';
-import type { CardId, Suit } from '../../../src/domain/types';
+import type { CardId } from '../../../src/domain/types';
 
 const ALL_IDS: readonly CardId[] = Array.from({ length: 52 }, (_, id) => id);
-const SUITS: readonly Suit[] = [0, 1, 2, 3];
 
 describe('card identity encoding', () => {
     it('has a 52-card deck', () => {

@@ -68,10 +68,10 @@ test.describe('Game frame profiles', () => {
 });
 
 test.describe('Touch target size', () => {
-    /** The Back, Undo and Redo boxes, keyed by name. */
+    /** The Back, Undo, Redo, Hint and Finish boxes, keyed by name. */
     async function controlBoxes(page: Page) {
         const boxes: Record<string, { width: number; height: number } | null> = {};
-        for (const name of ['Back to Home', 'Undo', 'Redo']) {
+        for (const name of ['Back to Home', 'Undo', 'Redo', 'Hint', 'Finish']) {
             boxes[name] = await page.getByRole('button', { name }).boundingBox();
         }
         return boxes;
@@ -92,13 +92,13 @@ test.describe('Touch target size', () => {
         test.skip(!coarse, 'Touch targets are only required where the pointer is coarse.');
     });
 
-    test('Back, Undo and Redo are at least 44x44 in the project viewport', async ({ page }) => {
+    test('Back, Undo, Redo, Hint and Finish are at least 44x44 in the project viewport', async ({ page }) => {
         await openGame(page);
 
         await expectTargets(page, 'project viewport');
     });
 
-    test('Back, Undo and Redo are at least 44x44 in the rails at 874x350', async ({ page }) => {
+    test('Back, Undo, Redo, Hint and Finish are at least 44x44 in the rails at 874x350', async ({ page }) => {
         await openGame(page, { width: 874, height: 350 });
 
         await expectTargets(page, '874x350');

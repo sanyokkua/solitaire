@@ -97,6 +97,9 @@ const PAGE_TOKENS = [
     '--color-lcd-time',
     '--color-lcd-label',
     '--color-hint',
+    '--color-legal',
+    '--color-focus',
+    '--color-hint-line',
     '--shadow-sm',
 ];
 
@@ -123,6 +126,7 @@ const ROOT_ONLY_TOKENS = [
     '--motion-flip-delay',
     '--motion-deal-step',
     '--motion-ease',
+    '--drag-z-base',
 ];
 
 const REMOVED_TOKENS = [

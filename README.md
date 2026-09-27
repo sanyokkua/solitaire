@@ -12,7 +12,7 @@ Source repository: <https://github.com/sanyokkua/solitaire>
 
 ## Current status
 
-**Phases 1–5 are complete.** The build, lint, test, CI and deployment tooling are in place.
+**Phases 1–6 are complete.** The build, lint, test, CI and deployment tooling are in place.
 The pure Klondike engine lives in `src/domain/`, the bounded-DFS solver in `src/solver/`,
 and the deal service (deals per mode, Daily v1, solver hints) in `src/features/deal/`. The
 application state layer (`app`, `preferences`, `stats`, `game` and `persistence` slices, with
@@ -21,12 +21,34 @@ statistics and an unfinished game are saved in the versioned `solitaire.local-st
 restored on reload. The Home and Game shell is wired to it: Home "Deal cards" starts a game,
 "Continue game" appears while one can be resumed, and Back keeps it. The Game screen now draws the table: 52
 named cards, slots, a stock badge, four card backs, night cards and the four-colour deck, with glide, flip and
-deal motion (or none, under reduced motion), a read-only HUD and an Undo/Redo toolbar, laid out to fit every
-supported screen without scrolling. The board takes no input yet, so the game cannot yet be played on screen.
-Phases 6–11 (interaction and assistance UI, screens and
-localisation, PWA hardening, verification, documentation and release, and the optional Draw 3
-winnable deals) are pending — see `docs/spec/phased-design.md` for the full phase list. There is
-no deployed build yet.
+deal motion (or none, under reduced motion), a read-only HUD and a toolbar with Undo, Redo, Hint and Finish, laid out to
+fit every supported screen without scrolling. The board takes every move by drag, tap and keyboard: smart tap
+and select-and-place with double-tap, mouse/touch/pen drag with glide-back, and full keyboard control with
+roving focus and global shortcuts (see the shortcuts table below). Hint and Finish, a polite announcer, a
+notices host and hint visuals (ghosts, selection ring, hint line) make assistance visible, and the win cascade
+plays when a game is won — all proven end to end by full-line win tests played through each input path
+(`tests/e2e/playByTap.spec.ts`, `playByDrag.spec.ts`, `playByKeyboard.spec.ts`). Phases 7–11 (screens and
+localisation, PWA hardening, verification, documentation and release, and the optional Draw 3 winnable deals)
+are pending — see `docs/spec/phased-design.md` for the full phase list. There is no deployed build yet.
+
+### Keyboard shortcuts
+
+| Key(s)                           | Action                                                           |
+| -------------------------------- | ---------------------------------------------------------------- |
+| Tab / Shift+Tab                  | Move focus between piles and cards                               |
+| Arrow keys                       | Move focus within and between piles                              |
+| Enter / Space                    | Activate the focused card or pile (same as a tap)                |
+| Shift+Enter / Shift+Space        | Pick up (or drop) the focused card or run, in either tap setting |
+| Space (nothing focused)          | Draw from the stock                                              |
+| Ctrl+Z / ⌘Z                      | Undo                                                             |
+| Ctrl+Y / Ctrl+Shift+Z / ⌘Shift+Z | Redo                                                             |
+| H                                | Request a hint                                                   |
+| A                                | Finish (when available)                                          |
+| Esc                              | Cancel a selection or a drag, or close an open sheet             |
+
+Shortcuts are layout-independent (they match the physical key, not the character a non-Latin layout
+produces) and do not auto-repeat while a key is held. `N` and `P` are recognised but do nothing until the
+New-deal and Pause sheets arrive in Phase 7.
 
 ## Prerequisites
 
@@ -92,8 +114,9 @@ This mirrors the repository's git hooks: `.husky/pre-commit` runs lint-staged, `
 
 ```text
 src/app/          Redux store, application state slices, lifecycle bootstrap
-src/ui/           Board (pure layout, cards, slots, motion), Game frame, HUD, toolbar, token-based CSS
-                  (board input, sheets and localisation planned)
+src/ui/           Board (pure layout, cards, slots, motion, drag/tap/keyboard input, hints, win
+                  cascade), Game frame, HUD, toolbar, announcer, notices host, token-based CSS
+                  (sheets and localisation planned)
 src/assets/       Bundled fonts and other static assets
 src/domain/       Pure Klondike engine: cards, seeded deals, rules, scoring, commands, hints
 src/solver/       Pure bounded-DFS solver and its Web Worker message protocol

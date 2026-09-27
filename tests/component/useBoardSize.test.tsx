@@ -1,27 +1,8 @@
-import { act, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { useBoardSize } from '../../src/ui/board/useBoardSize';
 import type { BoardSize } from '../../src/ui/board/metrics';
-
-type Callback = (entries: ResizeObserverEntry[]) => void;
-
-/** A recording `ResizeObserver` whose entries the test injects with `trigger`. */
-class FakeResizeObserver {
-    static readonly instances: FakeResizeObserver[] = [];
-    readonly observe = vi.fn<(target: Element) => void>();
-    readonly disconnect = vi.fn<() => void>();
-
-    constructor(private readonly callback: Callback) {
-        FakeResizeObserver.instances.push(this);
-    }
-
-    trigger(size: BoardSize): void {
-        const entry = { contentRect: { width: size.width, height: size.height } } as ResizeObserverEntry;
-        act(() => {
-            this.callback([entry]);
-        });
-    }
-}
+import { FakeResizeObserver } from '../support/fakeResizeObserver';
 
 const seen: (BoardSize | null)[] = [];
 

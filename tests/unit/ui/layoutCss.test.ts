@@ -108,6 +108,13 @@ describe('layout.css', () => {
         expect(rulesFor(narrow, '.stat-display--moves').join(' ')).toMatch(/display:\s*none/);
     });
 
+    it('makes the notice Dismiss button at least 2.75rem square under a coarse pointer', () => {
+        const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
+        const dismiss = rulesFor(coarse, '.notice-dismiss').join(' ');
+        expect(dismiss).toMatch(/min-width:\s*2\.75rem/);
+        expect(dismiss).toMatch(/min-height:\s*2\.75rem/);
+    });
+
     it('makes Back and the tools at least 2.75rem square under a coarse pointer, in both profiles', () => {
         const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
         const back = rulesFor(coarse, '.game-back').join(' ');
@@ -139,8 +146,50 @@ describe('layout.css', () => {
         expect(layoutCss).toMatch(/transition:/);
     });
 
+    it('highlights a ready tool from palette tokens only, with no colour literal', () => {
+        const ready = rulesFor(layoutCss, '.tool.is-ready').join(' ');
+
+        expect(ready).toMatch(/background:[^;]*var\(--color-primary\)[^;]*var\(--color-surface\)/);
+        expect(ready).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(|hsl\(/i);
+        expect(rulesFor(layoutCss, '.tool.is-ready:hover:not(:disabled)')).toHaveLength(1);
+    });
+
     it('feeds hover feedback from --color-hover', () => {
         expect(layoutCss).toMatch(/\.tool:hover[^{]*\{[^}]*var\(--color-hover\)/);
         expect(layoutCss).toMatch(/\.game-back:hover[^{]*\{[^}]*var\(--color-hover\)/);
+    });
+
+    describe('the notices host', () => {
+        const host = () => rulesFor(layoutCss, '.notices').join(' ');
+
+        it('is fixed, out of the frame flow, and never intercepts the pointer', () => {
+            expect(host()).toMatch(/position:\s*fixed/);
+            expect(host()).toMatch(/pointer-events:\s*none/);
+            expect(rulesFor(layoutCss, '.notice-dismiss').join(' ')).toMatch(/pointer-events:\s*auto/);
+        });
+
+        it('keeps clear of the safe area at the bottom and the side it sits on', () => {
+            const all = rulesFor(layoutCss, '.notices').join(' ');
+            expect(all).toContain('env(safe-area-inset-bottom');
+            expect(all).toContain('env(safe-area-inset-right');
+            expect(all).toContain('env(safe-area-inset-left');
+        });
+
+        it('centres at the bottom on a narrow screen', () => {
+            const narrow = blockAfter(layoutCss, '@media (max-width: 480px)');
+            expect(rulesFor(narrow, '.notices').join(' ')).toMatch(/left:/);
+        });
+
+        it('slides a notice in with sheet-in, and has no slide under :root[data-motion=off]', () => {
+            expect(rulesFor(layoutCss, '.notice').join(' ')).toMatch(/animation:\s*sheet-in\b/);
+            expect(layoutCss).toMatch(/@keyframes sheet-in\b/);
+            expect(rulesFor(layoutCss, ":root[data-motion='off'] .notice").join(' ')).toMatch(/animation:\s*none/);
+        });
+
+        it('uses tokens only, with no colour literal', () => {
+            const css = [...rulesFor(layoutCss, '.notices'), ...rulesFor(layoutCss, '.notice')].join(' ');
+            expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(|hsl\(/i);
+            expect(rulesFor(layoutCss, '.notice').join(' ')).toMatch(/var\(--color-surface\)/);
+        });
     });
 });

@@ -1,10 +1,10 @@
-import type { MoveHint } from '../domain/assist';
+import type { Hint, MoveHint } from '../domain/hint';
 import { groupAt } from '../domain/rules';
 import type { GameState } from '../domain/types';
 import { solve } from './solver';
 
 /** A domain `Hint` without its heuristic priority: every domain `Hint` is assignable to it (D5). */
-export type SolverHint = Omit<MoveHint, 'priority'> | { readonly kind: 'draw' } | { readonly kind: 'recycle' };
+export type SolverHint = Omit<MoveHint, 'priority'> | Exclude<Hint, MoveHint>;
 
 /**
  * The first command of the winning line from `solve(state, budget)` as a hint; `undefined` when the search does not

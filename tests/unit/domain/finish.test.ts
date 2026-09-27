@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { finishPlan } from '../../../src/domain/assist';
+import { finishPlan } from '../../../src/domain/finish';
 import { cardId } from '../../../src/domain/cards';
 import { applyCommand } from '../../../src/domain/engine';
 import type { Command, GameEvent, GameState } from '../../../src/domain/types';

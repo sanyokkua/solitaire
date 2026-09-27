@@ -2,7 +2,9 @@ import { memo } from 'react';
 import type { CSSProperties } from 'react';
 import { SUIT_SYMBOLS } from '../../domain/cards';
 import type { PileRef } from '../../domain/types';
-import { TEXT_PRESENTATION } from './CardView';
+import { Icon } from '../components/Icon';
+import { TEXT_PRESENTATION } from './constants';
+import { pileKey } from './landing';
 import { pileName } from './names';
 
 /** The recycle mark: two arrows chasing each other round a circle. */
@@ -21,27 +23,16 @@ export interface PileSlotProps {
     readonly y: number;
     /** A stock that is empty and cannot be recycled is dimmed. */
     readonly spent?: boolean;
-}
-
-function RecycleMark() {
-    return (
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-                d={RECYCLE_PATH}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
+    /** The slot is the target of a hint (a draw or recycle) and pulses amber. */
+    readonly hinted?: boolean;
+    /** The slot's tab stop; applied only when the slot is a button. */
+    readonly tabIndex?: number;
 }
 
 function Placeholder({ pile }: { readonly pile: SlotPile }) {
     switch (pile.pile) {
         case 'stock':
-            return <RecycleMark />;
+            return <Icon path={RECYCLE_PATH} />;
         case 'foundation':
             return (
                 <>
@@ -65,14 +56,25 @@ const MODIFIERS = { stock: 'slot--stock', foundation: 'slot--found', tableau: 's
 /**
  * The always-present slot beneath a stock, foundation or tableau pile, so an empty pile stays visible: a recycle
  * mark on the stock, "A" and the suit on a foundation, "K" on a column. Its children are hidden from assistive
- * technology; the slot as a whole is a group named by `pileName`.
+ * technology. The slot as a whole is named by `pileName` and is a button when it is the stock or an empty pile (a
+ * target for a placed card or a draw), and a group otherwise.
  */
-function PileSlotComponent({ pile, count, x, y, spent = false }: PileSlotProps) {
+function PileSlotComponent({ pile, count, x, y, spent = false, hinted = false, tabIndex }: PileSlotProps) {
     const style = { '--x': `${String(x)}px`, '--y': `${String(y)}px` } as CSSProperties;
-    const className = ['slot', MODIFIERS[pile.pile], spent ? 'is-spent' : ''].filter(Boolean).join(' ');
+    const className = ['slot', MODIFIERS[pile.pile], spent ? 'is-spent' : '', hinted ? 'is-hint' : '']
+        .filter(Boolean)
+        .join(' ');
+    const isButton = pile.pile === 'stock' || count === 0;
 
     return (
-        <div className={className} role="group" aria-label={pileName(pile, count)} style={style}>
+        <div
+            className={className}
+            role={isButton ? 'button' : 'group'}
+            tabIndex={isButton ? tabIndex : undefined}
+            data-pile={pileKey(pile)}
+            aria-label={pileName(pile, count)}
+            style={style}
+        >
             <Placeholder pile={pile} />
         </div>
     );

@@ -1,7 +1,7 @@
 import type { CardId } from '../../domain/types';
 
 /** Gap between two cards' glide starts in a deal; mirrors `--motion-deal-step`. */
-const DEAL_STEP_MS = 28;
+export const DEAL_STEP_MS = 28;
 /** How long after its glide starts the last card of a column flips face up. */
 const FLIP_LEAD_MS = 200;
 /** Time the last card needs after its own start (glide plus flip) before the deal has settled. */

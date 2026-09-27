@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Hint } from '../../../src/domain/assist';
+import type { Hint } from '../../../src/domain/hint';
 import { cardId } from '../../../src/domain/cards';
 import { dealFromSeed } from '../../../src/domain/deal';
 import { applyCommand } from '../../../src/domain/engine';

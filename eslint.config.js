@@ -57,7 +57,16 @@ export default tseslint.config(
         },
     },
     {
-        files: ['src/ui/board/metrics.ts', 'src/ui/board/layout.ts', 'src/ui/board/names.ts'],
+        files: [
+            'src/ui/board/metrics.ts',
+            'src/ui/board/layout.ts',
+            'src/ui/board/names.ts',
+            'src/ui/board/locate.ts',
+            'src/ui/board/landing.ts',
+            'src/ui/board/pointerController.ts',
+            'src/ui/board/keyboardController.ts',
+            'src/ui/board/cascadeFrames.ts',
+        ],
         rules: {
             'no-restricted-imports': [
                 'error',

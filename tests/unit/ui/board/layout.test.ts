@@ -122,6 +122,16 @@ describe('positions top row', () => {
         expect(layout.slots.tableau.map((slot) => slot.x)).toEqual([0, 1, 2, 3, 4, 5, 6].map((c) => columnX(TALL, c)));
     });
 
+    it('exposes the waste anchor, where the top waste card sits, mirrored with the top row', () => {
+        const state = makeState({ stock: [40], waste: [41] });
+        const plain = positions(state, TALL, DEFAULT);
+        const mirrored = positions(state, TALL, MIRRORED);
+        expect(plain.slots.waste).toEqual({ x: columnX(TALL, 1), y: TALL.top });
+        expect(mirrored.slots.waste).toEqual({ x: columnX(TALL, 5), y: TALL.top });
+        expect(cardAt(plain, 41)).toMatchObject(plain.slots.waste);
+        expect(cardAt(mirrored, 41)).toMatchObject(mirrored.slots.waste);
+    });
+
     it('lists the foundation slots as hearts, clubs, diamonds, spades and places each suit in its slot', () => {
         expect(FOUNDATION_DISPLAY_ORDER).toEqual([0, 2, 1, 3]);
         const state = makeState({ foundations: foundationsOf(1, 1, 1, 1) });
@@ -348,6 +358,12 @@ describe('positions wide table', () => {
         expect(cardAt(layout, 48).x).toBe(leftX);
         expect(cardAt(layout, 48).y).toBeCloseTo(WIDE.top + WIDE.ch + WIDE.gap, 9);
         expect(layout.slots.foundations.every((slot) => slot.x === rightX)).toBe(true);
+    });
+
+    it('exposes the waste anchor below the stock in the side column, on either side', () => {
+        const belowStock = WIDE.top + WIDE.ch + WIDE.gap;
+        expect(positions(PILES, WIDE, DEFAULT).slots.waste).toEqual({ x: leftX, y: belowStock });
+        expect(positions(PILES, WIDE, MIRRORED).slots.waste).toEqual({ x: rightX, y: belowStock });
     });
 
     it('mirrors the side columns with Stock on the right and leaves the tableau where it is', () => {

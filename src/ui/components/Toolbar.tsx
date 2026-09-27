@@ -1,32 +1,23 @@
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { selectCanRedo, selectCanUndo } from '../../features/game/gameSlice';
-import { redo, undo } from '../../features/game/gameThunks';
-
-/** Decorative icon paths, taken from the mockup's sprite; the visible label names each button. */
-function Icon({ path }: { readonly path: string }) {
-    return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path
-                d={path}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
+import { selectCanFinish, selectCanRedo, selectCanUndo } from '../../features/game/gameSlice';
+import { finish, redo, undo } from '../../features/game/gameThunks';
+import { requestHint } from '../../features/interaction/interactionThunks';
+import { selectInputEnabled } from '../../features/interaction/selectors';
+import { Icon } from './Icon';
 
 /**
- * The Undo and Redo toolbar. The selectors already fold in the finish-sequence `busy` flag, so a control is disabled
- * whenever its action would do nothing. Native buttons give Enter and Space activation and the global focus ring; the
- * Game frame owns size and layout.
+ * The game toolbar: Undo, Redo, Hint and Finish. Each control is disabled whenever its action would do nothing: Undo and
+ * Redo through selectors that already fold in the finish-sequence `busy` flag, Hint through the input gate (route,
+ * sheet, dealing, a game in play, no sequence running), and Finish through the gate and `selectCanFinish`, and it is
+ * highlighted (`is-ready`) while it is on offer. Native buttons give Enter and Space activation and the global focus
+ * ring; the Game frame owns size and layout.
  */
 export function Toolbar() {
     const dispatch = useAppDispatch();
     const canUndo = useAppSelector(selectCanUndo);
     const canRedo = useAppSelector(selectCanRedo);
+    const inputEnabled = useAppSelector(selectInputEnabled);
+    const finishReady = useAppSelector(selectCanFinish) && inputEnabled;
 
     return (
         <nav className="toolbar" aria-label="Game actions">
@@ -51,6 +42,28 @@ export function Toolbar() {
             >
                 <Icon path="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
                 Redo
+            </button>
+            <button
+                type="button"
+                className="tool"
+                disabled={!inputEnabled}
+                onClick={() => {
+                    void dispatch(requestHint());
+                }}
+            >
+                <Icon path="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3Z" />
+                Hint
+            </button>
+            <button
+                type="button"
+                className={finishReady ? 'tool is-ready' : 'tool'}
+                disabled={!finishReady}
+                onClick={() => {
+                    void dispatch(finish());
+                }}
+            >
+                <Icon path="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+                Finish
             </button>
         </nav>
     );

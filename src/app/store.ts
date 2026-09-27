@@ -1,5 +1,6 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { gameReducer } from '../features/game/gameSlice';
+import { interactionReducer } from '../features/interaction/interactionSlice';
 import { persistenceReducer } from '../features/persistence/persistenceSlice';
 import { preferencesReducer } from '../features/preferences/preferencesSlice';
 import { statsReducer } from '../features/stats/statsSlice';
@@ -11,6 +12,7 @@ const rootReducer = combineReducers({
     preferences: preferencesReducer,
     stats: statsReducer,
     game: gameReducer,
+    interaction: interactionReducer,
     persistence: persistenceReducer,
 });
 

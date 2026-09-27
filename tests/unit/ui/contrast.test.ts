@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 const tokensCss = readFileSync(resolve(import.meta.dirname, '../../../src/ui/styles/tokens.css'), 'utf-8');
 
 const MIN_RATIO = 4.5;
+// Non-text state marks (legal targets, focus, hint, selection) against the table.
+const MIN_MARK_RATIO = 3;
 
 function blockOf(selector: RegExp): string {
     const match = selector.exec(tokensCss);
@@ -81,4 +83,13 @@ describe.each(THEMES)('text pairs, %s theme', (_name, block) => {
     it.each(['--color-text', '--color-text-muted'])('%s on the surface is at least 4.5:1', (token) => {
         expect(contrast(hexOf(block, token), hexOf(block, '--color-surface'))).toBeGreaterThanOrEqual(MIN_RATIO);
     });
+});
+
+describe.each(THEMES)('state marks on the table, %s theme', (_name, block) => {
+    it.each(['--color-legal', '--color-focus', '--color-hint-line', '--color-primary'])(
+        '%s is at least 3:1',
+        (token) => {
+            expect(contrast(hexOf(block, token), hexOf(block, '--color-table'))).toBeGreaterThanOrEqual(MIN_MARK_RATIO);
+        },
+    );
 });

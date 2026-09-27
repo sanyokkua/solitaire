@@ -1,29 +1,34 @@
-import { useContext, useLayoutEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { useAppSelector } from '../../app/hooks';
-import { DECK_SIZE, FOUNDATION_DISPLAY_ORDER } from '../../domain/cards';
-import type { CardId, TableauCol } from '../../domain/types';
-import { selectReducedMotion } from '../../app/selectors';
+import { DECK_SIZE, FOUNDATION_DISPLAY_ORDER, TABLEAU_COLS } from '../../domain/cards';
+import type { CardId } from '../../domain/types';
+import { selectHint, selectSelectedGroup } from '../../features/interaction/selectors';
 import { selectPreference } from '../../features/preferences/preferencesSlice';
 import { useMediaQuery } from '../useMediaQuery';
-import { playDeal } from './animations';
 import { CardView } from './CardView';
-import { positions, type BoardPiles } from './layout';
-import { DealtEpochContext } from './DealtEpochContext';
+import { CARD_RADIUS_FACTOR } from './constants';
+import { Ghosts } from './Ghosts';
+import { positions, type BoardPiles, type Point } from './layout';
 import { measure } from './metrics';
 import { PileSlot } from './PileSlot';
-import { selectBoardPiles, selectStockSpent } from './selectors';
+import { pileKey } from './landing';
+import { selectBoardPiles, selectCardLocations, selectStockSpent } from './selectors';
 import { StockBadge } from './StockBadge';
 import { useBoardSize } from './useBoardSize';
+import { useDealAnimation } from './useDealAnimation';
+import { useBoardActions } from './useBoardActions';
+import { tabIndexOf, useBoardKeyboard } from './useBoardKeyboard';
+import { useBoardPointer } from './useBoardPointer';
+import { useCascade } from './useCascade';
+import { useResizeSettle } from './useResizeSettle';
 
 /** The corner radius never drops below this many px. */
 const CARD_RADIUS_MIN_PX = 5;
-/** The corner radius as a fraction of the card width. */
-const CARD_RADIUS_FACTOR = 0.09;
 /** Card ids in id order, so the DOM order never changes; every card gets one persistent element. */
 const CARD_IDS: readonly CardId[] = Array.from({ length: DECK_SIZE }, (_, id) => id);
-/** The tableau columns, left to right. */
-const TABLEAU_COLS: readonly TableauCol[] = [0, 1, 2, 3, 4, 5, 6];
+/** The deal order of no layout. */
+const NO_DEAL_ORDER: readonly CardId[] = [];
 /** The piles of no game, so the slots still render. */
 const EMPTY_PILES: BoardPiles = {
     tableau: [[], [], [], [], [], [], []],
@@ -44,12 +49,13 @@ export function Board() {
     const stockRight = useAppSelector((state) => selectPreference(state, 'stockRight'));
     const piles = useAppSelector(selectBoardPiles);
     const spent = useAppSelector(selectStockSpent);
-    const epoch = useAppSelector((state) => state.game.epoch);
-    const started = useAppSelector((state) => state.game.current?.started ?? null);
-    const reducedMotion = useAppSelector(selectReducedMotion);
-    const dealtEpoch = useContext(DealtEpochContext);
+    const locations = useAppSelector(selectCardLocations);
+    const selectedGroup = useAppSelector(selectSelectedGroup);
+    const selectedIds = useMemo(() => new Set(selectedGroup ?? []), [selectedGroup]);
+    const hint = useAppSelector(selectHint);
+    const hintedIds = useMemo(() => new Set(hint?.kind === 'move' ? hint.cards : []), [hint]);
+    const stockHinted = hint !== null && hint.kind !== 'move';
     const boardRef = useRef<HTMLDivElement>(null);
-    const dealOrderRef = useRef<readonly CardId[]>([]);
     const shown = piles ?? EMPTY_PILES;
     const metrics = useMemo(() => (size === null ? null : measure(size, { coarse })), [size, coarse]);
     const layout = useMemo(
@@ -58,43 +64,27 @@ export function Board() {
     );
 
     const ready = layout !== null && piles !== null;
+    const starts = useMemo(() => {
+        const points = new Map<CardId, Point>();
+        layout?.cards.forEach(({ x, y }, id) => points.set(id, { x, y }));
+        return points;
+    }, [layout]);
 
-    // Every size, the first included, is laid out with transitions off for one frame, so cards jump instead of
-    // gliding (D8). Declared before the deal effect: `playDeal`'s release removes the flag again, so a deal due at
-    // the first size still glides.
-    useLayoutEffect(() => {
-        const boardEl = boardRef.current;
-        if (boardEl === null) return undefined;
-        boardEl.setAttribute('data-resizing', 'true');
-        const frame = requestAnimationFrame(() => {
-            boardEl.removeAttribute('data-resizing');
-        });
-        return () => {
-            cancelAnimationFrame(frame);
-        };
-    }, [size]);
-
-    // Declared before the deal effect so it reads the deal order of this very commit; `layout` itself is not a
-    // dependency of the deal effect, so a resize never replays the deal.
-    useLayoutEffect(() => {
-        dealOrderRef.current = layout?.dealOrder ?? [];
+    // Order matters: `useDealAnimation`'s release removes the resize flag, so a deal due at the first size still glides,
+    // and a new deal must find the cascade already cancelled, or its park would not take hold and it would not start
+    // from the stock.
+    useResizeSettle(boardRef, size);
+    useCascade({
+        boardRef,
+        ready,
+        starts,
+        size,
+        card: metrics === null ? null : { cw: metrics.cw, ch: metrics.ch },
     });
-
-    // A fresh deal plays once per epoch and only while the game has not started (D5).
-    useLayoutEffect(() => {
-        const boardEl = boardRef.current;
-        if (dealtEpoch === null || !ready || boardEl === null || started !== false || epoch === dealtEpoch.get()) {
-            return undefined;
-        }
-        const previous = dealtEpoch.get();
-        dealtEpoch.set(epoch);
-        if (reducedMotion) return undefined;
-        const playback = playDeal(boardEl, dealOrderRef.current);
-        return () => {
-            playback.cancel();
-            if (!playback.finished()) dealtEpoch.set(previous);
-        };
-    }, [epoch, started, ready, reducedMotion, dealtEpoch]);
+    useDealAnimation({ boardRef, ready, dealOrder: layout?.dealOrder ?? NO_DEAL_ORDER });
+    const { activate, pickUp } = useBoardActions(boardRef);
+    useBoardPointer({ boardRef, layout, metrics, piles, activate });
+    const { target, handlers } = useBoardKeyboard({ boardRef, piles, stockRight, activate, pickUp });
 
     return (
         <div className="board-panel" ref={ref}>
@@ -103,6 +93,7 @@ export function Board() {
                     className="board"
                     ref={boardRef}
                     data-wide={metrics.wide}
+                    {...handlers}
                     style={
                         {
                             '--stock-x': `${String(layout.slots.stock.x)}px`,
@@ -119,6 +110,8 @@ export function Board() {
                         x={layout.slots.stock.x}
                         y={layout.slots.stock.y}
                         spent={spent}
+                        hinted={stockHinted}
+                        tabIndex={tabIndexOf(target, { pile: 'stock' }, null)}
                     />
                     {FOUNDATION_DISPLAY_ORDER.map((suit, slot) => (
                         <PileSlot
@@ -127,6 +120,7 @@ export function Board() {
                             count={shown.foundations[suit].length}
                             x={layout.slots.foundations[slot]?.x ?? 0}
                             y={layout.slots.foundations[slot]?.y ?? 0}
+                            tabIndex={tabIndexOf(target, { pile: 'foundation', suit }, null)}
                         />
                     ))}
                     {TABLEAU_COLS.map((col) => (
@@ -136,6 +130,7 @@ export function Board() {
                             count={shown.tableau[col].length}
                             x={layout.slots.tableau[col]?.x ?? 0}
                             y={layout.slots.tableau[col]?.y ?? 0}
+                            tabIndex={tabIndexOf(target, { pile: 'tableau', col }, null)}
                         />
                     ))}
                     <StockBadge count={shown.stock.length} x={layout.badge.x} y={layout.badge.y} />
@@ -143,19 +138,27 @@ export function Board() {
                         ? null
                         : CARD_IDS.map((id) => {
                               const placement = layout.cards.get(id);
-                              return placement === undefined ? null : (
+                              const location = locations?.get(id);
+                              return placement === undefined || location === undefined ? null : (
                                   <CardView
                                       key={id}
                                       id={id}
                                       x={placement.x}
                                       y={placement.y}
                                       z={placement.z}
+                                      pile={pileKey(location.from)}
+                                      index={location.index}
                                       faceUp={placement.faceUp}
                                       buried={placement.buried}
                                       compact={metrics.compact}
+                                      selected={selectedIds.has(id)}
+                                      hinted={hintedIds.has(id)}
+                                      movable={location.movable}
+                                      tabIndex={tabIndexOf(target, location.from, location.index)}
                                   />
                               );
                           })}
+                    {piles === null ? null : <Ghosts layout={layout} metrics={metrics} piles={piles} />}
                 </div>
             ) : null}
         </div>

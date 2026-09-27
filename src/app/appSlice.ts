@@ -6,19 +6,19 @@ export type Route = 'home' | 'game';
 /** The sheets that can be open over the board; at most one at a time. */
 export type SheetId = 'settings' | 'help' | 'stats' | 'newDeal' | 'paused' | 'win' | 'dealCode' | 'about';
 
-/** The storage notices the shell can show. */
-export type NoticeId = 'storage-read' | 'storage-read-only' | 'storage-write';
+/** The notices the shell can show: the storage ones, and the two table messages (a dead end, a refused redeal). */
+export type NoticeId = 'storage-read' | 'storage-read-only' | 'storage-write' | 'dead-end' | 'no-redeals';
 
 export interface AppState {
-    route: Route;
-    sheet: SheetId | null;
+    readonly route: Route;
+    readonly sheet: SheetId | null;
     /** Raised notices, each `id` at most once. */
-    notices: { id: NoticeId }[];
-    documentVisible: boolean;
+    readonly notices: readonly { readonly id: NoticeId }[];
+    readonly documentVisible: boolean;
     /** The device's `prefers-reduced-motion: reduce` request; combine with Animations via `selectReducedMotion`. */
-    systemReducedMotion: boolean;
+    readonly systemReducedMotion: boolean;
     /** The progress of the deal in flight, or `null` when none is. */
-    dealing: DealProgress | null;
+    readonly dealing: DealProgress | null;
 }
 
 const initialState: AppState = {

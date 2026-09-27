@@ -12,8 +12,6 @@ export const FOUNDATION_Z = 200;
 export const FOUNDATION_SLOT_Z = 20;
 /** Stacking order of the first tableau card, above every stock, waste and foundation card. */
 export const TABLEAU_Z = 300;
-/** Stacking order of the stock count badge, above every card. */
-export const BADGE_Z = 400;
 /** Horizontal step of the Draw 3 waste fan, as a fraction of the card width. */
 export const FAN_STEP = 0.24;
 /** How many waste cards a Draw 3 fan shows. */
@@ -58,6 +56,11 @@ export interface Layout {
     cards: ReadonlyMap<CardId, Placement>;
     slots: {
         stock: Point;
+        /**
+         * The waste anchor: where its top card sits (a Draw 3 fan continues from it). The waste has no drawn slot, so
+         * this is a point for landing and keyboard geometry, not an element.
+         */
+        waste: Point;
         /** In `FOUNDATION_DISPLAY_ORDER`: hearts, clubs, diamonds, spades. */
         foundations: readonly [Point, Point, Point, Point];
         /** The seven tableau columns, left to right. */
@@ -137,7 +140,7 @@ function anchorsOf(metrics: Metrics, stockRight: boolean): Anchors {
 }
 
 /** The vertical steps of one tableau column: from a face-down card and from a face-up card. */
-interface ColumnSteps {
+export interface ColumnSteps {
     down: number;
     up: number;
 }
@@ -146,7 +149,7 @@ interface ColumnSteps {
  * The steps of a column. Face-down cards squeeze first, down to their minimum, and face-up cards shrink only when
  * that still does not fit the board.
  */
-function columnSteps(column: Column, metrics: Metrics): ColumnSteps {
+export function columnSteps(column: Column, metrics: Metrics): ColumnSteps {
     const faceDownCount = column.filter((card) => !card.up).length;
     const upSteps = Math.max(0, column.length - faceDownCount - 1);
     let down = metrics.ch * FACE_DOWN_STEP;
@@ -234,6 +237,7 @@ export function positions(piles: BoardPiles, metrics: Metrics, options: { readon
         cards,
         slots: {
             stock,
+            waste,
             foundations: foundationSlots,
             tableau: Array.from({ length: COLUMNS }, (_, col): Point => ({
                 x: columnX(metrics, col),

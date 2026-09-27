@@ -1,28 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { setRoute, systemMotionChanged } from '../../../../src/app/appSlice';
 import { createAppStore, type AppStore } from '../../../../src/app/store';
-import { finishPlan } from '../../../../src/domain/assist';
+import { finishPlan } from '../../../../src/domain/finish';
 import { dealFromSeed } from '../../../../src/domain/deal';
-import { applyCommand } from '../../../../src/domain/engine';
 import { displayedScore } from '../../../../src/domain/scoring';
 import type { Command, GameState } from '../../../../src/domain/types';
 import { busySet, installed } from '../../../../src/features/game/gameSlice';
 import { finish } from '../../../../src/features/game/gameThunks';
 import { fakeDealService } from '../../../fixtures/dealService';
-import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
-
-/**
- * The first position on the recorded winning line whose tableau is entirely face up, so a finish plan exists. Built
- * through the engine, so the position is one a player could really reach.
- */
-function allFaceUp(): GameState {
-    let state = dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode);
-    for (const cmd of parseLine(WINNING_LINE.line)) {
-        if (finishPlan(state) !== undefined) return state;
-        state = applyCommand(state, cmd).state;
-    }
-    throw new Error('the winning line never reaches an all-face-up position');
-}
+import { allFaceUp } from '../../../fixtures/deals';
 
 /** A delay stub's view: every requested duration, and what the test does with each call. */
 interface DelayHooks {

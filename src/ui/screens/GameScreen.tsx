@@ -1,23 +1,32 @@
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { setRoute } from '../../app/appSlice';
+import { selectDealing } from '../../app/selectors';
+import { selectHint } from '../../features/interaction/selectors';
+import { hintText } from '../announce';
 import { Board } from '../board/Board';
+import { useGameShortcuts } from '../board/useGameShortcuts';
+import { Announcer } from '../components/Announcer';
 import { BuildStamp } from '../components/BuildStamp';
 import { Hud } from '../components/Hud';
+import { Icon } from '../components/Icon';
+import { Notices } from '../components/Notices';
 import { Toolbar } from '../components/Toolbar';
 import { useMediaQuery } from '../useMediaQuery';
 import { RAILS_QUERY } from './profiles';
 
 /**
- * The Game screen frame: a visually hidden screen name, the dealing status, then either the stacked profile (top bar,
- * HUD, hint line, table, toolbar, footer) or the side-rails profile (HUD rail with Back, table, toolbar rail). The
+ * The Game screen frame: a visually hidden screen name, the dealing status, the announcer (the one polite live
+ * region for what happens at the table), the notices host (fixed, so it never moves the layout), then either the stacked profile (top bar, HUD, hint line, table, toolbar, footer) or the side-rails profile (HUD rail with Back, table, toolbar rail). The
  * profile is chosen by CSS, and by `useMediaQuery(RAILS_QUERY)` only to decide where the one Back control lives, so the
- * DOM never holds two. The chip slot, the New-deal slot and the hint line are reserved, empty regions at their final
- * size; `layout.css` owns every size.
+ * DOM never holds two. The chip slot and the New-deal slot are reserved, empty regions at their final size; the hint line is empty until a
+ * hint shows and then reads its text (hidden from assistive technology: the announcer speaks it); `layout.css` owns every size. It also mounts the global keyboard shortcuts (`useGameShortcuts`).
  */
 export function GameScreen() {
     const dispatch = useAppDispatch();
-    const dealing = useAppSelector((state) => state.app.dealing);
+    const dealing = useAppSelector(selectDealing);
+    const hint = useAppSelector(selectHint);
     const rails = useMediaQuery(RAILS_QUERY);
+    useGameShortcuts();
 
     const back = (
         <button
@@ -28,16 +37,7 @@ export function GameScreen() {
                 dispatch(setRoute('home'));
             }}
         >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path
-                    d="m15 5-7 7 7 7"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            </svg>
+            <Icon path="m15 5-7 7 7 7" />
         </button>
     );
 
@@ -48,6 +48,8 @@ export function GameScreen() {
             <p role="status" className="sr-only">
                 {dealing !== null && 'Dealing…'}
             </p>
+            <Announcer />
+            <Notices />
             {!rails && (
                 <header className="game-topbar">
                     {back}
@@ -60,7 +62,9 @@ export function GameScreen() {
                     <Hud />
                     <div className="game-face" aria-hidden="true" />
                 </div>
-                <p className="game-hint" aria-hidden="true" />
+                <p className="game-hint" aria-hidden="true">
+                    {hint !== null && hintText(hint)}
+                </p>
                 <Board />
                 <Toolbar />
             </main>

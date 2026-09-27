@@ -26,3 +26,17 @@ test('loads Home, fits the viewport, and navigates to Game and back', async ({ p
     await page.getByRole('button', { name: 'Back to Home' }).click();
     await expect(page.getByRole('heading', { name: 'Solitaire' })).toBeVisible();
 });
+
+test('the production page exposes no store or hook on window', async ({ page }) => {
+    await page.goto('/');
+
+    const extras = await page.evaluate(() => {
+        const frame = document.createElement('iframe');
+        document.body.append(frame);
+        const pristine = new Set(Object.keys(frame.contentWindow ?? {}));
+        frame.remove();
+        return Object.keys(window).filter((key) => !pristine.has(key) && !key.startsWith('__pw'));
+    });
+
+    expect(extras).toEqual([]);
+});

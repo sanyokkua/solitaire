@@ -12,9 +12,14 @@ interface Overrides {
     readonly x?: number;
     readonly y?: number;
     readonly z?: number;
+    readonly pile?: string;
+    readonly index?: number;
     readonly faceUp?: boolean;
     readonly buried?: boolean;
     readonly compact?: boolean;
+    readonly selected?: boolean;
+    readonly movable?: boolean;
+    readonly tabIndex?: number;
 }
 
 function renderCard(overrides: Overrides = {}) {
@@ -23,9 +28,12 @@ function renderCard(overrides: Overrides = {}) {
         x: 10,
         y: 20,
         z: 3,
+        pile: 'tableau:2',
+        index: 4,
         faceUp: true,
         buried: false,
         compact: false,
+        movable: false,
         ...overrides,
     };
     const view = render(<CardView {...props} />);
@@ -67,6 +75,11 @@ describe('CardView', () => {
         expect(card.querySelectorAll('.corner')).toHaveLength(2);
     });
 
+    it('carries the selection ring class only when selected', () => {
+        expect(renderCard().card).not.toHaveClass('is-selected');
+        expect(renderCard({ selected: true }).card).toHaveClass('is-selected');
+    });
+
     it('omits the bottom-right corner when compact', () => {
         const { card } = renderCard({ compact: true });
 
@@ -79,6 +92,30 @@ describe('CardView', () => {
         renderCard({ id: QUEEN_OF_SPADES });
 
         expect(screen.getByRole('img', { name: 'Queen of Spades' })).toBeInTheDocument();
+    });
+
+    it('exposes a movable card as a button that is not pressed until selected', () => {
+        const { card } = renderCard({ movable: true, tabIndex: -1 });
+
+        expect(screen.getByRole('button', { name: 'Seven of Clubs' })).toBe(card);
+        expect(card).toHaveAttribute('aria-pressed', 'false');
+        expect(card).toHaveAttribute('tabindex', '-1');
+        expect(screen.queryByRole('img')).toBeNull();
+    });
+
+    it('marks a selected movable card as pressed and passes its tab stop through', () => {
+        const { card } = renderCard({ movable: true, selected: true, tabIndex: 0 });
+
+        expect(card).toHaveAttribute('aria-pressed', 'true');
+        expect(card).toHaveAttribute('tabindex', '0');
+    });
+
+    it('keeps a non-movable card an image with no tab stop or pressed state', () => {
+        const { card } = renderCard({ movable: false, tabIndex: 0 });
+
+        expect(screen.getByRole('img', { name: 'Seven of Clubs' })).toBe(card);
+        expect(card).not.toHaveAttribute('tabindex');
+        expect(card).not.toHaveAttribute('aria-pressed');
     });
 
     it('exposes a face-down card only as "Face-down card" and hides the face side', () => {
@@ -115,5 +152,12 @@ describe('CardView', () => {
         expect(card.style.getPropertyValue('--x')).toBe('12.5px');
         expect(card.style.getPropertyValue('--y')).toBe('40px');
         expect(card.style.zIndex).toBe('7');
+    });
+
+    it('exposes the pile key and the index within the pile for the pointer', () => {
+        const { card } = renderCard({ pile: 'foundation:3', index: 11 });
+
+        expect(card).toHaveAttribute('data-pile', 'foundation:3');
+        expect(card).toHaveAttribute('data-index', '11');
     });
 });

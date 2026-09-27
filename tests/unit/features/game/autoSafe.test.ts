@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { setRoute, systemMotionChanged } from '../../../../src/app/appSlice';
 import { createAppStore, type AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
-import { nextSafeMove } from '../../../../src/domain/assist';
+import { nextSafeMove } from '../../../../src/domain/safeMoves';
 import type { Command, GameState } from '../../../../src/domain/types';
 import { busySet, installed } from '../../../../src/features/game/gameSlice';
 import { play, redo, undo } from '../../../../src/features/game/gameThunks';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDeadEnd } from '../../../src/domain/assist';
+import { isDeadEnd } from '../../../src/domain/deadEnd';
 import { cardId } from '../../../src/domain/cards';
 import { faceUp, foundationsOf, frozenState, tableauOf, vegasAtLimit } from '../../fixtures/states';
 

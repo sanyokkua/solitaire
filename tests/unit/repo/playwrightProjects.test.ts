@@ -6,7 +6,13 @@ import config from '../../../playwright.config';
 
 const DEVICE_FIT_SPEC = '**/deviceFit.spec.ts';
 /** Specs that run in the `chromium` project only; tasks that add one append it here. */
-const CHROMIUM_ONLY_SPECS: string[] = ['tests/e2e/visualParity.spec.ts', 'tests/e2e/dealLatency.spec.ts'];
+const CHROMIUM_ONLY_SPECS: string[] = [
+    'tests/e2e/visualParity.spec.ts',
+    'tests/e2e/dealLatency.spec.ts',
+    'tests/e2e/playByTap.spec.ts',
+    'tests/e2e/playByDrag.spec.ts',
+    'tests/e2e/playByKeyboard.spec.ts',
+];
 
 /** Whether a spec's source skips itself outside the `chromium` project. */
 function hasChromiumGuard(source: string): boolean {

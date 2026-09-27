@@ -202,6 +202,15 @@
     opacity: 0.38;
 }
 
+/* Finish while it is on offer: a wash of the primary colour, text unchanged so contrast is the page's own. */
+.tool.is-ready {
+    background: color-mix(in srgb, var(--color-primary) 30%, var(--color-surface));
+}
+
+.tool.is-ready:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary) 40%, var(--color-surface));
+}
+
 .game-footer {
     flex: 0 0 auto;
     padding: 0.5rem 1rem 0.6rem;
@@ -210,6 +219,58 @@
     font-size: 0.5rem;
     letter-spacing: 0.04em;
     text-align: center;
+}
+
+/*
+ * The notices host: fixed at the bottom right, clear of the safe area, above the board but never in its way (no pointer
+ * events, except on a Dismiss button). Being fixed it cannot move the frame.
+ */
+.notices {
+    position: fixed;
+    right: calc(1rem + env(safe-area-inset-right, 0px));
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    z-index: 400;
+    display: grid;
+    gap: 0.5rem;
+    max-width: min(24rem, calc(100vw - 2rem));
+    pointer-events: none;
+}
+
+.notice {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--color-outline-soft);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-sm);
+    font-size: 0.78rem;
+    animation: sheet-in 180ms ease;
+}
+
+.notice-dismiss {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--color-outline-soft);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text);
+    font-size: 0.7rem;
+    font-weight: 800;
+    pointer-events: auto;
+}
+
+.notice-dismiss:hover {
+    background: var(--color-hover);
+}
+
+@keyframes sheet-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem) scale(0.98);
+    }
 }
 
 @media (min-width: 720px) {
@@ -263,6 +324,13 @@
 
     .game-footer {
         display: none;
+    }
+
+    /* The notices host spans the width, above the bottom safe area, so a notice sits at the bottom centre. */
+    .notices {
+        left: calc(1rem + env(safe-area-inset-left, 0px));
+        max-width: none;
+        justify-items: center;
     }
 }
 
@@ -368,9 +436,19 @@
     .game-chips {
         height: 2.75rem;
     }
+
+    .notice-dismiss {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
 }
 
 :root[data-motion='off'] .game-back,
 :root[data-motion='off'] .tool {
     transition: none;
+}
+
+/* No motion: a notice appears and goes without a slide. */
+:root[data-motion='off'] .notice {
+    animation: none;
 }

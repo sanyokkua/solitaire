@@ -1,9 +1,11 @@
 import { existsSync, statSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
-import { freshDrawOneState, freshDrawThreeState, worstColumnState } from '../fixtures/boardPositions';
+import { expect, test, type Page } from '@playwright/test';
+import { aceHomePosition, freshDrawOneState, freshDrawThreeState, worstColumnState } from '../fixtures/boardPositions';
+import { WINNING_LINE, nearlyWonState, parseLine } from '../fixtures/deals';
 import type { GameState } from '../../src/domain/types';
 import type { Preferences } from '../../src/features/preferences/preferencesSlice';
 import { continueToGame } from './support/cards';
+import { playLine, seedWinningGame } from './support/play';
 import { seedRecord } from './support/seed';
 
 const OUTPUT_DIR = 'test-results/visual-parity';
@@ -107,14 +109,98 @@ for (const shot of SHOTS) {
             test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
             await seedRecord(page, { current: shot.state(), preferences: shot.preferences });
             await continueToGame(page);
-            await expect(page.locator('.board')).not.toHaveAttribute('data-resizing', /.*/);
-            await page.evaluate(() => document.fonts.ready);
+            await settled(page);
             const path = `${OUTPUT_DIR}/${shot.file}`;
 
             await page.screenshot({ path });
 
-            expect(existsSync(path)).toBe(true);
-            expect(statSync(path).size).toBeGreaterThan(0);
+            expectWritten(path);
         });
     });
+}
+
+/** The desktop screens of the interaction states (08, 09 and 12): same size and scale as the table's desktop shots. */
+test.describe('interaction states', () => {
+    test.use({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2 });
+
+    test('08-select-mode-legal-targets.png shows the selected card and its legal targets', async ({
+        page,
+    }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        await seedWinningGame(page, { theme: 'light' });
+        await continueToGame(page);
+        await settled(page);
+
+        // The first move of the winning line: 3:3>2, so its source card is the one to pick up.
+        await page.locator('.card[data-pile="tableau:3"][data-index="3"]').click({ position: { x: 12, y: 3 } });
+        await expect(page.locator('.card.is-selected')).toHaveCount(1);
+        await expect(page.locator('.ghost[data-ghost]').first()).toBeAttached();
+        await settled(page);
+        const path = `${OUTPUT_DIR}/08-select-mode-legal-targets.png`;
+
+        await page.screenshot({ path });
+
+        expectWritten(path);
+    });
+
+    test('09-hint.png shows the hint line and the hinted cards', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        // aceHomePosition() has an exposed ace, so the hint is a card move (not a draw, which the stock cards
+        // would cover), and both the hinted card's outline and its target ghost show.
+        await seedRecord(page, {
+            current: aceHomePosition(),
+            preferences: { tapMode: 'select', autoSafe: false, theme: 'light' },
+        });
+        await continueToGame(page);
+        await settled(page);
+
+        await page.keyboard.press('h');
+        await expect(page.locator('.game-hint')).toHaveText(/\S/);
+        await expect(page.locator('.card.is-hint')).toHaveCount(1);
+        await expect(page.locator('.ghost.is-hint[data-hint-ghost]')).toHaveCount(1);
+        const path = `${OUTPUT_DIR}/09-hint.png`;
+
+        // The hint clears after 2.2 s, so the shot is taken at once.
+        await page.screenshot({ path });
+
+        expectWritten(path);
+    });
+
+    test('12-win-cascade.png shows the cards in flight after the last move', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        const commands = parseLine(WINNING_LINE.line);
+        await seedRecord(page, {
+            current: nearlyWonState(),
+            preferences: { tapMode: 'select', autoSafe: false, theme: 'light' },
+        });
+        await continueToGame(page);
+        await settled(page);
+
+        // playLine waits for every animation to settle, and the cascade is one, so it is left to finish on its own.
+        const played = playLine(page, 'tap', { commands: commands.slice(-1), movesBefore: WINNING_LINE.moves - 1 });
+        // The cascade is made of Web Animations; the glides before it are CSS transitions.
+        await page.waitForFunction(() =>
+            document
+                .getAnimations()
+                .some((animation) => animation.playState === 'running' && !(animation instanceof CSSTransition)),
+        );
+        await page.waitForTimeout(1200);
+        const path = `${OUTPUT_DIR}/12-win-cascade.png`;
+
+        await page.screenshot({ path });
+        await played;
+
+        expectWritten(path);
+    });
+});
+
+/** Waits for the board to have its size and the fonts to be in, so a shot never catches a half-laid table. */
+async function settled(page: Page): Promise<void> {
+    await expect(page.locator('.board')).not.toHaveAttribute('data-resizing', /.*/);
+    await page.evaluate(() => document.fonts.ready);
+}
+
+function expectWritten(path: string): void {
+    expect(existsSync(path)).toBe(true);
+    expect(statSync(path).size).toBeGreaterThan(0);
 }

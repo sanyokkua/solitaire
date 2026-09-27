@@ -15,9 +15,14 @@
     isolation: isolate;
 }
 
+/* The table owns every touch and drag gesture: no scroll, zoom, text selection or long-press callout starts here. */
 .board {
     position: absolute;
     inset: 0;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .slot {
@@ -47,6 +52,12 @@
 
 .slot--stock.is-spent {
     opacity: 0.45;
+}
+
+/* The keyboard focus ring; the `.board` prefix outranks the global tab-stop outline. */
+.board .slot:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 3px;
 }
 
 .slot--found .r {
@@ -80,4 +91,53 @@
     text-align: center;
     pointer-events: none;
     transform: translate(var(--x), var(--y));
+}
+
+/* A legal target while a card is picked up: a dashed outline the size of the card that would land there. Below
+   TABLEAU_Z (300) so it never ties with the last card and shows in the strip beneath it. Hot = the drop target. */
+.ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--cw);
+    height: var(--ch);
+    border: 2.5px dashed var(--color-legal);
+    border-radius: var(--cr);
+    background: color-mix(in srgb, var(--color-legal) 10%, transparent);
+    opacity: 0.8;
+    pointer-events: none;
+    transform: translate(var(--x), var(--y));
+    z-index: 250;
+}
+
+.ghost.is-hot {
+    border-style: solid;
+    background: color-mix(in srgb, var(--color-legal) 22%, transparent);
+    opacity: 1;
+    z-index: 1500;
+}
+
+/* A hint's destination: amber, pulsing twice. */
+.ghost.is-hint {
+    border-color: var(--color-hint-line);
+    background: color-mix(in srgb, var(--color-hint) 18%, transparent);
+    animation: ghost-pulse 900ms ease 2;
+}
+
+.slot.is-hint {
+    border-color: var(--color-hint-line);
+    color: var(--color-hint-line);
+    animation: ghost-pulse 900ms ease 2;
+}
+
+@keyframes ghost-pulse {
+    50% {
+        box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-hint-line) 35%, transparent);
+    }
+}
+
+/* No motion: the outline stays, so the hint is a steady amber mark. */
+:root[data-motion='off'] .ghost.is-hint,
+:root[data-motion='off'] .slot.is-hint {
+    animation: none;
 }

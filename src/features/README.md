@@ -3,10 +3,11 @@
 Application services and Redux slices built on top of the domain and solver layers.
 `deal/` landed in Phase 3 (Solver & deal service); `preferences/`, `stats/`, `game/` and `persistence/` landed in
 Phase 4 (State, persistence & timer). The `persistence/` layer includes the versioned codec (v1), storage gateway,
-loader for defensive decode and hydration, writer for debounced persistence, and reset thunks.
+loader for defensive decode and hydration, writer for debounced persistence, and reset thunks. `interaction/` (the
+runtime-only interaction state: selection, hint, announcements, dead ends and the input gate) landed with the Phase 6 change `add-board-interaction`.
 
 - `deal/daily.ts` — UTC day key and daily v1 seed list
-- `deal/solverClient.ts` — lazy solver Web Worker client: request ids, cancellation (`cancel`, and `cancelHints` for hints alone) and timeout rules, malformed replies fail the client, never-rejecting results
+- `deal/solverClient.ts` — lazy solver Web Worker client: request ids, cancellation (`cancel`, and `cancelHints` for hints alone) and timeout rules, malformed replies fail the client, never-rejecting results; its `hint` settles as a `SolverHintOutcome` (`ok`, `cancelled`, `timeout`, `busy` or `failed`), distinct from the deal service's `HintOutcome`
 - `deal/dealService.ts` — `createDealService`: `deal({ mode, winnableOnly }, onProgress?)`, `hint(state)` and `dispose()`.
   `deal()` deals Draw 1 (switch on, 40 fresh seeds at 5,000 nodes) and Daily (the UTC day's v1 candidates at 20,000
   nodes, whatever the switch says) through the solver worker, and every other request (Draw 3, Vegas, Draw 1 with the
@@ -38,7 +39,7 @@ loader for defensive decode and hydration, writer for debounced persistence, and
   `replaced(next)` (over `history.ts`'s `commit` and `replace`), `undone()` / `redone()` (ignored while `busy`),
   `accrued({ atMs, eligible })`, `busySet`, `countedSet` and `cleared()` (no game, epoch + 1). Selectors take the
   structural shape `{ game }`: `selectCanUndo`, `selectCanRedo`, `selectResumable` (started and still playing), `selectDisplayedScore` (charges
-  applied) and `selectCanFinish` (not busy and `finishPlan` exists, memoised per position). `accrued` settles play
+  applied) and `selectCanFinish` (not busy and `finishPlan` exists, memoised on the piles plus draw, passes, mode and status, so clock ticks never recompute the plan). `accrued` settles play
   time at an injected-clock reading: while `eligible` and an anchor is set it adds the whole milliseconds since the
   anchor to `current.elapsedMs` (so it stays an integer on a fractional clock), capped at 1 s per step and never
   negative, then moves the anchor forward by what was added (the sub-millisecond remainder carries over; a larger or
@@ -46,21 +47,27 @@ loader for defensive decode and hydration, writer for debounced persistence, and
   `future` are left untouched, and without a game it just clears the anchor
 - `game/clock.ts` — `selectClockEligible({ app, game })`: true only on the Game route with no sheet open, a visible
   document, and a game that has started and is still playing; `busy` does not matter
-- `game/gameThunks.ts` — the game thunks (`AppThunk`, with type-only store imports so there is no runtime cycle).
-  `commitCommand(cmd, { entry: 'new' | 'same' })` is the one path every command takes and returns whether it was
-  accepted: it settles the clock at one `now()` reading, applies the command (a refusal changes nothing but that
+- `game/gameThunks.ts` — the game thunks (typed with `AppThunk`, declared in `src/app/appThunk.ts` with type-only store imports so there is no runtime cycle and feature thunks share one type without importing each other). Both timed
+  sequences, the safe-card chain and `finish`, run through one private runner that owns the guard, epoch capture, `busy`,
+  delay, re-check and cleanup; each thunk only says what the next command is and how it joins the undo history.
+  When `play` ends an accepted command (and its chain), or `finish` ends, in the same game, it calls `checkDeadEnd`; a
+  `pass-limit` refusal from `play` raises the `no-redeals` notice.
+  `commitCommand(cmd, { entry: 'new' | 'same' })` is the one path every command takes and returns a `CommitResult`
+  (`{ accepted, events }`: the engine's events, including the `rejected` event with its reason for a refusal; with no
+  game `{ accepted: false, events: [] }`): it settles the clock at one `now()` reading, applies the command (a refusal changes nothing but that
   settlement), records a new undo step (`'new'`) or updates the current one (`'same'`), settles the clock again at the
   same reading (so the first accepted command sets the anchor), counts the game as played on its first accepted
   command (`played(mode)` + `countedSet(true)`), and on the playing-to-won transition records `won` (mode, settled
   `elapsedMs`, `displayedScore`) and, for a Daily deal with a `dailyKey`, `dailyCompleted(dailyKey)`. `play(cmd)` is
-  `commitCommand` as a new step, ignored while `busy`, with no game, or once won; it returns a promise that settles when
-  the safe-card chain has ended. When "Auto-move safe cards" is on and the accepted command leaves a safe card
+  `commitCommand` as a new step, ignored while `busy`, with no game, or once won (it then resolves
+  `{ accepted: false, events: [] }`); it returns a promise that resolves, when the safe-card chain has ended, with the
+  player's own command's `CommitResult` (a refused command returns its result and starts no chain). When "Auto-move safe cards" is on and the accepted command leaves a safe card
   exposed, `play` sets `busy` and sends the safe cards to the foundations one at a time via `nextSafeMove`, each as
   `commitCommand(send, { entry: 'same' })` so the whole chain belongs to the command's undo step. Before each send it
   waits `delay(160)` (`delay(0)` under `selectReducedMotion`) and stops if the `epoch` moved (a game was installed or
   cleared), the setting was switched off, or the game is gone or won. `busy` is cleared at the end only if the epoch is
   unchanged, so a newer game's own sequence is never clobbered; with no safe card or the setting off, `play` never sets
-  `busy` and never waits. Only `play` starts a chain: undo, redo and switching the setting on never do. `undo()` and `redo()` do nothing
+  `busy` and never waits. What announces what (the `announced` log, see `interaction/`): `play` announces the events of its own command right after `commitCommand` returns (`moved`, `drew`, `recycled`, `won`, or `refused{reason}` for a refusal; nothing for an ignored play), before the chain starts; the private runner announces nothing per step and, when a chain or `finish` ends normally or stops early in the same game (not when it throws or the game was replaced), dispatches one batch: `sentHome{count}` (accepted steps that moved a card to a foundation) then `won` if a step won; `undo()` / `redo()` announce `undone` / `redone` once the action is dispatched. Only `play` starts a chain: undo, redo and switching the setting on never do. `undo()` and `redo()` do nothing
   unless `selectCanUndo` / `selectCanRedo` holds, otherwise they settle the clock and then dispatch `undone()` /
   `redone()`; they never count a game. `finish()` plays the remaining cards home: unless `selectCanFinish` holds it does
   nothing, otherwise it sets `busy`, takes the commands of `finishPlan` for the current position and applies them one at
@@ -81,6 +88,26 @@ loader for defensive decode and hydration, writer for debounced persistence, and
   the epoch and stops the sequence), and does nothing without a game. `continueGame()` shows the Game screen (`setRoute('game')`) only while
   `selectResumable` holds (a started game that is still playing) and does nothing otherwise; it touches nothing but the
   route, so it never replaces the game or breaks a streak
+- `interaction/interactionSlice.ts` — the runtime-only interaction state (never persisted, and not read by the persistence
+  writer, so changing it never writes): `selection: { from: PileRef, index } | null`, with `selectionSet` and
+  `selectionCleared`. Its `extraReducers` clear the selection, the hint and the pending hint on the game actions
+  `committed`, `replaced`, `undone`, `redone`, `installed` and `cleared`; the slice imports `game`, never the reverse. The selection is data, not a group,
+  so it cannot go stale. It also holds the announcement log `announcement: { seq, items: [{ n, item }] }` (reducer `announced(items)`: an empty batch is a no-op, otherwise each item gets a running `n` that continues from the last and is never reused, only the latest 20 are kept, and `seq` grows once per batch). No game action resets it, so an install cannot drop an unspoken `won`; the `Announcement` union and the pure `announcementsOf(events)` live in `interaction/announcements.ts`. The hint: `hint: HintView | null` (`{ id, kind: 'move' | 'draw' | 'recycle', cards, target: PileRef | 'stock' }`, set by `hintSet`, cleared by `hintCleared(id?)`, which given an id clears only that hint so an older timer cannot clear a newer one, and also cleared by `preferenceSet` and `preferencesReset`), `lastHintId` (ids only grow) and `pendingHint: { epoch, key } | null` (the hint request in flight, `pendingHintSet`). The dead-end memory: `deadEndSeen`, the position keys already reported in this game (`deadEndRecorded(key)`), emptied by `installed` and `cleared` only, so undo and redo keep it
+- `interaction/selectors.ts` — structural `{ game, interaction }` selectors: `selectSelection`, `selectAnnouncement`, `selectHint`, `selectPendingHint`, `selectNextHintId`, `selectSelectedGroup`
+  (`groupAt` over the position in play) and `selectLegalTargets` (`legalTargets` for that run), the last two memoised
+  and `undefined` when nothing is selected, no game is in play, or the card no longer starts a movable run. `selectInputEnabled` (structural `{ app, game }`) is the one input gate every input path reads: true only on the Game route with no deal in flight, no sheet open, a game that is not won and no chain or Finish running; there is no cascade term because the game stays won for the whole win cascade
+- `interaction/interactionThunks.ts` — `selectCard(from, index)`: dispatches `selectionSet` only when the position in
+  play has a movable group at that card (a face-up column run, or the top of the waste or a foundation), otherwise it
+  clears the selection. A reducer cannot see the game, hence a thunk. It never imports `game/gameThunks`.
+  `requestHint()` shows a hint for the position in play at no cost to the game: it does nothing without a game, when the
+  game is won or while a chain or finish runs; on a dead end (`advise`) it raises the `dead-end` notice and announces
+  `deadEnd` (on every request) and asks for no hint; otherwise it records `pendingHint`, awaits `dealService.hint`,
+  drops a `none` or `cancelled` answer or one for a game or position that changed meanwhile, sets the `HintView`
+  (a move names its cards and target, a draw or recycle names `'stock'`), announces `hinted`, and clears it after
+  `HINT_DURATION_MS` (2,200 ms, through the injected `delay`) unless a newer hint replaced it. A request for the same
+  `{ epoch, positionKey }` as the one in flight returns without asking again. `checkDeadEnd()` reports a dead end once
+  per position and game: the first time `isDeadEnd` holds for a position key, it records the key, raises `dead-end` and
+  announces `deadEnd`; `play` and `finish` call it, undo and redo never do
 - `game/clockTicker.ts` — `createClockTicker(store, timers?)` drives the play clock: it dispatches
   `accrued({ atMs: now(), eligible: selectClockEligible(state) })` once when created, every 250 ms, and whenever
   eligibility changes (so the anchor is set or cleared the moment play starts or stops; `accrued` never changes

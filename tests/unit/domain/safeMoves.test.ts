@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSafe, nextSafeMove } from '../../../src/domain/assist';
+import { isSafe, nextSafeMove } from '../../../src/domain/safeMoves';
 import { cardId } from '../../../src/domain/cards';
 import type { CardId, Foundations, GameState } from '../../../src/domain/types';
 import { deepFreeze, faceDown, faceUp, foundationsOf, makeState } from '../../fixtures/states';

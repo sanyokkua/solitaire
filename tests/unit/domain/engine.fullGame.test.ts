@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hint } from '../../../src/domain/assist';
+import { hint } from '../../../src/domain/hint';
 import { dealFromSeed } from '../../../src/domain/deal';
 import { applyCommand } from '../../../src/domain/engine';
 import type { Command, GameState } from '../../../src/domain/types';

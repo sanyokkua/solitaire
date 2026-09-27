@@ -10,6 +10,8 @@ const FACE_DOWN_COUNT = 6;
 /** Highest rank of the run. */
 const RUN_TOP = 13;
 const HEARTS: Suit = 0;
+const DIAMONDS: Suit = 1;
+const CLUBS: Suit = 2;
 const SPADES: Suit = 3;
 
 /** Every card id not in `used`, in id order: the cards a fixture leaves in the stock or under its own piles. */
@@ -96,6 +98,66 @@ export function undoMovePosition(): { readonly current: GameState; readonly hist
         moves: 1,
     });
     return { current, history: [before] };
+}
+
+/** The 7 of clubs, face up alone in column 0 of `oneMovePosition`. */
+export const SEVEN_OF_CLUBS = cardId(CLUBS, 7);
+/** The 6 of diamonds, face up alone in column 1 of `oneMovePosition`: the card the drag specs pick up. */
+export const SIX_OF_DIAMONDS = cardId(DIAMONDS, 6);
+
+/**
+ * A small started, playing Draw 1 game with exactly one legal move between piles: the 6 of diamonds (alone in column
+ * 1) onto the 7 of clubs (alone in column 0). No ace is exposed, so nothing goes to a foundation, and the empty columns
+ * 2 to 6 take only kings, none of which is exposed. The other 50 cards are in the stock, so all 52 cards appear once.
+ */
+export function oneMovePosition(): GameState {
+    const rest = restOfDeck([SEVEN_OF_CLUBS, SIX_OF_DIAMONDS]);
+    return makeState({
+        started: true,
+        status: 'playing',
+        tableau: tableauOf(faceUp(SEVEN_OF_CLUBS), faceUp(SIX_OF_DIAMONDS)),
+        stock: rest,
+    });
+}
+
+/** The 7 of spades, face up alone in column 2 of `twoTargetsPosition`: the second black 7 the 6 of diamonds fits on. */
+export const SEVEN_OF_SPADES = cardId(SPADES, 7);
+
+/**
+ * A small started, playing Draw 1 game where one card has two legal places: the 6 of diamonds is face up alone in
+ * column 0, the 7 of clubs alone in column 1 and the 7 of spades alone in column 2. Smart move mode sends the 6 to
+ * column 1 (the first column right of its own that accepts it); column 2 is legal too, so only a picked-up card
+ * placed by hand lands there. No ace or king is exposed. The other 49 cards are in the stock, so all 52 cards
+ * appear once.
+ */
+export function twoTargetsPosition(): GameState {
+    const rest = restOfDeck([SIX_OF_DIAMONDS, SEVEN_OF_CLUBS, SEVEN_OF_SPADES]);
+    return makeState({
+        started: true,
+        status: 'playing',
+        tableau: tableauOf(faceUp(SIX_OF_DIAMONDS), faceUp(SEVEN_OF_CLUBS), faceUp(SEVEN_OF_SPADES)),
+        stock: rest,
+    });
+}
+
+/** The ace of hearts, face up alone in column 0 of `aceHomePosition`. */
+export const ACE_HOME_CARD = cardId(HEARTS, 1);
+/** The 9 of clubs, face up alone in column 1 of `aceHomePosition`: a card no move touches. */
+const NINE_OF_CLUBS = cardId(CLUBS, 9);
+
+/**
+ * A small started, playing Draw 1 game with an exposed ace: the ace of hearts is face up alone in column 0, so it can
+ * go home to the hearts foundation, and the 9 of clubs is face up alone in column 1. The other 50 cards are in the
+ * stock, so all 52 cards appear once.
+ */
+export function aceHomePosition(): GameState {
+    const rest = restOfDeck([ACE_HOME_CARD, NINE_OF_CLUBS]);
+    return makeState({
+        started: true,
+        status: 'playing',
+        tableau: tableauOf(faceUp(ACE_HOME_CARD), faceUp(NINE_OF_CLUBS)),
+        stock: rest,
+    });
 }
 
 /** The seed of the fresh deals below; any 32-bit seed works, this one only fixes the picture. */

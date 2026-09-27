@@ -138,10 +138,13 @@ Tapping the stock draws cards; tapping the empty stock turns the waste over (sub
 | Tab / Shift+Tab                       | Move between piles (stock, waste, foundations, columns) and focusable cards       |
 | Arrow keys                            | Move focus between piles (left/right) and between cards within a column (up/down) |
 | Enter / Space on a card               | Same as a tap (smart move, or pick up/place)                                      |
+| Shift+Enter / Shift+Space on a card   | Pick up (or drop) the card or run, in either tap setting                          |
 | Space (nothing focused)               | Draw from the stock                                                               |
 | Ctrl/⌘+Z · Ctrl/⌘+Y or Ctrl/⌘+Shift+Z | Undo · Redo                                                                       |
 | H · A · N · P                         | Hint · Finish · New deal · Pause                                                  |
 | Esc                                   | Cancel selection or drag; close a sheet                                           |
+
+N and P are bound when the New deal and Paused sheets exist (Phase 7); until then they do nothing, and the keyboard requirement is complete without them.
 
 ---
 

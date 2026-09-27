@@ -1,4 +1,4 @@
-import { colorOf, DECK_SIZE, rankOf, suitOf } from '../domain/cards';
+import { colorOf, DECK_SIZE, rankOf, SUITS, suitOf } from '../domain/cards';
 import { isWon, passLimit } from '../domain/rules';
 import type { CardId, Command, GameState, Suit } from '../domain/types';
 import { expandLine, type SolverMove } from './line';
@@ -57,7 +57,6 @@ interface Frame {
 }
 
 const KING = 13;
-const SUITS: readonly Suit[] = [0, 1, 2, 3];
 
 /** Unwraps a value the search's own invariants guarantee to exist. */
 function required<T>(value: T | undefined): T {

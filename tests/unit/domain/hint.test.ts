@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hint, type HintPriority } from '../../../src/domain/assist';
+import { hint, type HintPriority } from '../../../src/domain/hint';
 import { cardId } from '../../../src/domain/cards';
 import type { CardId, PileRef, Suit, TableauCol } from '../../../src/domain/types';
 import { faceDown, faceUp, foundationsOf, frozenState, tableauOf, vegasAtLimit } from '../../fixtures/states';

@@ -1,45 +1,58 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { describe, expect, it } from 'vitest';
+import { setRoute, sheetClosed, sheetOpened } from '../../src/app/appSlice';
 import { createAppStore } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
-import { busySet } from '../../src/features/game/gameSlice';
+import { selectCanFinish, busySet } from '../../src/features/game/gameSlice';
 import { undo } from '../../src/features/game/gameThunks';
 import { Toolbar } from '../../src/ui/components/Toolbar';
-import { WINNING_LINE } from '../fixtures/deals';
+import { allFaceUp, WINNING_LINE } from '../fixtures/deals';
 import { fakeDealService } from '../fixtures/dealService';
 import { gameOf, playedGame } from '../fixtures/games';
+import { faceDown, faceUp, makeState, tableauOf } from '../fixtures/states';
+
+/** A position with a face-down card, so no finish plan exists. */
+const buried = () => makeState({ tableau: tableauOf([...faceDown(9), ...faceUp(10)]), stock: [11], started: true });
 
 function renderToolbar(game = playedGame()) {
-    const store = createAppStore({ preloadedState: { game }, deps: { dealService: fakeDealService() } });
+    const dealService = fakeDealService();
+    const store = createAppStore({
+        preloadedState: { game },
+        deps: { dealService, delay: () => Promise.resolve() },
+    });
+    store.dispatch(setRoute('game'));
     render(
         <Provider store={store}>
             <Toolbar />
         </Provider>,
     );
-    return store;
+    return { store, dealService };
 }
 
 const undoButton = () => screen.getByRole('button', { name: 'Undo' });
 const redoButton = () => screen.getByRole('button', { name: 'Redo' });
+const hintButton = () => screen.getByRole('button', { name: 'Hint' });
+const finishButton = () => screen.getByRole('button', { name: 'Finish' });
 
 describe('Toolbar', () => {
-    it('is a navigation landmark named "Game actions" with only Undo and Redo', () => {
+    it('is a navigation landmark named "Game actions" with Undo, Redo, Hint and Finish, in that order', () => {
         renderToolbar();
 
         const nav = screen.getByRole('navigation', { name: 'Game actions' });
-        expect(nav.querySelectorAll('button')).toHaveLength(2);
-        expect(undoButton()).toHaveAttribute('type', 'button');
-        expect(redoButton()).toHaveAttribute('type', 'button');
-        expect(undoButton()).toHaveClass('tool');
-        expect(redoButton()).toHaveClass('tool');
+        const buttons = [...nav.querySelectorAll('button')];
+        expect(buttons.map((button) => button.textContent.trim())).toEqual(['Undo', 'Redo', 'Hint', 'Finish']);
+        for (const button of buttons) {
+            expect(button).toHaveAttribute('type', 'button');
+            expect(button).toHaveClass('tool');
+        }
     });
 
     it('hides the decorative icons from assistive technology', () => {
         renderToolbar();
 
-        for (const button of [undoButton(), redoButton()]) {
+        for (const button of [undoButton(), redoButton(), hintButton(), finishButton()]) {
             const icon = button.querySelector('svg');
             expect(icon).not.toBeNull();
             expect(icon).toHaveAttribute('aria-hidden', 'true');
@@ -48,7 +61,7 @@ describe('Toolbar', () => {
 
     it('undoes the last move by pointer, showing the earlier position and enabling Redo', async () => {
         const user = userEvent.setup();
-        const store = renderToolbar();
+        const { store } = renderToolbar();
         const before = dealFromSeed(WINNING_LINE.seed, 'draw1');
         expect(redoButton()).toBeDisabled();
         expect(undoButton()).toBeEnabled();
@@ -69,7 +82,7 @@ describe('Toolbar', () => {
         ['Space', ' '],
     ])('redoes the undone move by keyboard (%s)', async (_name, key) => {
         const user = userEvent.setup();
-        const store = renderToolbar();
+        const { store } = renderToolbar();
         const played = store.getState().game.current;
         act(() => {
             store.dispatch(undo());
@@ -94,6 +107,7 @@ describe('Toolbar', () => {
 
     it('disables both controls without a game', () => {
         const store = createAppStore({ deps: { dealService: fakeDealService() } });
+        store.dispatch(setRoute('game'));
         render(
             <Provider store={store}>
                 <Toolbar />
@@ -102,10 +116,12 @@ describe('Toolbar', () => {
 
         expect(undoButton()).toBeDisabled();
         expect(redoButton()).toBeDisabled();
+        expect(hintButton()).toBeDisabled();
+        expect(finishButton()).toBeDisabled();
     });
 
     it('disables Undo while a finish sequence is running, and restores it after', () => {
-        const store = renderToolbar();
+        const { store } = renderToolbar();
         expect(undoButton()).toBeEnabled();
 
         act(() => {
@@ -120,7 +136,7 @@ describe('Toolbar', () => {
     });
 
     it('disables Redo while a finish sequence is running, and restores it after', () => {
-        const store = renderToolbar();
+        const { store } = renderToolbar();
         act(() => {
             store.dispatch(undo());
         });
@@ -135,5 +151,138 @@ describe('Toolbar', () => {
             store.dispatch(busySet(false));
         });
         expect(redoButton()).toBeEnabled();
+    });
+
+    describe('Hint', () => {
+        it('requests a hint by pointer', async () => {
+            const user = userEvent.setup();
+            const { dealService } = renderToolbar();
+            expect(hintButton()).toBeEnabled();
+
+            await user.click(hintButton());
+
+            expect(dealService.hintRequests).toHaveLength(1);
+        });
+
+        it.each([
+            ['Enter', '{Enter}'],
+            ['Space', ' '],
+        ])('requests a hint by keyboard (%s)', async (_name, key) => {
+            const user = userEvent.setup();
+            const { dealService } = renderToolbar();
+
+            hintButton().focus();
+            await user.keyboard(key);
+
+            expect(dealService.hintRequests).toHaveLength(1);
+        });
+
+        it('is enabled on a fresh deal, whose Undo and Redo are not', () => {
+            renderToolbar(gameOf(dealFromSeed(WINNING_LINE.seed, 'draw1')));
+
+            expect(hintButton()).toBeEnabled();
+            expect(undoButton()).toBeDisabled();
+        });
+
+        it('is disabled while a finish sequence is running, and restored after', () => {
+            const { store } = renderToolbar();
+
+            act(() => {
+                store.dispatch(busySet(true));
+            });
+            expect(hintButton()).toBeDisabled();
+
+            act(() => {
+                store.dispatch(busySet(false));
+            });
+            expect(hintButton()).toBeEnabled();
+        });
+
+        it('is disabled while a sheet is open, and off the Game route', () => {
+            const { store } = renderToolbar();
+
+            act(() => {
+                store.dispatch(sheetOpened('settings'));
+            });
+            expect(hintButton()).toBeDisabled();
+
+            act(() => {
+                store.dispatch(sheetClosed());
+                store.dispatch(setRoute('home'));
+            });
+            expect(hintButton()).toBeDisabled();
+        });
+    });
+
+    describe('Finish', () => {
+        it('is enabled and highlighted only when the session offers Finish', () => {
+            const { store } = renderToolbar(gameOf(allFaceUp()));
+
+            expect(selectCanFinish(store.getState())).toBe(true);
+            expect(finishButton()).toBeEnabled();
+            expect(finishButton()).toHaveClass('tool', 'is-ready');
+            expect(hintButton()).not.toHaveClass('is-ready');
+        });
+
+        it('is disabled and not highlighted while a face-down card remains', () => {
+            const { store } = renderToolbar(gameOf(buried()));
+
+            expect(selectCanFinish(store.getState())).toBe(false);
+            expect(finishButton()).toBeDisabled();
+            expect(finishButton()).not.toHaveClass('is-ready');
+        });
+
+        it('plays every remaining card home when activated by pointer', async () => {
+            const user = userEvent.setup();
+            const { store } = renderToolbar(gameOf(allFaceUp()));
+
+            await user.click(finishButton());
+
+            await waitFor(() => {
+                expect(store.getState().game.current?.status).toBe('won');
+            });
+        });
+
+        it('runs when Enter is pressed on it, focused', async () => {
+            const user = userEvent.setup();
+            const { store } = renderToolbar(gameOf(allFaceUp()));
+
+            finishButton().focus();
+            await user.keyboard('{Enter}');
+
+            await waitFor(() => {
+                expect(store.getState().game.current?.status).toBe('won');
+            });
+        });
+
+        it('is disabled and not highlighted while a sequence runs, and restored after', () => {
+            const { store } = renderToolbar(gameOf(allFaceUp()));
+
+            act(() => {
+                store.dispatch(busySet(true));
+            });
+            expect(finishButton()).toBeDisabled();
+            expect(finishButton()).not.toHaveClass('is-ready');
+
+            act(() => {
+                store.dispatch(busySet(false));
+            });
+            expect(finishButton()).toBeEnabled();
+        });
+
+        it('is disabled while a sheet is open, and off the Game route', () => {
+            const { store } = renderToolbar(gameOf(allFaceUp()));
+
+            act(() => {
+                store.dispatch(sheetOpened('settings'));
+            });
+            expect(finishButton()).toBeDisabled();
+
+            act(() => {
+                store.dispatch(sheetClosed());
+                store.dispatch(setRoute('home'));
+            });
+            expect(finishButton()).toBeDisabled();
+        });
     });
 });

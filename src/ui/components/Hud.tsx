@@ -1,4 +1,5 @@
 import { useAppSelector } from '../../app/hooks';
+import { selectCurrentGame } from '../../app/selectors';
 import { selectDisplayedScore } from '../../features/game/gameSlice';
 import { formatBank, formatMoves, formatScore, formatTime } from '../format';
 
@@ -22,7 +23,7 @@ function Stat({ kind, label, value }: StatProps) {
  * screen owns the frame that arranges the pieces.
  */
 export function Hud() {
-    const current = useAppSelector((state) => state.game.current);
+    const current = useAppSelector(selectCurrentGame);
     const displayedScore = useAppSelector(selectDisplayedScore);
 
     if (current === null) return null;

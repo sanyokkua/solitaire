@@ -1,5 +1,13 @@
-import { createSelector, createSlice, isDraft, original, type Draft, type PayloadAction } from '@reduxjs/toolkit';
-import { finishPlan } from '../../domain/assist';
+import {
+    createSelector,
+    createSlice,
+    isDraft,
+    lruMemoize,
+    original,
+    type Draft,
+    type PayloadAction,
+} from '@reduxjs/toolkit';
+import { finishPlan } from '../../domain/finish';
 import { displayedScore } from '../../domain/scoring';
 import type { GameState } from '../../domain/types';
 import { canRedo, canUndo, commit, redo, replace, undo, type Session } from './history';
@@ -95,8 +103,9 @@ const gameSlice = createSlice({
             const { atMs, eligible } = action.payload;
             const plain = plainOf(state);
             const { current, clock } = plain;
-            if (current === null) return clock.anchorMs === null ? plain : { ...plain, clock: { anchorMs: null } };
-            if (!eligible) return clock.anchorMs === null ? plain : { ...plain, clock: { anchorMs: null } };
+            if (current === null || !eligible) {
+                return clock.anchorMs === null ? plain : { ...plain, clock: { anchorMs: null } };
+            }
             if (clock.anchorMs === null) return { ...plain, clock: { anchorMs: atMs } };
             const gap = atMs - clock.anchorMs;
             const step = gap < 0 ? 0 : Math.min(Math.floor(gap), MAX_ACCRUAL_STEP_MS);
@@ -127,14 +136,19 @@ interface GameRoot {
     readonly game: GameSliceState;
 }
 
+/** A slice state with a game in play, so the history helpers can read it without a narrowing copy. */
+function inPlay(game: GameSliceState): game is GameSliceState & { readonly current: GameState } {
+    return game.current !== null;
+}
+
 /** Whether undo would change anything: no safe-card chain or finish is running, a game is in play, not won, and there is a step to undo. */
 export function selectCanUndo({ game }: GameRoot): boolean {
-    return !game.busy && game.current !== null && canUndo({ ...game, current: game.current });
+    return !game.busy && inPlay(game) && canUndo(game);
 }
 
 /** Whether redo would change anything: no safe-card chain or finish is running, a game is in play, not won, and there is a step to redo. */
 export function selectCanRedo({ game }: GameRoot): boolean {
-    return !game.busy && game.current !== null && canRedo({ ...game, current: game.current });
+    return !game.busy && inPlay(game) && canRedo(game);
 }
 
 /** Whether Home offers Continue: a game that has had an accepted command and is not over. */
@@ -147,10 +161,31 @@ export function selectDisplayedScore({ game }: GameRoot): number {
     return game.current === null ? 0 : displayedScore(game.current);
 }
 
-/** Whether the position in play can be finished automatically; computed once per position, not per call. */
+/**
+ * Whether two positions give `finishPlan` the same input: the same piles (by reference), draw size, pass, mode and
+ * status. Score, moves, elapsed time and undo charges never affect whether the position can be finished, so a clock tick
+ * (which replaces the position but shares its piles) is the same input.
+ */
+function sameFinishInput(a: GameState | null, b: GameState | null): boolean {
+    if (a === b) return true;
+    if (a === null || b === null) return false;
+    return (
+        a.tableau === b.tableau &&
+        a.stock === b.stock &&
+        a.waste === b.waste &&
+        a.foundations === b.foundations &&
+        a.draw === b.draw &&
+        a.passes === b.passes &&
+        a.mode === b.mode &&
+        a.status === b.status
+    );
+}
+
+/** Whether the position in play can be finished automatically; the plan is computed once per set of piles, not per clock tick. */
 const selectFinishable = createSelector(
     [({ game }: GameRoot) => game.current],
     (current) => current?.status === 'playing' && finishPlan(current) !== undefined,
+    { memoize: lruMemoize, memoizeOptions: { equalityCheck: sameFinishInput } },
 );
 
 /** Whether Finish is offered: no safe-card chain or finish is running and the position can be played out automatically. */

@@ -31,6 +31,9 @@
     --color-outline-soft: #c8d7e3;
     --color-hover: rgb(69 123 157 / 10%);
     --color-hint: #f2b25c;
+    --color-legal: #1f6f96;
+    --color-focus: #1d5f85;
+    --color-hint-line: #8a5a00;
     --shadow-sm: 0 1px 2px rgb(11 37 69 / 8%), 0 1px 1px rgb(11 37 69 / 5%);
 
     /* Table felt and slots */
@@ -86,6 +89,9 @@
     --motion-flip-delay: 60ms;
     --motion-deal-step: 28ms;
     --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* Stacking: a dragged card lifts above every resting card and the stock badge (layout z-indexes stay under 500) */
+    --drag-z-base: 1600;
 }
 
 :root[data-theme='dark'] {
@@ -101,6 +107,9 @@
     --color-outline-soft: #24466f;
     --color-hover: rgb(91 192 235 / 12%);
     --color-hint: #f2c078;
+    --color-legal: #5bc0eb;
+    --color-focus: #f2c078;
+    --color-hint-line: #f2c078;
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 35%), 0 1px 1px rgb(0 0 0 / 25%);
 
     --color-table: #102c52;

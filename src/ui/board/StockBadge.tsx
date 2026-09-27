@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { BADGE_Z } from './layout';
+import { BADGE_Z } from './constants';
 
 export interface StockBadgeProps {
     /** Cards left in the stock. */

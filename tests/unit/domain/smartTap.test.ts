@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestTarget } from '../../../src/domain/assist';
+import { bestTarget } from '../../../src/domain/smartTap';
 import { cardId } from '../../../src/domain/cards';
 import type { PileRef, Suit, TableauCol } from '../../../src/domain/types';
 import { faceDown, faceUp, foundationsOf, frozenState, tableauOf } from '../../fixtures/states';

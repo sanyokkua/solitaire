@@ -1,4 +1,4 @@
-import type { CardId, Suit } from './types';
+import type { CardId, Suit, TableauCol } from './types';
 
 export type Rank = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13;
 export type Color = 'red' | 'black';
@@ -26,6 +26,12 @@ export const RANK_LABELS: Readonly<Record<Rank, string>> = {
 export const SUIT_KEYS: Readonly<Record<Suit, SuitKey>> = { 0: 'hearts', 1: 'diamonds', 2: 'clubs', 3: 'spades' };
 
 export const SUIT_SYMBOLS: Readonly<Record<Suit, string>> = { 0: '♥', 1: '♦', 2: '♣', 3: '♠' };
+
+/** The tableau columns, left to right. */
+export const TABLEAU_COLS: readonly TableauCol[] = [0, 1, 2, 3, 4, 5, 6];
+
+/** The four suits in encoding order. */
+export const SUITS: readonly Suit[] = [0, 1, 2, 3];
 
 /** Left-to-right foundation slots: hearts, clubs, diamonds, spades (alternating colours). */
 export const FOUNDATION_DISPLAY_ORDER: readonly [Suit, Suit, Suit, Suit] = [0, 2, 1, 3];

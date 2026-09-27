@@ -280,18 +280,20 @@ describe('Game frame', () => {
         const user = userEvent.setup();
         const { store } = renderApp();
         await user.click(dealCards());
-        expect(screen.getAllByRole('status')).toHaveLength(1);
-        expect(screen.getByRole('status')).toBeEmptyDOMElement();
+        // The Dealing status and the announcer are the Game screen's two polite regions; only the first is dealing's.
+        const dealingStatus = () => screen.getAllByRole('status')[0];
+        expect(screen.getAllByRole('status')).toHaveLength(2);
+        expect(dealingStatus()).toBeEmptyDOMElement();
 
         act(() => {
             store.dispatch(dealingProgressed({ overlay: true, attempt: 2 }));
         });
-        expect(screen.getAllByRole('status')).toHaveLength(1);
-        expect(screen.getByRole('status')).toHaveTextContent('Dealing…');
+        expect(screen.getAllByRole('status')).toHaveLength(2);
+        expect(dealingStatus()).toHaveTextContent('Dealing…');
 
         act(() => {
             store.dispatch(dealingEnded());
         });
-        expect(screen.getByRole('status')).toBeEmptyDOMElement();
+        expect(dealingStatus()).toBeEmptyDOMElement();
     });
 });

@@ -17,8 +17,8 @@ SHALL retarget the glide from wherever the card is.
 No-motion path: while motion is reduced, the new position SHALL appear at once, with no glide and no
 flip turn.
 
-Input-agnostic: animation follows any change of position (in Phase 5 from Undo, Redo, restart or a
-new deal; board input arrives in Phase 6).
+Input-agnostic: animation follows any change of position, whether from Undo, Redo, restart, a new
+deal, or a drag/tap/keyboard move.
 
 *(KS-PERF-01, spec §8.3)*
 
@@ -90,12 +90,13 @@ or hiding — the table SHALL re-lay out to the new size in the same rendered fr
 suppressed for that frame so cards jump rather than glide, and SHALL keep the game position, score
 and time. A size change smaller than 1 px SHALL be ignored. The table SHALL place no card before its
 size is first known, and the first known size SHALL be applied like a size change, so cards never
-animate from the table's corner. Cancelling a drag in progress is added with dragging in Phase 6.
+animate from the table's corner. A resize while a drag is in progress cancels the drag
+(`src/ui/board/pointerController.ts`'s `resize` input).
 
 Input-agnostic: triggered by the viewport, not by input. There is no animation to replace: the
 re-layout is already instant.
 
-*(KS-GEN-08; drag cancel deferred to Phase 6)*
+*(KS-GEN-08)*
 
 #### Scenario: Rotation keeps the game
 
