@@ -130,7 +130,7 @@
       - `recordCodec.test.ts` and `dayKeys.test.ts` keep their assertions; `sessionCodec.test.ts`, which only tested the moved guards, becomes `guards.test.ts`.
     - **Verify:** `rtk npx vitest run tests/unit/features tests/unit/domain` passes.
 
-- [ ] 2.5 Engine tuple updates without casts
+- [x] 2.5 Engine tuple updates without casts
     - **Implements:** D15 (engine casts).
     - **Files:** `src/domain/engine.ts:47,53`, with a typed tuple `replaceAt` helper and no `as unknown as`.
     - **Tests:** `tests/unit/domain/engine.*.test.ts` unchanged and green.

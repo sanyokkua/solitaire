@@ -5,14 +5,12 @@ import type {
     CardId,
     Column,
     Command,
-    Foundations,
     GameEvent,
     GameState,
     Pile,
     PileRef,
     RejectReason,
     Suit,
-    Tableau,
     TableauCol,
 } from './types';
 
@@ -42,16 +40,35 @@ function accept(before: GameState, after: GameState, events: readonly GameEvent[
     };
 }
 
-// `map` on a fixed-arity tuple yields a plain array; the index never changes, so the arity is preserved.
+// `map` widens a fixed-arity tuple to a plain array, so each arity is rebuilt by destructuring instead.
+function replaceAt7<T>(
+    tuple: readonly [T, T, T, T, T, T, T],
+    index: TableauCol,
+    value: T,
+): readonly [T, T, T, T, T, T, T] {
+    const [a, b, c, d, e, f, g] = tuple;
+    return [
+        index === 0 ? value : a,
+        index === 1 ? value : b,
+        index === 2 ? value : c,
+        index === 3 ? value : d,
+        index === 4 ? value : e,
+        index === 5 ? value : f,
+        index === 6 ? value : g,
+    ];
+}
+
+function replaceAt4<T>(tuple: readonly [T, T, T, T], index: Suit, value: T): readonly [T, T, T, T] {
+    const [a, b, c, d] = tuple;
+    return [index === 0 ? value : a, index === 1 ? value : b, index === 2 ? value : c, index === 3 ? value : d];
+}
+
 function withColumn(state: GameState, col: TableauCol, next: Column): GameState {
-    return { ...state, tableau: state.tableau.map((c, i) => (i === col ? next : c)) as unknown as Tableau };
+    return { ...state, tableau: replaceAt7(state.tableau, col, next) };
 }
 
 function withFoundation(state: GameState, suit: Suit, next: Pile): GameState {
-    return {
-        ...state,
-        foundations: state.foundations.map((f, i) => (i === suit ? next : f)) as unknown as Foundations,
-    };
+    return { ...state, foundations: replaceAt4(state.foundations, suit, next) };
 }
 
 interface Lifted {
