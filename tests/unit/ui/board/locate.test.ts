@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cardId, DECK_SIZE } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { PileRef } from '../../../../src/domain/types';
-import { cardIndex } from '../../../../src/ui/board/locate';
+import { cardIndex, pileKey } from '../../../../src/ui/board/locate';
 import { freshDrawOneState, freshDrawThreeState } from '../../../fixtures/boardPositions';
 import { faceDown, faceUp, foundationsOf, makeState, tableauOf } from '../../../fixtures/states';
 
@@ -12,6 +12,15 @@ const JACK_CLUBS = cardId(2, 11);
 const TEN_DIAMONDS = cardId(1, 10);
 const NINE_SPADES = cardId(3, 9);
 const FIVE_CLUBS = cardId(2, 5);
+
+describe('pileKey', () => {
+    it('names each pile', () => {
+        expect(pileKey({ pile: 'stock' })).toBe('stock');
+        expect(pileKey({ pile: 'waste' })).toBe('waste');
+        expect(pileKey({ pile: 'foundation', suit: 2 })).toBe('foundation:2');
+        expect(pileKey({ pile: 'tableau', col: 4 })).toBe('tableau:4');
+    });
+});
 
 describe('cardIndex', () => {
     it('places stock cards face down and unmovable at their index', () => {

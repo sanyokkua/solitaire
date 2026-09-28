@@ -3,7 +3,7 @@ import type { FocusEvent, KeyboardEvent, RefObject } from 'react';
 import { useAppSelector } from '../../app/hooks';
 import type { CardId, PileRef } from '../../domain/types';
 import { selectEpoch } from '../../features/game/gameSlice';
-import { pileKey } from './landing';
+import { pileKey, type CardLocation } from './locate';
 import type { BoardPiles } from './layout';
 import { defaultStop, keyToAction, moveFocus, pileOrder, type FocusTarget } from './keyboardController';
 import type { BoardActions } from './useBoardActions';
@@ -78,13 +78,18 @@ function stopElement(board: HTMLElement, target: FocusTarget): HTMLElement | nul
     );
 }
 
-/** The same `Hit` a pointer press on the target would produce, for the shared `activate` and `pickUp`. */
-function hitOf(target: FocusTarget, piles: BoardPiles): Hit {
+/**
+ * The same `Hit` a pointer press on the target would produce, for the shared `activate` and `pickUp`; a card is
+ * movable as `selectCardLocations` says, like a pointer press.
+ */
+function hitOf(target: FocusTarget, piles: BoardPiles, locations: ReadonlyMap<CardId, CardLocation> | null): Hit {
     const { from, index } = target;
     if (from.pile === 'stock') return { kind: 'stock' };
     if (index !== null) {
         const id = cardAt(piles, from, index);
-        return id === undefined ? { kind: 'none' } : { kind: 'card', id, from, index, movable: true };
+        return id === undefined
+            ? { kind: 'none' }
+            : { kind: 'card', id, from, index, movable: locations?.get(id)?.movable === true };
     }
     if (from.pile === 'tableau') return { kind: 'column', col: from.col };
     return { kind: 'slot', ref: from };
@@ -181,7 +186,7 @@ export function useBoardKeyboard({ boardRef, piles, stockRight, activate, pickUp
         if ((action !== 'activate' && action !== 'pickUp') || piles === null) return;
         event.preventDefault();
         if (event.repeat) return;
-        const hit = hitOf(target, piles);
+        const hit = hitOf(target, piles, locations);
         if (action === 'activate') activate(hit);
         else pickUp(hit);
     };

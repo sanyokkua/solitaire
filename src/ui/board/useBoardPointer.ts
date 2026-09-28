@@ -7,7 +7,8 @@ import { hintCleared, selectionCleared } from '../../features/interaction/intera
 import { selectCard } from '../../features/interaction/interactionThunks';
 import { selectInputEnabled, selectLegalTargets, selectSelectedGroup } from '../../features/interaction/selectors';
 import { cardElement } from './dom';
-import { landingAreas, pickLargestOverlap, pileAt, pileKey, type Rect } from './landing';
+import { landingAreas, pickLargestOverlap, pileAt, type Rect } from './landing';
+import { pileKey } from './locate';
 import type { BoardPiles, Layout, Point } from './layout';
 import type { Metrics } from './metrics';
 import {

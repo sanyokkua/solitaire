@@ -12,7 +12,7 @@ import { Ghosts } from './Ghosts';
 import { positions, type BoardPiles, type Point } from './layout';
 import { measure } from './metrics';
 import { PileSlot } from './PileSlot';
-import { pileKey } from './landing';
+import { pileKey } from './locate';
 import { selectBoardPiles, selectCardLocations, selectStockSpent } from './selectors';
 import { StockBadge } from './StockBadge';
 import { boardStyle, px } from './style';

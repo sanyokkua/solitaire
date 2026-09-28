@@ -3,7 +3,7 @@ import { cardId } from '../../src/domain/cards';
 import { installed } from '../../src/features/game/gameSlice';
 import { play, undo } from '../../src/features/game/gameThunks';
 import { ACE_HOME_CARD, aceHomePosition } from '../fixtures/boardPositions';
-import { faceUp, makeState, tableauOf } from '../fixtures/states';
+import { faceDown, faceUp, makeState, tableauOf } from '../fixtures/states';
 import {
     FIVE_SPADES,
     JACK_HEARTS,
@@ -404,6 +404,34 @@ describe('Shift+Enter', () => {
 
         expect(selection(m)).toBeNull();
         expect(m.cardEl(SIX_DIAMONDS)).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('does nothing on a face-down card that focus fell back to', async () => {
+        const buried = cardId(0, 5);
+        const m = mount(
+            makeState({
+                tableau: tableauOf([...faceDown(buried), ...faceUp(SIX_DIAMONDS)], faceUp(SEVEN_SPADES)),
+                stock: [cardId(0, 13)],
+                started: true,
+            }),
+        );
+        focusEl(m.cardEl(SIX_DIAMONDS));
+        await act(async () => {
+            await m.store.dispatch(
+                play({ type: 'move', from: { pile: 'tableau', col: 0 }, index: 1, to: { pile: 'tableau', col: 1 } }),
+            );
+        });
+        await settle();
+        expect(column(m, 0)).toEqual([buried]);
+        focusEl(m.cardEl(buried));
+
+        key('Enter', { shiftKey: true });
+        key('Enter');
+        await settle();
+
+        expect(selection(m)).toBeNull();
+        expect(column(m, 0)).toEqual([buried]);
+        expect(column(m, 1)).toEqual([SEVEN_SPADES, SIX_DIAMONDS]);
     });
 
     it('does nothing on the stock or an empty pile', () => {

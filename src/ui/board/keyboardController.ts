@@ -1,4 +1,5 @@
 import { FOUNDATION_DISPLAY_ORDER, TABLEAU_COLS } from '../../domain/cards';
+import { samePile } from '../../domain/rules';
 import type { PileRef } from '../../domain/types';
 import type { BoardPiles } from './layout';
 
@@ -34,19 +35,6 @@ export interface FocusTarget {
     readonly from: PileRef;
     /** The card index in the pile; `null` is the stock, or an empty foundation or column. */
     readonly index: number | null;
-}
-
-function samePile(a: PileRef, b: PileRef): boolean {
-    if (a.pile !== b.pile) {
-        return false;
-    }
-    if (a.pile === 'foundation' && b.pile === 'foundation') {
-        return a.suit === b.suit;
-    }
-    if (a.pile === 'tableau' && b.pile === 'tableau') {
-        return a.col === b.col;
-    }
-    return true;
 }
 
 /** The last card index of a pile of `length` cards, or `null` when it is empty. */

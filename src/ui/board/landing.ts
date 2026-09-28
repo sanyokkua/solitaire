@@ -1,6 +1,7 @@
 import { FOUNDATION_DISPLAY_ORDER, SUITS, TABLEAU_COLS } from '../../domain/cards';
 import type { PileRef, TableauCol } from '../../domain/types';
 import { columnSteps, type BoardPiles, type Layout, type Point } from './layout';
+import { pileKey } from './locate';
 import type { Metrics } from './metrics';
 
 /** An axis-aligned rectangle on the board in px: top left corner and size. */
@@ -13,19 +14,6 @@ export interface Rect {
 
 /** How far below the next landing position a column's area reaches, as a multiple of the card height. */
 const COLUMN_REACH = 1.2;
-
-/** The key of a pile in the landing-area map. */
-export function pileKey(ref: PileRef): string {
-    switch (ref.pile) {
-        case 'stock':
-        case 'waste':
-            return ref.pile;
-        case 'foundation':
-            return `foundation:${String(ref.suit)}`;
-        case 'tableau':
-            return `tableau:${String(ref.col)}`;
-    }
-}
 
 /**
  * Where the next card would land on tableau column `col`: the column's slot when it is empty, otherwise just below its

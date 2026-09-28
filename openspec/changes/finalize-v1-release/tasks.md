@@ -136,7 +136,7 @@
     - **Tests:** `tests/unit/domain/engine.*.test.ts` unchanged and green.
     - **Verify:** `rtk npx vitest run tests/unit/domain`, and `rg "as unknown as" src/domain` finds nothing.
 
-- [ ] 2.6 One pile identity on the board
+- [x] 2.6 One pile identity on the board
     - **Implements:** D15 (pile identity).
     - **Files:**
       - `src/domain/rules.ts` exports `samePile` (today private at `:77`);

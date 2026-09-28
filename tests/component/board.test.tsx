@@ -8,7 +8,7 @@ import { Board } from '../../src/ui/board/Board';
 import { positions } from '../../src/ui/board/layout';
 import { measure, type BoardSize } from '../../src/ui/board/metrics';
 import { cardIndex } from '../../src/ui/board/locate';
-import { pileKey } from '../../src/ui/board/landing';
+import { pileKey } from '../../src/ui/board/locate';
 import { selectBoardPiles, selectCardLocations } from '../../src/ui/board/selectors';
 import { gameOf, playedGame } from '../fixtures/games';
 import { faceUp, makeState, tableauOf } from '../fixtures/states';

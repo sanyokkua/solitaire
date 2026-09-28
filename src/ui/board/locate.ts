@@ -13,6 +13,19 @@ export interface CardLocation {
     readonly movable: boolean;
 }
 
+/** The key of a pile on the board (data attributes, maps and focus memory). */
+export function pileKey(ref: PileRef): string {
+    switch (ref.pile) {
+        case 'stock':
+        case 'waste':
+            return ref.pile;
+        case 'foundation':
+            return `foundation:${String(ref.suit)}`;
+        case 'tableau':
+            return `tableau:${String(ref.col)}`;
+    }
+}
+
 /**
  * Maps every card id in the position to its pile, index in that pile, face and movability. The stock is face down and
  * never movable; every other pile defers to `isMovable`, so the rules live only in the domain.
