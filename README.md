@@ -1,172 +1,71 @@
 # Klondike Solitaire
 
-Klondike Solitaire is a calm, retro-styled, offline-capable static SPA and installable PWA. It
-runs entirely in the browser, stores all game state, preferences and statistics in a versioned
-`solitaire.local-state` browser `localStorage` record, and is built for GitHub Pages under the
-`/solitaire/` repository path.
+Klondike Solitaire as a static, offline-capable single-page app and installable PWA. It is built with
+Vite, React, TypeScript and Redux Toolkit. There is no backend, API or account system: game state,
+preferences and statistics are kept in the browser's `localStorage` (record `solitaire.local-state`).
+The build is served under the `/solitaire/` base path (GitHub Pages).
 
-The repository does not contain a backend, API, account system, database, or runtime server
-dependency.
+Source: <https://github.com/sanyokkua/solitaire>
 
-Source repository: <https://github.com/sanyokkua/solitaire>
+## Game
 
-## Current status
+- Modes: Draw 1, Draw 3, Vegas and a Daily deal. Draw 1 can be limited to deals the solver found winnable.
+- Play by tap, drag or keyboard. Undo, redo, hint, finish and pause are available.
+- Deals are deterministic from a seed and can be shared as a deal code.
+- Light, dark and system themes, a four-colour deck, night cards and four card backs; reduced-motion aware.
+- English and Ukrainian interface.
+- Works offline after the first visit and can be installed from the browser.
 
-**Phases 1–8 are implemented** (Phases 7 and 8 via `add-screens-sheets-pwa`, archived 2026-09-28). The build, lint, test, CI and deployment tooling are in place.
-The pure Klondike engine lives in `src/domain/`, the bounded-DFS solver in `src/solver/`,
-and the deal service (deals per mode, Daily v1, solver hints) in `src/features/deal/`. The
-application state layer (`app`, `preferences`, `stats`, `game` and `persistence` slices, with
-thunks for start, play, undo/redo, restart and finish) plays, scores and times a game. Preferences,
-statistics and an unfinished game are saved in the versioned `solitaire.local-state` record and
-restored on reload. The Home and Game shell is wired to it: Home "Deal cards" starts a game,
-"Continue game" appears while one can be resumed, and Back keeps it. Home is a styled screen with a mode choice
-(Draw 1, Draw 3, Vegas, Daily), a Winnable switch, How to play, an LCD record strip (played, won, win rate, streak) and links
-to Statistics, Settings, a deal code and About; on phones and short screens its actions stay pinned to the bottom. The Game screen now draws the table: 52
-named cards, slots, a stock badge, four card backs, night cards and the four-colour deck, with glide, flip and
-deal motion (or none, under reduced motion), a read-only HUD and a toolbar with Undo, Redo, Hint and Finish, laid out to
-fit every supported screen without scrolling. The board takes every move by drag, tap and keyboard: smart tap
-and select-and-place with double-tap, mouse/touch/pen drag with glide-back, and full keyboard control with
-roving focus and global shortcuts (see the shortcuts table below). Hint and Finish, a polite announcer, a
-notices host and hint visuals (ghosts, selection ring, hint line) make assistance visible, and the win cascade
-plays when a game is won — all proven end to end by full-line win tests played through each input path
-(`tests/e2e/playByTap.spec.ts`, `playByDrag.spec.ts`, `playByKeyboard.spec.ts`). The sheets (Settings, How to play, Statistics, New deal options, Paused, Win, Play a deal code, About)
-open over either screen, and the whole interface is available in English and Ukrainian. The PWA part (manifest and icons, a prompt-mode service worker, the update and install flows, artifact validation; see "Offline and install" below) is in place. Phases 9–11 (full verification and edge cases, documentation and release, and the optional Draw 3 winnable deals) are pending — see `docs/spec/phased-design.md` for the full phase list. There is no deployed build yet.
+## Requirements
 
-### Offline and install
+- Node.js 22.22.2 or newer
+- npm (uses the committed `package-lock.json`)
 
-The app is a static PWA: after one online visit the service worker precaches the build (scripts, styles, fonts, the
-solver worker and icons), so it starts and plays offline. Registration runs after the page's `load` event, so it never
-delays the first render. A new version is never applied silently: when one is ready, a notice offers Update (which saves
-the game, then reloads onto the new version) or Later (the notice stays hidden for the rest of the session and the update applies on the next cold start). When the browser
-offers installation, Home shows an Install app link that opens the browser's install prompt; the link disappears once
-the app is installed or the offer is used. End-to-end tests block service workers unless a spec opts in.
-
-### Keyboard shortcuts
-
-| Key(s)                           | Action                                                           |
-| -------------------------------- | ---------------------------------------------------------------- |
-| Tab / Shift+Tab                  | Move focus between piles and cards                               |
-| Arrow keys                       | Move focus within and between piles                              |
-| Enter / Space                    | Activate the focused card or pile (same as a tap)                |
-| Shift+Enter / Shift+Space        | Pick up (or drop) the focused card or run, in either tap setting |
-| Space (nothing focused)          | Draw from the stock                                              |
-| Ctrl+Z / ⌘Z                      | Undo                                                             |
-| Ctrl+Y / Ctrl+Shift+Z / ⌘Shift+Z | Redo                                                             |
-| H                                | Request a hint                                                   |
-| A                                | Finish (when available)                                          |
-| Esc                              | Cancel a selection or a drag, or close an open sheet             |
-
-Shortcuts are layout-independent (they match the physical key, not the character a non-Latin layout
-produces) and do not auto-repeat while a key is held. `N` opens the New deal options and `P` pauses the game.
-
-## Prerequisites
-
-- Node.js 22.22.2 or newer.
-- npm, using the committed `package-lock.json`.
-- Playwright browser binaries for the full browser suite. Install them with
-  `npx playwright install --with-deps chromium firefox webkit` when needed.
-
-## Local development
+## Run locally
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173/solitaire/`. The Vite base path is part of the application
-configuration, so local testing should use the `/solitaire/` path.
+Open <http://localhost:5173/solitaire/>.
 
-To serve the production build locally:
-
-```sh
-npm run build
-npm run preview
-```
-
-## Quality commands
-
-| Command                              | Purpose                                                                                                               |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                        | Start the Vite development server.                                                                                    |
-| `npm run dev-network`                | Start the Vite development server bound to all network interfaces.                                                    |
-| `npm run build`                      | Type-check the project, then produce the production build in `dist/`.                                                 |
-| `npm run preview`                    | Serve the production build locally.                                                                                   |
-| `npm run format`                     | Format repository files with Prettier.                                                                                |
-| `npm run format:check`               | Check Prettier formatting without writing files.                                                                      |
-| `npm run lint`                       | Run ESLint.                                                                                                           |
-| `npm run lint:fix`                   | Run ESLint and apply automatic fixes.                                                                                 |
-| `npm run typecheck`                  | Run the non-emitting TypeScript project build.                                                                        |
-| `npm run test`                       | Run the Vitest unit and component test set.                                                                           |
-| `npm run test:unit`                  | Run unit and component tests.                                                                                         |
-| `npm run test:coverage`              | Run unit/component tests with V8 coverage thresholds.                                                                 |
-| `npm run bench`                      | Run the informational winnable-search latency benchmark.                                                              |
-| `npm run e2e`                        | Run the Playwright suite across desktop, touch and device-fit projects.                                               |
-| `npm run e2e:headed`                 | Run the Playwright suite with visible browsers.                                                                       |
-| `npm run prepare`                    | Install the Husky git hooks (runs automatically after `npm install`).                                                 |
-| `npm run validate:lifecycle-storage` | Check that the application lifecycle tests inject their storage gateway.                                              |
-| `npm run validate:artifact`          | Check the built `dist/` (base path, manifest, precache, no external URLs); runs after `build`.                        |
-| `npm run validate`                   | Run formatting, lint, typecheck, the lifecycle-storage guard, unit/component tests, the build and the artifact check. |
-
-`bench` reports median and p95 for the winnable-deal search against KS-PERF-02; it never asserts
-on timings and is not part of `validate`, the git hooks or CI.
-
-The usual local gate is:
+## Build
 
 ```sh
-npm run validate
-npm run e2e
+npm run build      # type-check, then build into dist/
+npm run preview    # serve the production build
 ```
 
-This mirrors the repository's git hooks: `.husky/pre-commit` runs lint-staged, `typecheck` and
-`test:unit` on every commit, and `.husky/pre-push` runs the full `e2e` suite before every push.
+## Check
 
-## Repository layout
-
-```text
-src/app/          Redux store, application state slices, lifecycle bootstrap
-src/ui/           Board (pure layout, cards, slots, motion, drag/tap/keyboard input, hints, win
-                  cascade), Game frame, HUD, toolbar, announcer, notices host, token-based CSS
-                  sheets (Settings, How to play, Statistics, New deal, Paused, Win, deal code, About),
-                  Home screen
-src/assets/       Bundled fonts and other static assets
-src/domain/       Pure Klondike engine: cards, seeded deals, rules, scoring, commands, hints
-src/solver/       Pure bounded-DFS solver and its Web Worker message protocol
-src/features/     Deal service (Phase 3), game state thunks and history, statistics, preferences,
-                  persistence (codec, storage gateway, loader, writer, reset)
-src/i18n/         English/Ukrainian catalogs, language registry, translator and locale controller
-src/pwa/          Service-worker registration (after `load`), update and install gateways
-tests/unit/       Vitest unit tests
-tests/component/  Vitest + Testing Library component tests
-tests/e2e/        Playwright end-to-end specs
-tests/bench/      Informational winnable-search latency benchmark
-tests/fixtures/   Shared seeded deals, storage doubles, and test utilities
-docs/spec/        Product specification, game-rules research, and the phased build plan
-openspec/         OpenSpec change proposals, specs and tasks
+```sh
+npm run validate   # format, lint, typecheck, unit/component tests, build, artifact check
+npx playwright install --with-deps chromium firefox webkit   # once, for the browser suite
+npm run e2e        # Playwright end-to-end suite
 ```
+
+All scripts are listed in [docs/reference/scripts.md](docs/reference/scripts.md).
 
 ## Documentation
 
-- [`docs/spec/specification.md`](docs/spec/specification.md) — product behavior and the
-  `KS-*` requirements.
-- [`docs/spec/research.md`](docs/spec/research.md) — game rules, algorithms and
-  accessibility/UX facts.
-- [`docs/spec/phased-design.md`](docs/spec/phased-design.md) — architecture, data model, and
-  the phase-by-phase build plan.
-- [`docs/spec/mockup/klondike-mockup.html`](docs/spec/mockup/klondike-mockup.html) and
-  [`docs/spec/mockup/screens/`](docs/spec/mockup/screens/) — visual and behavioral reference
-  for the finished app. This is reference only: it shows gameplay the app does not implement
-  yet, and production code does not copy its structure.
-- [`AGENTS.md`](AGENTS.md) — guidance and conventions for AI coding agents working in this
-  repository.
+| Document                                                                       | Contents                                             |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| [docs/README.md](docs/README.md)                                               | Index and reading order                              |
+| [docs/architecture/overview.md](docs/architecture/overview.md)                 | Layers, dependency rules, how the pieces fit         |
+| [docs/development/project-structure.md](docs/development/project-structure.md) | Where things live and how to navigate the repository |
+| [docs/development/workflow.md](docs/development/workflow.md)                   | OpenSpec workflow, branches, commits, hooks          |
+| [docs/development/testing.md](docs/development/testing.md)                     | Test layers, guards and how to run them              |
+| [docs/spec/](docs/spec/README.md)                                              | Original product specification pack                  |
+| [AGENTS.md](AGENTS.md)                                                         | Conventions for AI coding agents                     |
 
-## Changes
+## Contributing
 
-New behavior is planned through the repository's OpenSpec workflow under
-[`openspec/`](openspec/). Changes to behavior, dependencies, configuration, CI, deployment, or
-documented interfaces must update the affected documentation in the same change.
+Features and behaviour changes are introduced through [OpenSpec](openspec/): a change is proposed,
+implemented task by task, then archived into `openspec/specs/`. See
+[docs/development/workflow.md](docs/development/workflow.md). Documentation is updated in the same change.
 
 ## License
 
-The application is licensed under the [MIT License](LICENSE). The bundled Inter and Press
-Start 2P fonts are licensed under the SIL Open Font License 1.1; their sources are listed in
-[`src/assets/fonts/README.md`](src/assets/fonts/README.md).
+[MIT](LICENSE). The bundled Inter and Press Start 2P fonts are under the SIL Open Font License 1.1;
+sources are in [src/assets/fonts/README.md](src/assets/fonts/README.md).

@@ -256,8 +256,8 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
 The store hands every thunk a `ThunkExtra` (`src/app/thunkExtra.ts`): `dealService` (created lazily, so a store that
 never deals never starts the solver worker), `now` (`performance.now`), `delay` (`setTimeout`), `today`
 (`new Date()`), `gateway` (a storage gateway over the browser's local storage), `saver` (a `SavePort`, unconnected
-until `startApp` wires it to the real writer) and `languages` (`navigator.languages` by default). The store has five
-slices: `app`, `preferences`, `stats`, `game` and `persistence`. `createAppStore({ preloadedState, deps })` starts
+until `startApp` wires it to the real writer) and `languages` (`navigator.languages` by default). The store has six
+slices: `app`, `preferences`, `stats`, `game`, `interaction` and `persistence`. `createAppStore({ preloadedState, deps })` starts
 from the loaded state (see `persistenceLoader.ts`) and replaces any of the thunk dependencies, which is how tests
 inject `fakeDealService()` or a fake clock. The store's development state checks skip `game.history` and
 `game.future`, which are unbounded.
