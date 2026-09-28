@@ -110,12 +110,12 @@ Tapping the stock draws cards; tapping the empty stock turns the waste over (sub
 ### 4.3 Automatic behaviour
 - A face-down card that becomes the top of a column flips over automatically.
 - **Auto-move safe cards** (setting, off by default): after each move, safe cards (*R§6.2*) travel to the foundations one after another.
-- **Finish** becomes available once all tableau cards are face up (*R§6.3*); it plays every remaining card home in a quick sequence.
+- **Finish** becomes available when a finish plan completes under the ordinary rules (*R§6.3*), which requires every tableau card to be face up; it plays every remaining card home in a quick sequence. Its draws and recycles are scored, counted and pass-limited like the player's; there is no pass-penalty exemption.
 
 ### 4.4 Undo and redo
-- Unlimited undo back to the start of the deal; redo until a new move is made.
+- Unlimited undo back to the start of the deal; redo until a new move is made. A saved game keeps its newest 200 undo steps and its nearest 200 redo steps, so a reload after more than 200 moves can undo only that far (*KS-PER-01*).
 - Automatic follow-up moves (flip, safe auto-moves) are undone together with the move that caused them.
-- Standard scoring charges −2 per undo; Vegas undo just restores the previous bankroll.
+- Undo restores the earlier position's score exactly; Standard scoring additionally charges 2 points per undo, which stay charged (redo does not refund them). Vegas undo just restores the previous bankroll, with no extra fee.
 - Undo is unavailable after a win.
 
 ### 4.5 Hints
@@ -138,16 +138,20 @@ Tapping the stock draws cards; tapping the empty stock turns the waste over (sub
 | Tab / Shift+Tab                       | Move between piles (stock, waste, foundations, columns) and focusable cards       |
 | Arrow keys                            | Move focus between piles (left/right) and between cards within a column (up/down) |
 | Enter / Space on a card               | Same as a tap (smart move, or pick up/place)                                      |
+| Shift+Enter / Shift+Space on a card   | Pick up (or drop) the card or run, in either tap setting                          |
 | Space (nothing focused)               | Draw from the stock                                                               |
 | Ctrl/⌘+Z · Ctrl/⌘+Y or Ctrl/⌘+Shift+Z | Undo · Redo                                                                       |
 | H · A · N · P                         | Hint · Finish · New deal · Pause                                                  |
 | Esc                                   | Cancel selection or drag; close a sheet                                           |
 
+N is bound: it requests a new deal exactly as the HUD New deal control does (the New deal options sheet during a started, unwon game, otherwise an immediate deal), bypassing the input gate so it still works during the win cascade, before the Win sheet opens. P is bound: it pauses the game (opening the Paused sheet) exactly as the HUD Time control does, and resumes it when the Paused sheet is already open; it does nothing while any other sheet is open, on a won game, or while a safe-card chain, Finish or a deal in preparation is running, and it too bypasses the input gate.
+
 ---
 
 ## 5. Scoring and statistics
 - **Standard** and **Vegas** scoring exactly as in *R§5.1–5.2*, plus the project's undo decisions (§4.4).
-- Standard scores never go below 0. The time penalty applies every 10 seconds of *unpaused* play.
+- Standard scores never go below 0.
+- The stored score is the move score. The displayed score is derived: the move score minus the time penalty and minus 2 points per undo charge (floored at 0 under Standard only), plus the win bonus once the game is won. The time penalty is a total computed from elapsed *unpaused* play time (Standard: 2 × ⌊seconds ÷ 10⌋); it is never deducted from the stored score as time passes.
 - **Statistics** per mode as in *R§7*. A game counts as played at the first move. Starting a different deal while a game is started and unfinished breaks that mode's streak; **Restart this deal** does too.
 - **Daily**: a completed day is recorded once; the daily streak counts consecutive UTC days completed.
 - Records: best time (lowest), best score / best bank (highest), best streak.
@@ -180,7 +184,7 @@ Changing a setting never alters the rules of a game in progress. The mode is fix
 ## 7. Saving and resuming
 - Settings, statistics and the unfinished game (including its undo history, up to a limit) are kept **only on this device**.
 - Leaving, reloading or closing the app keeps an unfinished game; **Continue game** on Home restores it exactly, including time, score, moves and deal code. Finished games aren't resumable.
-- If stored data is missing, damaged or from an unknown version, the app starts with defaults and shows a short notice. It never crashes and never deletes data it couldn't read.
+- If stored data is incomplete (a record that exists but lacks required parts), damaged or from an unknown version, the app starts with defaults and shows a short notice. A first run with nothing stored is silent. It never crashes and never deletes data it couldn't read: the unreadable value is copied to a backup key before anything is written over it.
 - If the device refuses to save (private mode or full storage), play continues and a non-blocking notice explains that progress won't be kept.
 
 ---
@@ -188,21 +192,44 @@ Changing a setting never alters the rules of a game in progress. The mode is fix
 ## 8. Look and feel
 
 ### 8.1 Palette (from the chosen "icy, heroic, crisp" + "bold, clean" references)
-| Role                    | Light                                                                | Dark                     |
-| ----------------------- | -------------------------------------------------------------------- | ------------------------ |
-| Page background         | #E8F0F5                                                              | #0B2545                  |
-| Surface / raised        | #F8FBFB / #EEF4ED                                                    | #13315C / #1A3A66        |
-| Table                   | #D4E4EE (dot texture)                                                | #102C52                  |
-| Text / muted            | #0B2545 / #4F6A88                                                    | #EEF4ED / #8DA9C4        |
-| Primary action          | #457B9D                                                              | #5BC0EB                  |
-| Accent / highlight      | #A8DADC, #5BC0EB                                                     | #1D3F70, #A8DADC         |
-| LCD panel / digits      | #0B2545; score #F4A7AD, moves #A8DADC, time #5BC0EB                  | #06172D; same digits     |
-| Hint (only warm colour) | #F2B25C                                                              | #F2C078                  |
-| Card face / edge        | #FBFDFB / #C8D7E3                                                    | dimmed #D2DDE5 / #06172D |
-| Suit ink red / black    | #D44B56 / #1D3557 (navy)                                             | #CC4450 / #13315C        |
-| Four-colour ♦ / ♣       | #2F93BF / #3A8F7C                                                    | #2A86B0 / #2F7D6B        |
-| Night cards             | face #1C3D68, edge #36608F, ink #DCE8EF / red #F28B93, backs #8DA9C4 | same                     |
-| Card backs              | #457B9D · #13315C · #5BC0EB · #D9555F, with a lighter checker        | same                     |
+| Role                    | Light                                                                                                | Dark                                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Page background         | #E8F0F5                                                                                              | #0B2545                                                |
+| Surface / raised        | #F8FBFB / #EEF4ED                                                                                    | #13315C / #1A3A66                                      |
+| Table / dot texture     | #D4E4EE / rgb(19 49 92 / 8%)                                                                         | #102C52 / rgb(168 218 220 / 6%)                        |
+| Slot line / slot ink    | #9FB8CF / rgb(69 123 157 / 45%)                                                                      | #2D5282 / rgb(168 218 220 / 28%)                       |
+| Text / muted            | #0B2545 / #4F6A88                                                                                    | #EEF4ED / #8DA9C4                                      |
+| Primary action          | #457B9D                                                                                              | #5BC0EB                                                |
+| Accent / highlight      | #A8DADC, #5BC0EB                                                                                     | #1D3F70, #A8DADC                                       |
+| Soft outline            | #C8D7E3                                                                                              | #24466F                                                |
+| Hover                   | rgb(69 123 157 / 10%)                                                                                | rgb(91 192 235 / 12%)                                  |
+| Chrome shadow           | 0 1px 2px rgb(11 37 69 / 8%), 0 1px 1px rgb(11 37 69 / 5%)                                           | 0 1px 2px rgb(0 0 0 / 35%), 0 1px 1px rgb(0 0 0 / 25%) |
+| LCD panel / outline     | #0B2545 / #06172D                                                                                    | #06172D / #030D1A                                      |
+| LCD digits              | score #F4A7AD, moves #A8DADC, time #5BC0EB                                                           | same                                                   |
+| LCD label               | #8DA9C4                                                                                              | #6F8FB0                                                |
+| Hint (only warm colour) | #F2B25C                                                                                              | #F2C078                                                |
+| Card face / edge        | #FBFDFB / #C8D7E3                                                                                    | dimmed #D2DDE5 / #06172D                               |
+| Card shadow             | 0 1px 2px rgb(11 37 69 / 16%), 0 2px 6px rgb(11 37 69 / 8%)                                          | 0 1px 2px rgb(0 0 0 / 45%), 0 3px 8px rgb(0 0 0 / 25%) |
+| Suit ink red / black    | #D1404C / #1D3557 (navy)                                                                             | #B1303C / #13315C                                      |
+| Four-colour ♦ / ♣       | #287DA2 / #348170                                                                                    | #206788 / #286B5C                                      |
+| Card backs (tone a / b) | Harbour #457B9D / #5A8FB0 · Navy #13315C / #1D3F70 · Sky #5BC0EB / #7DCDEF · Coral #D9555F / #E46E77 | same                                                   |
+| Card back rim           | #F1FAEE                                                                                              | #B9C9D6                                                |
+
+**Ink contrast.** Every suit ink meets 4.5:1 against the card face of the palette it is used on. The
+mockup's red and four-colour inks did not, so they are darkened here (same hue, the least amount that
+passes); `tests/unit/ui/contrast.test.ts` keeps them at or above 4.5:1.
+
+**Night cards** (Appearance setting, independent of the theme) change the cards only; the page, chrome,
+table and LCD keep the light or dark theme. Night card roles:
+
+| Role                    | Night cards                                                                                   |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| Card face / edge        | #1C3D68 / #36608F                                                                             |
+| Card shadow             | 0 1px 2px rgb(0 0 0 / 50%), 0 3px 8px rgb(0 0 0 / 30%)                                       |
+| Suit ink red / black    | #F28B93 / #DCE8EF                                                                             |
+| Four-colour ♦ / ♣       | #7FD3F3 / #8FD6B8                                                                             |
+| Card backs (tone a / b) | Harbour, Sky and Coral all #8DA9C4 / #A4BCD2 · Navy #0B2545 / #13315C                         |
+| Card back rim           | #0B2545; the Navy back uses #8DA9C4 so it stays visible against the night card face          |
 
 ### 8.2 Typography and shapes
 - **Inter** for all running text and controls. **Press Start 2P** for the wordmark, card indices, LCD digits, chips and tiny labels.
@@ -298,7 +325,7 @@ Legend: **Ubiquitous** "The system shall…" · **Event** "WHEN … the system s
 - **KS-AST-02** WHEN the player requests a hint, the system shall highlight the suggested source and target (or the stock) for about 2 s and describe it in the hint line.
 - **KS-AST-03** WHERE a solver line is available for the current Draw 1 position within the hint budget, the system shall base the hint on that line's first move.
 - **KS-AST-04** WHILE Auto-move safe cards is on, WHEN a move completes, the system shall move safe cards (*R§6.2*) to the foundations one by one.
-- **KS-AST-05** WHILE every tableau card is face-up and the game isn't won, the system shall enable Finish; WHEN Finish is used, the system shall play all remaining cards to the foundations without pass penalties.
+- **KS-AST-05** WHILE the game isn't won and a finish plan exists (every tableau card is face-up and the plan completes under the ordinary rules), the system shall enable Finish; WHEN Finish is used, the system shall play all remaining cards to the foundations, charging and pass-limiting its draws and recycles like the player's.
 - **KS-AST-06** WHEN no productive move remains (*R§6.4*), the system shall show the dead-end notice once for that position.
 - **KS-AST-07** WHEN the player undoes, the system shall restore the exact state before the last player move, including automatic follow-up moves; WHEN the player redoes, the system shall re-apply it.
 - **KS-AST-08** WHEN the player makes a new move after undoing, the system shall discard the redo history.
@@ -306,7 +333,7 @@ Legend: **Ubiquitous** "The system shall…" · **Event** "WHEN … the system s
 ### 9.6 Scoring and time (SCO)
 - **KS-SCO-01** WHILE the mode uses Standard scoring, the system shall apply the points of *R§5.1*, never letting the score drop below 0.
 - **KS-SCO-02** WHILE the mode uses Vegas scoring, the system shall start at −$52, add $5 per card to a foundation, subtract $5 per card leaving one, and display the value as money.
-- **KS-SCO-03** WHEN the player undoes in Standard scoring, the system shall subtract 2 points from the restored score.
+- **KS-SCO-03** WHEN the player undoes in Standard scoring, the system shall restore the score of the restored position and charge 2 points that stay charged; redo does not refund.
 - **KS-SCO-04** WHEN a Standard game is won after more than 30 s, the system shall add a bonus of floor(700,000 ÷ seconds).
 - **KS-SCO-05** The system shall start the timer on the first move and count only unpaused play time.
 - **KS-SCO-06** WHILE the Game screen is hidden, a sheet is open or the document is hidden, the system shall pause the timer and the time penalty.
@@ -328,9 +355,9 @@ Legend: **Ubiquitous** "The system shall…" · **Event** "WHEN … the system s
 - **KS-SET-06** The system shall not change the rules of a game in progress when settings change.
 
 ### 9.9 Persistence (PER)
-- **KS-PER-01** The system shall store settings, statistics and the unfinished game (with up to 200 undo steps) on the device.
+- **KS-PER-01** The system shall store settings, statistics and the unfinished game (with its newest 200 undo steps and nearest 200 redo steps) on the device.
 - **KS-PER-02** WHEN the app is reopened with an unfinished game stored, the system shall offer Continue game and restore that game exactly.
-- **KS-PER-03** IF stored data is missing, unreadable or from an unknown version, THEN the system shall start with defaults, keep the unreadable data untouched, and show a non-blocking notice.
+- **KS-PER-03** IF stored data is incomplete, unreadable or from an unknown version, THEN the system shall start with defaults, keep the unreadable data untouched, and show a non-blocking notice.
 - **KS-PER-04** IF saving fails, THEN the system shall keep the current game playable and show a non-blocking notice.
 - **KS-PER-05** WHEN the player confirms Reset all local data, the system shall clear stored data and restore defaults.
 
@@ -362,7 +389,7 @@ Legend: **Ubiquitous** "The system shall…" · **Event** "WHEN … the system s
 
 ## 10. Key acceptance scenarios
 1. **First launch, full game:** Home → Draw 1 → Deal cards. The chip shows Winnable; the player wins by tapping only. Win sheet; statistics show 1 played, 1 won, streak 1.
-2. **Drag a run:** drag a 3-card run onto a legal column; it lands and the uncovered card flips (+5). Undo returns everything, including the face-down card, and the score shows the −2.
+2. **Drag a run:** drag a 3-card run onto a legal column; it lands and the uncovered card flips (+5). Undo returns everything, including the face-down card, and charges 2 points (the displayed score's 0-floor can hide it).
 3. **Illegal drop:** drag a red 7 onto a red 8; the cards glide back and nothing changes.
 4. **Draw 3 fan and recycle:** three waste cards show fanned; only the top one moves. On the 3rd recycle −20 applies.
 5. **Vegas limit:** after 3 passes, tapping the empty stock shows "No redeals left".

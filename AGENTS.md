@@ -4,66 +4,83 @@ Guidance for AI coding agents (Claude Code, Codex, etc.) working in this reposit
 
 ## Current project
 
-This repository will become **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
+This repository is **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
 
-**Repository state: pre-implementation.** As of now the repository contains only `docs/spec/` (the full product spec, game-rules research, and phased build plan) plus `LICENSE` and this file. No `package.json`, source tree, or tooling exists yet — that is Phase 1 of the plan below. Do not assume any npm script, source file, or test exists until you have checked.
+**Repository state: Phases 1–8 complete** (engine, solver, deal service, state and persistence, board rendering and input, assistance, screens and sheets, i18n, PWA). Phases 9–11 (full verification and edge cases, documentation and release, optional Draw 3 winnable deals) remain. Per-layer detail lives in `docs/architecture/` and the module READMEs under `src/`; start at `docs/README.md`. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
 
-GitHub Speckit (or OpenSpec) will be installed into this repo later to drive phase-by-phase implementation; it is not set up yet.
+OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
 
 ## Source of truth
 
 Use these sources in this order:
 
-1. Current source, configuration, tests, and GitHub Actions workflows, once they exist — always prefer what's actually implemented over what's planned.
-2. `docs/spec/specification.md` — product behavior and the `KS-*` EARS requirements.
-3. `docs/spec/research.md` — game rules, algorithms and UX/accessibility facts (cited as `R§n`); source of truth for game-logic details.
-4. `docs/spec/phased-design.md` — tech stack, architecture, data model, and the phase-by-phase build plan with Speckit seed prompts (§7). May be revised by a phase's `/speckit.plan`; if so, record the change here.
-5. `docs/spec/mockup/klondike-mockup.html` and `docs/spec/mockup/screens/` — visual/behavioral reference only. Do not port its code structure into production code.
+1. Current source, configuration, tests, and GitHub Actions workflows — always prefer what's actually implemented over what's planned.
+2. `docs/` (except `docs/spec/`) — maintained documentation of the implemented architecture, development workflow and reference facts (`docs/README.md` is the index); module READMEs under `src/` go deeper.
+3. `docs/spec/specification.md` — product behavior and the `KS-*` EARS requirements.
+4. `docs/spec/research.md` — game rules, algorithms and UX/accessibility facts (cited as `R§n`); source of truth for game-logic details.
+5. `docs/spec/phased-design.md` — tech stack, architecture, data model, and the phase-by-phase build plan with Speckit seed prompts (§7). May be revised by a phase's OpenSpec change; if so, record the change here.
+6. `docs/spec/mockup/klondike-mockup.html` and `docs/spec/mockup/screens/` — visual/behavioral reference only. Do not port its code structure into production code.
 
 If `specification.md` and `research.md` conflict, fix the documents — don't silently pick one. See `docs/spec/README.md` for the full authority note.
 
-## Repository layout (planned — see phased-design.md §3.1 for full detail)
+## Repository layout (see phased-design.md §3.1 for full detail; `domain`, `solver`, `features` and `app` are implemented, `ui` has the board, layout, motion, the Game frame, Home and the sheets, and `i18n` is implemented; `pwa` is implemented)
 
 - `src/domain/` — pure game engine (cards, deal, rules, scoring, hints). No React/Redux/DOM/storage imports.
 - `src/solver/` — pure bounded-DFS solver, run in a Web Worker.
-- `src/features/` — deal service, game/stats/preferences slices, persistence (codec + storage gateway).
-- `src/app/` — Redux store, route/sheet state, theme handling.
-- `src/i18n/` — typed English/Ukrainian catalogs.
-- `src/pwa/` — service-worker registration, install, update lifecycle.
-- `src/ui/` — screens, board, sheets, components, CSS tokens.
-- `public/` — manifest, icons.
-- `tests/{unit,component,e2e}/` — Vitest/RTL and Playwright coverage.
-- `scripts/` — artifact validation.
-- `docs/spec/` — this spec pack; treat as historical input once real docs (`docs/index.md`, `architecture.md`, etc., per Phase 10) exist.
+- `src/features/` — deal service (Phase 3); game state thunks and history (Phase 4); statistics, preferences, persistence layers with codec, storage gateway, loader, writer and reset thunks (Phase 4); runtime-only interaction state (selection, hint, announcement log, reported dead ends, the input gate, and the `selectCard`, `requestHint` and `checkDeadEnd` thunks; Phase 6).
+- `src/app/` — Redux store (combines the `app` slice with the `features` slices), selectors and hooks, thunk dependencies (`thunkExtra.ts`), the shared `AppThunk` type (`appThunk.ts`), the theme controller that applies appearance preferences to the document (`themeController.ts`), lifecycle bootstrap (`lifecycle.tsx`).
+- `src/i18n/` — typed English/Ukrainian catalogs (`locales/en.ts`, `uk.ts`), the language registry (`catalog.ts`), the translator (`translate.ts`), `useTranslate` and the locale controller (Phase 7); imports nothing from `app`, `features` or `ui`.
+- `src/pwa/` — service-worker registration (`registerPwa.ts`, `deferredGateway.ts`), update (`pwaGateway.ts`) and install (`installGateway.ts`) gateways (Phase 8); imports nothing from `app`, `features` or `ui`.
+- `src/ui/` — the board (pure layout, cards, slots, motion), the Game frame with its read-only HUD and Undo/Redo/Hint/Finish toolbar, pointer, tap and keyboard input, the announcer, the notices host, hint visuals and CSS tokens (Phases 5–6); the modal sheet host with the eight sheets (`sheets/`), the Home screen (`screens/home/`) and the Game chrome (mode/deal chips, theme and Settings buttons, hint line, dealing overlay) (Phase 7).
+- `public/` — `manifest.webmanifest`, `favicon.svg` and `icons/` (192, 512, maskable, Apple touch; generated by `scripts/generate-icons.mjs`).
+- `tests/{unit,component,e2e,bench}/` — Vitest/RTL and Playwright coverage, plus the informational latency benchmark in `bench/`.
+- `scripts/` — repository validation scripts (`validate-lifecycle-storage.mjs`, `validate-artifact.mjs`, `generate-icons.mjs`).
+- `docs/` — maintained docs: `architecture/`, `development/`, `reference/` (index: `docs/README.md`).
+- `docs/spec/` — the original spec pack; historical input, not edited by ordinary changes.
 
 Keep domain and solver logic out of React components: UI dispatches typed commands and renders state snapshots (`applyCommand(state, cmd)` is pure); Redux owns application state; persistence goes through a codec + storage gateway.
 
 ## Runtime and commands
 
-**Not yet scaffolded.** Once Phase 1 lands, this repo follows the same conventions as the sibling project `sanyokkua/minesweeper` (Vite + React + TS + Redux Toolkit + vite-plugin-pwa + Vitest + Playwright + GitHub Pages). Expect npm scripts equivalent to:
+This repo follows the same base conventions as the sibling project `sanyokkua/minesweeper` (Vite + React + TS + Redux Toolkit + vite-plugin-pwa + Vitest + Playwright + GitHub Pages), with the divergences noted below. The actual npm scripts, from `package.json`:
 
 ```sh
 rtk npm ci
 rtk npm run dev
+rtk npm run dev-network
+rtk npm run build
+rtk npm run preview
+rtk npm run format
 rtk npm run format:check
 rtk npm run lint
+rtk npm run lint:fix
 rtk npm run typecheck
-rtk npm run validate:lifecycle-storage
+rtk npm run test
 rtk npm run test:unit
 rtk npm run test:coverage
-rtk npm run build
-rtk npm run validate:artifact
+rtk npm run bench
 rtk npm run e2e
+rtk npm run e2e:headed
+rtk npm run validate:lifecycle-storage
+rtk npm run validate:artifact
 rtk npm run validate
 ```
 
+`bench` runs the informational winnable-search latency benchmark (`tests/bench/`) and reports median and p95 against KS-PERF-02; it never asserts on timings, exits zero, and is not part of `test:unit`, `validate`, the git hooks or CI.
+
+`validate` runs `format:check && lint && typecheck && validate:lifecycle-storage && test:unit && build && validate:artifact`. `validate:lifecycle-storage` (`scripts/validate-lifecycle-storage.mjs`) fails when a `tests/component/appLifecycle*.test.tsx` file refers to ambient browser storage (`localStorage`, `sessionStorage`, `Storage.prototype`), builds a bare `createStorageGateway()` or calls `startApp` without an injected `gateway`, so the reload test always injects its storage gateway. `validate:artifact` (`scripts/validate-artifact.mjs`, run after `build`) checks `dist/`: local `index.html` references start with `/solitaire/`; the manifest has `start_url`/`scope` `/solitaire/`, `standalone` display and existing icons including a maskable one; `sw.js` precaches the shell, manifest, every emitted script (except `sw.js` and the workbox runtime), style, font, icon and the solver worker chunk; and nothing the app loads (HTML `src`/`href` except anchors, CSS `url()`/`@import`, manifest URLs, precache entries, string arguments of `import()`, `new Worker`, `new URL(…, import.meta.url)` and `importScripts`) points to another origin. Plain URL text is not inspected. `tests/unit/repo/validateArtifact.test.ts` runs it against the mini trees in `tests/fixtures/dist/`.
+
+Git hooks (husky, installed via the `prepare` script): `.husky/pre-commit` runs `npx lint-staged` (Prettier+ESLint on staged `*.{ts,tsx}`; Prettier on staged `*.{json,css,html,md,yml,yaml}`), then `npm run typecheck`, then `npm run test:unit`. `.husky/pre-push` runs `npm run e2e`.
+
 Prefix commands with `rtk`; use `rtk proxy <cmd>` when the wrapper rejects a required flag. Node floor: `>= 22.22.2`. The build must preserve the `/solitaire/` base path.
 
-Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent, 120-column width, no semicolons, single quotes, trailing commas; TypeScript strict with no-unused checks; ESLint + typescript-eslint + react-hooks.
+Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent, 120-column width, semicolons, single quotes, trailing commas; TypeScript strict with no-unused checks; ESLint + typescript-eslint + react-hooks.
+
+**Divergence from the sibling project.** This repo's Prettier semicolon rule, git hooks (husky + lint-staged — new; the sibling has none), and ESLint strictness (`strictTypeChecked`/`stylisticTypeChecked`, vs. the sibling's `recommended`) are deliberate departures from `sanyokkua/minesweeper`. "As in Minesweeper" elsewhere in this file and in `phased-design.md` no longer holds literally for those three things.
 
 ## Architecture principles (constitution seed — see phased-design.md §2)
 
-1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals.
+1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals. One narrow exception: `src/domain/prng.ts` may reference `crypto`, because `cryptoSeed` takes an injectable seed source that defaults to `globalThis.crypto` (it throws when none is available and never falls back to `Math.random`); no other domain file may touch `crypto`. The solver layer is guarded separately by `tests/unit/repo/solverPurity.test.ts` and an ESLint override: it imports only its own siblings and `../domain/name`, uses no `crypto`, and references `self` only in `solver.worker.ts`; `src/features` may not value-import solver code (type imports are fine), because the solver runs in a Web Worker. The pure board layout is guarded the same way: `src/ui/board/{metrics,layout,names,locate,landing,pointerController,keyboardController,cascadeFrames}.ts` import only their siblings and `../../domain/name` (an ESLint override), and `tests/unit/repo/boardPurity.test.ts` bans React, DOM globals, storage, `crypto` and `Math.random` in every module listed in `src/ui/README.md`.
 2. **Deterministic by seed.** Every deal comes from a 32-bit seed via mulberry32 + Fisher–Yates. No `Math.random()` in game logic.
 3. **UI renders state, issues commands.** Components dispatch typed commands and render snapshots; they never apply rules themselves.
 4. **Static and offline.** No runtime network dependency; no third-party asset hosts.
@@ -74,7 +91,7 @@ Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent,
 9. **Docs are part of the change.** Update `README.md`/`docs/`/`AGENTS.md` whenever documented behavior changes.
 10. **Mockup is visual reference only.** Production code does not copy `docs/spec/mockup/klondike-mockup.html`'s structure.
 
-When Speckit is installed, copy this section into `.specify/memory/constitution.md` per `docs/spec/README.md`'s Phase 0 instructions; keep both in sync.
+OpenSpec (not Speckit) is installed; this section is the constitution's canonical home directly — there is no `.specify/memory/constitution.md` copy step.
 
 ## Engineering principles
 
@@ -95,10 +112,12 @@ Apply this whenever the work is non-trivial:
 - Research/analysis before planning, so the plan is grounded in what's actually there.
 - Planning before implementation, with the plan reviewed before code starts.
 - Implementation and test-writing as focused, test-first passes.
-- A dedicated verification pass that actually runs the stated checks (build/lint/typecheck/tests) rather than assuming they pass.
+- A dedicated verification pass that actually runs the stated checks (build/lint/typecheck/tests) rather than assuming they pass, including the full, unmodified `rtk npm run validate`.
 - A dedicated review pass, separate from the implementer, checking the diff against the task's stated requirements and this file's Architecture and Engineering principles above.
 
 This repo's OpenSpec change loop (`openspec-apply-change` / `/opsx:apply`) is always run restricted to one task at a time, driven from a planning session. For each task: a scoped read of that task's own stated requirements and files, then test-first implementation, then verification, then review — only after that does the task's checkbox move from `- [ ]` to `- [x]` in `tasks.md`. If a task turns out to need work beyond what it states, stop and surface the added scope rather than silently narrowing, deferring, or absorbing it.
+
+Once a task's checkbox moves to `- [x]`, commit its changes (including the `tasks.md` edit) before starting the next task, so every implemented task lands as its own commit — see "Git and review" below.
 
 Concrete tooling varies by agent. `openspec/config.yaml`'s `operations.apply` and `operations.archive` guidance names the specific skills to invoke at each moment for whichever agent is running them (e.g. Claude Code's installed "superpowers" skill set) — consult it, and use your environment's equivalent tooling if a named skill isn't available.
 
@@ -112,10 +131,21 @@ Planning happens in sessions with a practical context budget (roughly 128k token
 
 ## Documentation maintenance
 
-Documentation is part of the change. Whenever a change alters a documented fact — behavior, scripts, configuration, CI, deployment, dependencies, storage shape, source layout, or user-facing controls — update the affected README/docs/AGENTS.md in the same change. Don't leave a document describing former behavior.
+Documentation is part of the change. Whenever a change alters a documented fact — behavior, scripts, configuration, CI, deployment, dependencies, storage shape, source layout, or user-facing controls — update the affected README/docs/AGENTS.md in the same change. Don't leave a document describing former behavior. Page ownership: npm scripts → `docs/reference/scripts.md`; stored record → `docs/reference/storage-format.md`; shortcuts and input → `docs/reference/keyboard-and-controls.md`; rules and scoring → `docs/reference/game-rules.md`; layers and boundaries → `docs/architecture/overview.md` and `docs/development/code-standards.md`; tests → `docs/development/testing.md`; CI and deployment → `docs/development/ci-and-deployment.md`; workflow → `docs/development/workflow.md`.
 
 ## Git and review
 
-Use concise Conventional Commit subjects. Don't commit generated `dist`, coverage, or Playwright report output once they exist. Don't commit or push unless explicitly requested.
+Use concise Conventional Commit subjects. Don't commit generated `dist`, coverage, or Playwright report output once they exist.
+
+Don't commit or push unless explicitly requested — with one standing exception: while implementing an OpenSpec change task-by-task (see "Sub-agent driven workflow" above), commit after each task's checkbox moves to `- [x]`, without needing to ask each time. That exception covers committing only; pushing still requires an explicit request every time.
+
+Before every commit — each OpenSpec task commit, review-fix commit and doc-only commit included — run the full, unmodified `rtk npm run validate` (no exclusions, no `--ignore-pattern`) and fix everything it reports; commit only when it exits 0. The pre-commit hook lints only staged files, so it does not replace `validate`. Sub-agents that commit must be told to do the same.
 
 No work should happen on the master branch. You need to create feature branches if current branch is master.
+
+Till the App will be implemented and fully working, branch - "feature/app-v1-implementation" is the main integration branch.
+
+For each change should be created separate branch from "feature/app-v1-implementation", using the pattern "feature/change-short-name".
+
+Till the change is archived - all the work happens in the "feature/change-short-name".
+When change is archived - "feature/change-short-name" is squash-merged back to the "feature/app-v1-implementation".

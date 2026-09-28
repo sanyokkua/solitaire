@@ -1,0 +1,231 @@
+/* Card faces and backs, and the glide and flip between positions. */
+
+.card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--cw);
+    height: var(--ch);
+    perspective: 900px;
+    transform: translate(var(--x), var(--y));
+    transition: transform var(--motion-glide) var(--motion-ease) var(--d, 0ms);
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform var(--motion-flip) ease var(--fd, var(--motion-flip-delay));
+}
+
+.card.is-up .card-inner {
+    transform: rotateY(180deg);
+}
+
+/* A deal parks every card face-down at the stock, with no transition, before it releases them (animations.ts). */
+.board[data-dealing='park'] .card {
+    transform: translate(var(--stock-x), var(--stock-y));
+    transition: none;
+}
+
+.board[data-dealing='park'] .card .card-inner {
+    transform: none;
+    transition: none;
+}
+
+/* A size change re-lays the table out for one frame with no transition, so cards jump rather than glide (Board.tsx). */
+.board[data-resizing] .card,
+.board[data-resizing] .card-inner {
+    transition: none;
+}
+
+/*
+ * A card being dragged follows the pointer with no glide: --dx / --dy are written on it for every pointer move
+ * (useBoardPointer). React owns the inline z-index and rewrites it on every render, so the lift above the resting
+ * cards needs !important; --k keeps the run in order. Removing the class lets the offset glide back.
+ */
+.card.is-dragging {
+    z-index: calc(var(--drag-z-base) + var(--k, 0)) !important;
+    transform: translate(calc(var(--x) + var(--dx, 0px)), calc(var(--y) + var(--dy, 0px)));
+    transition: none;
+}
+
+:root[data-motion='off'] .card,
+:root[data-motion='off'] .card-inner {
+    transition: none;
+}
+
+.card-side {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--cr, calc(var(--cw) * var(--card-radius-factor)));
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* Only a card that is not buried casts a shadow. */
+.card-face {
+    transform: rotateY(180deg);
+    overflow: hidden;
+    border: 1px solid var(--color-card-edge);
+    background: var(--color-card-face);
+    box-shadow: var(--shadow-card);
+    color: var(--ink);
+}
+
+.card-back {
+    border: 1px solid color-mix(in srgb, var(--back-a) 70%, var(--color-lcd-outline));
+    background-color: var(--back-a);
+    background-image:
+        linear-gradient(45deg, var(--back-b) 25%, transparent 25%, transparent 75%, var(--back-b) 75%),
+        linear-gradient(45deg, var(--back-b) 25%, transparent 25%, transparent 75%, var(--back-b) 75%);
+    background-position:
+        0 0,
+        4px 4px;
+    background-size: 8px 8px;
+    box-shadow:
+        inset 0 0 0 calc(var(--cw) * 0.045) var(--color-back-rim),
+        var(--shadow-card);
+}
+
+.card.is-buried .card-side {
+    box-shadow: none;
+}
+
+.card.is-buried .card-back {
+    box-shadow: inset 0 0 0 calc(var(--cw) * 0.045) var(--color-back-rim);
+}
+
+/* A dragged card is lifted with a deeper shadow. After the buried rule, so a buried card lifted by a drag still casts it. */
+.card.is-dragging .card-face {
+    box-shadow: var(--shadow-card), var(--shadow-card);
+}
+
+/* State marks are outlines drawn outside the card edge, never a fill on the face. */
+.card.is-selected .card-face {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
+/* The keyboard focus ring is a frame clear of the card (the selection outline above reaches 4px out, this starts at
+   5px), so both can show together on a selected, focused card. */
+.board .card:focus-visible {
+    outline: none;
+}
+
+.board .card:focus-visible::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border: 3px solid var(--color-focus);
+    border-radius: calc(var(--cr) + 7px);
+    pointer-events: none;
+}
+
+.card.is-hint .card-face {
+    outline: 3px solid var(--color-hint-line);
+    outline-offset: 1px;
+    animation: hint-pulse 900ms ease 2;
+}
+
+@keyframes hint-pulse {
+    50% {
+        outline-offset: 4px;
+    }
+}
+
+/* A refused move. The `translate` property composes with the React-owned `transform`. */
+.card.is-shake {
+    animation: shake 320ms ease;
+}
+
+@keyframes shake {
+    20%,
+    60% {
+        translate: -4px 0;
+    }
+
+    40%,
+    80% {
+        translate: 4px 0;
+    }
+}
+
+/* No motion: the hint keeps its steady amber outline and the shake is dropped (it is announced instead). */
+:root[data-motion='off'] .card.is-hint .card-face,
+:root[data-motion='off'] .card.is-shake {
+    animation: none;
+}
+
+.card[data-suit='0'] {
+    --ink: var(--ink-hearts);
+}
+
+.card[data-suit='1'] {
+    --ink: var(--ink-diamonds);
+}
+
+.card[data-suit='2'] {
+    --ink: var(--ink-clubs);
+}
+
+.card[data-suit='3'] {
+    --ink: var(--ink-spades);
+}
+
+.corner {
+    position: absolute;
+    top: calc(var(--cw) * 0.07);
+    left: calc(var(--cw) * 0.07);
+    display: flex;
+    align-items: baseline;
+    gap: calc(var(--cw) * 0.03);
+    line-height: 1;
+}
+
+.corner .r {
+    font-family: var(--font-pixel);
+    font-size: calc(var(--cw) * 0.15);
+    letter-spacing: -0.04em;
+}
+
+.corner .s {
+    font-size: calc(var(--cw) * 0.19);
+}
+
+.corner--br {
+    top: auto;
+    right: calc(var(--cw) * 0.07);
+    bottom: calc(var(--cw) * 0.07);
+    left: auto;
+    transform: rotate(180deg);
+}
+
+.pip {
+    position: absolute;
+    top: 52%;
+    right: 0;
+    left: 0;
+    transform: translateY(-50%);
+    text-align: center;
+    line-height: 1;
+    font-size: calc(var(--cw) * 0.48);
+}
+
+.pip--face {
+    display: grid;
+    place-items: center;
+    gap: calc(var(--cw) * 0.04);
+    font-size: calc(var(--cw) * 0.2);
+}
+
+.pip--face b {
+    padding: calc(var(--cw) * 0.06) calc(var(--cw) * 0.07);
+    border: 2px solid currentColor;
+    border-radius: calc(var(--cw) * 0.06);
+    background: color-mix(in srgb, var(--ink) 8%, transparent);
+    font-family: var(--font-pixel);
+    font-size: calc(var(--cw) * 0.3);
+    font-weight: 400;
+}

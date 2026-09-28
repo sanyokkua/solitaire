@@ -56,8 +56,8 @@ After a move from a tableau column, **if its new top card is face-down, it flips
 - **Dead end:** there is no productive move and cycling the stock can't make one (§6.4). Classic Klondike has no formal "loss"; the app reports the dead end and offers Undo or a new deal.
 
 ### 2.4 Variants chosen for this project
-- **Foundations are suit-fixed slots**, ordered ♥ ♣ ♦ ♠ so colours alternate. A card's foundation is known, which makes tap-to-foundation unambiguous.
-- **Draw 1 = unlimited passes** (standard scoring charges −100 per recycle). **Draw 3 = unlimited passes** (−20 per recycle from the 3rd onward). **Vegas** caps passes (§5.2).
+- **Foundations are suit-fixed slots**, displayed in the order ♥ ♣ ♦ ♠ so colours alternate. That display order is distinct from the suit encoding ♥ ♦ ♣ ♠ (0–3), which fixes card identifiers and foundation slot indices. A card's foundation is known, which makes tap-to-foundation unambiguous.
+- **Draw 1 = unlimited passes** (standard scoring charges −100 per recycle). **Draw 3 = unlimited passes** (−20 per recycle from the 3rd recycle onward, i.e. after three free passes). **Vegas** caps passes (§5.2).
 - Partial-run moves and foundation-to-tableau moves are allowed.
 
 ---
@@ -85,7 +85,8 @@ The mockup doesn't expose codes yet. It does use seeded deals internally for the
 ### 3.4 Daily deal
 - One deal per calendar day, the same for everyone. The seed is derived from the date.
 - The mockup uses the device's **local** date (`yyyymmdd`) and, for winnable-only mode, tries seeds `date·131 + attempt·7919` until the solver proves one winnable.
-- Two consequences:
+- **Product behaviour, "daily v1":** the date is the **UTC** calendar date as `YYYY-MM-DD`. Attempt *k* (1 to 40) uses the seed `(YYYYMMDD × 131 + k × 7919) >>> 0`, each candidate is searched with a 20,000-node budget, and the first one proven winnable is dealt. It is always verified, whatever the "winnable only" setting. Daily v1 is pinned; any change to the formula, budget, attempt cap or search is a new version.
+- Two consequences of the mockup's approach (daily v1 above removes the first and the setting dependence of the second):
   1. Players in different time zones can be on different deals around midnight.
   2. The result depends on the "winnable only" setting and the solver version.
 - **Recommendation:** roll over at **00:00 UTC**, *always* use winnable selection for the Daily deal whatever the setting, and version the selection algorithm. Optionally ship a precomputed table of verified daily seeds so solver changes never alter past dailies.
@@ -157,18 +158,19 @@ The talon-as-a-set simplification doesn't hold, because the order of the stock a
 | Turn over a tableau card | +5                                                        |
 | Foundation → Tableau     | −15                                                       |
 | Recycle waste, Draw 1    | −100 each time                                            |
-| Recycle waste, Draw 3    | −20 each time from the 3rd pass onward                    |
+| Recycle waste, Draw 3    | −20 each time from the 3rd recycle onward                 |
 | Time                     | −2 every 10 s                                             |
 | Time bonus on win        | `700,000 ÷ seconds`, only if the game took more than 30 s |
 
 - The score never drops below 0.
+- Draw 3 gets three free passes: four successive recycles score 0, 0, −20, −20.
 - Theoretical maximum with the bonus is **24,078** (SolitaireCat). The original report's "~745" refers to move points without the bonus.
-- **Undo:** not part of the original table. The mockup charges −2 per undo on top of restoring the previous score. **Decision for this project:** keep −2 per undo in Standard.
+- **Undo:** not part of the original table. Classic Windows Solitaire reverses the undone move's points exactly (the Windows reversal; Play-Solitaire.com, a clone with Windows-identical scoring); Microsoft Solitaire Collection documents no fixed undo fee. **Decision for this project:** that exact reversal plus a 2-point charge per undo in Standard, which redo never refunds (Vegas: no fee, §5.2).
 - Scoring quirk: waste → tableau → foundation earns 15 points, versus 10 for going straight to the foundation.
 
 ### 5.2 Vegas
 - Start at **−$52** (a $1-per-card buy-in); **+$5 per card** played to a foundation, −$5 when a card leaves one. Break-even at 11 cards.
-- **Pass limits:** Draw 1 allows 1 pass (no recycle); Draw 3 allows 3 passes (2 recycles).
+- **Pass limits:** Vegas draws three cards and allows 3 passes (2 recycles). This product has no one-card Vegas mode.
 - **Cumulative** option: the bankroll carries across games (future).
 - Many implementations restrict or disable Undo in Vegas. **Decision for this project:** Undo is allowed and simply restores the previous bankroll, with no extra fee. A "strict Vegas" toggle that disables Undo is a future option.
 
@@ -194,7 +196,7 @@ Heuristic hints can lead into dead ends. A better hint takes the first move of t
 A card may go to its foundation automatically without ever hurting the player if its rank is **≤ 2**, or its rank is **≤ min(the two opposite-colour foundation heights) + 1**. Nothing could ever need it as a tableau parent, because both opposite-colour cards one rank below are already home.
 
 ### 6.3 Auto-finish
-Safe to offer once **every tableau card is face-up**; the game is then trivially won. Auto-finish repeatedly plays the lowest-rank foundation-ready card, drawing and recycling the stock as needed, without pass penalties. Products also offer it earlier, when the solver proves a trivial win.
+Safe to offer once **every tableau card is face-up**; the game is then trivially won. Auto-finish repeatedly plays the lowest-rank foundation-ready card, drawing and recycling the stock as needed. It is offered when such a plan completes under the ordinary rules; its draws and recycles are charged and pass-limited like the player's. Products also offer it earlier, when the solver proves a trivial win.
 
 ### 6.4 Dead-end detection (mockup approximation)
 Report a dead end if **both** are true:
@@ -206,7 +208,7 @@ This check is approximate: it misses loops, and in Draw 3 it ignores that only e
 ### 6.5 Smart tap target choice (mockup)
 1. If the grabbed unit is a single card and it fits its foundation, send it there (not when the card is already on a foundation).
 2. Otherwise, pick the first **non-empty** tableau column it fits, scanning to the right of the source and wrapping around.
-3. Otherwise, a King (not already a column base) goes to the first empty column.
+3. Otherwise, a King (not already a column base) goes to the first empty column, counting from column 0.
 4. Otherwise, reject with a small shake.
 
 ---
@@ -251,12 +253,12 @@ Per mode: games played, games won, win rate, best time, best score (Vegas: best 
 
 ## 10. Layout geometry (from the mockup; works phone to desktop)
 - **Card aspect ratio:** height = 1.4 × width (real cards are 2.5 × 3.5 in).
-- **Board:** 7 equal columns with gap `g` = clamp(4 px, 1.6% of width, 14 px); padding clamp(8 px, 2.2% of width, 18 px).
+- **Board:** 7 equal columns with gap `g` = clamp(4 px, 1.6% of width, 14 px); padding clamp(8 px, 2.2% of width, 18 px) (the 4 px and 8 px are the larger-board minimums; see Small boards below).
 - **Card width** = `min((innerWidth − 6g) / 7, 104 px, innerHeight / (1.4 × 3.1))`, and at least 30 px.
 - **Top row:** stock, waste, an empty slot, then 4 foundations. When "stock on the right" is on, it's mirrored: foundations on the left, waste fans to the left.
 - **Tableau** starts below the top row, separated by `max(1.4g, 10 px)`.
 - **Vertical offsets:** 0.11 × card height for face-down cards and 0.27 × card height for face-up cards (0.30 on touch screens, so the finger strip is thicker). If a column would run past the bottom, **squeeze the face-down cards first**, down to a 0.04 × card-height sliver, since they're never tapped. Only then squeeze the face-up strips.
-- **Small boards** (under 520 px wide): padding 4 px and column gap 3 px, so every pixel goes to the cards.
+- **Small boards** (under 520 px wide): the minimums drop to 4 px padding and 3 px column gap (`pad = max(4, min(18, 2.2% of width))`, `g = max(3, min(14, 1.6% of width))`), so every pixel goes to the cards; from 520 px up the minimums are 8 px and 4 px; the gap shrinks below its minimum only when the 30 px card floor would otherwise push the columns past the board.
 - **Draw 3 waste** fans the top 3 cards horizontally by 0.24 × card width.
 - **Positioning:** every card is **absolutely positioned** with `transform: translate(x, y)`, one element per card that lives for the whole game. Moving a card is just a new transform, so CSS transitions give free move animations and undo "rewinds" visually.
 - **Depth:** a stock or foundation of 24 stacked cards compounds drop shadows into a dark halo. **Only the top card of a pile casts a shadow.**
@@ -289,7 +291,7 @@ Per mode: games played, games won, win rate, best time, best score (Vegas: best 
 5. **Stacking contexts:** the cascade used card z-indexes of 2000+ and flew *over* the win dialog. Give the board container `isolation: isolate`.
 6. **Compounded shadows** on deep piles (§10).
 7. **Only show the "shuffling…" overlay** if verification takes longer than about 160 ms; most deals are verified in a few milliseconds.
-8. **Undo by snapshots** (serialised state before each move) is trivial and cheap: about 1 KB per snapshot, capped at 400.
+8. **Undo by snapshots** (serialised state before each move) is trivial and cheap: about 1 KB per snapshot. This project keeps them unlimited in memory and stores the newest 200 undo and the nearest 200 redo steps (compact positions, about 300 KB at most).
 9. **Themes:** in dark mode, near-white cards glare. Dim the card faces (#D2DDE5) by default and offer a "night cards" variant (navy faces, light ink, pale card backs).
 
 ---
@@ -349,6 +351,7 @@ All 13 screens were checked in portrait and landscape, in the browser and as an 
 - Bjarnason, Fern & Tadepalli, *Searching Solitaire in Real Time*, ICGA Journal (2007)
 - [Klondike (solitaire) — Wikipedia](https://en.wikipedia.org/wiki/Klondike_(solitaire)) (Windows scoring table, time bonus)
 - [How does Solitaire scoring work? — SolitaireCat](https://www.solitairecat.com/articles/rules/solitaire-scoring/) (Draw 3 recycle −20 after the 3rd pass, maximum 24,078)
+- [Klondike Solitaire: questions and answers — Play-Solitaire.com](https://www.play-solitaire.com/questions-and-answers) (Windows-identical scoring; undo loses the undone move's points)
 - WCAG 2.2 Understanding SC 2.5.8 / 2.5.5; Apple Human Interface Guidelines; Material Design touch targets
 - The Verge (Tom Warren, 22 May 2020): Microsoft Solitaire player figures
 - Repositories: paultranvan/solitaire, Two9A/solitaire-js, ruchira088/solitaire, wmcmurray/klondike-solitaire, sigoden/klondike, ShootMe/Klondike-Solver, sanyokkua/minesweeper

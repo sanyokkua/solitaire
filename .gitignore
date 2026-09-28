@@ -2,7 +2,7 @@
 .DS_Store
 .AppleDouble
 .LSOverride
-Icon?
+Icon[\r]
 ._*
 Thumbs.db
 Desktop.ini
@@ -150,3 +150,21 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Husky
+.husky/_/
+
+# Vitest
+.vitest/
+
+# Claude Code agent worktrees
+.claude/worktrees/
+
+.idea
+
+# Validator fixtures are source, not build output
+!tests/fixtures/dist/

@@ -1,0 +1,53 @@
+@import './tokens.css';
+@import './cards.css';
+@import './board.css';
+@import './hud.css';
+@import './layout.css';
+@import './controls.css';
+@import './sheets.css';
+@import './home.css';
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+    min-height: 100%;
+    margin: 0;
+}
+
+html {
+    background: var(--color-bg);
+}
+
+body {
+    overflow-x: hidden;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-ui);
+    transition:
+        background-color 250ms ease,
+        color 250ms ease;
+}
+
+:root[data-motion='off'] body {
+    transition: none;
+}
+
+button {
+    font: inherit;
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+button:focus-visible,
+[tabindex='0']:focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 3px;
+}

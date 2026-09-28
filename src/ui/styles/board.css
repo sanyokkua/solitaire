@@ -1,0 +1,203 @@
+/* The board panel, pile slots, their placeholders and the stock badge. Static: no transitions, no motion. */
+
+/* The felt the cards lie on. `isolation: isolate` keeps every card's stacking order inside the panel. */
+.board-panel {
+    position: relative;
+    flex: 1;
+    min-height: 14rem;
+    border: 1px solid var(--color-outline-soft);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-table);
+    background-image: radial-gradient(var(--color-table-dot) 1px, transparent 1.2px);
+    background-size: 14px 14px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+/* The table owns every touch and drag gesture: no scroll, zoom, text selection or long-press callout starts here. */
+.board {
+    position: absolute;
+    inset: 0;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.slot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: var(--cw);
+    height: var(--ch);
+    border: 2px dashed var(--color-slot-line);
+    border-radius: var(--cr);
+    color: var(--color-slot-ink);
+    font-size: calc(var(--cw) * 0.36);
+    line-height: 1;
+    transform: translate(var(--x), var(--y));
+}
+
+.slot--stock {
+    border-style: solid;
+}
+
+.slot--stock svg {
+    width: 38%;
+    height: 38%;
+}
+
+.slot--stock.is-spent {
+    opacity: 0.45;
+}
+
+/* The keyboard focus ring; the `.board` prefix outranks the global tab-stop outline. */
+.board .slot:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 3px;
+}
+
+.slot--found .r {
+    position: absolute;
+    top: calc(var(--cw) * 0.09);
+    left: calc(var(--cw) * 0.09);
+    font-family: var(--font-pixel);
+    font-size: calc(var(--cw) * 0.16);
+}
+
+.slot--tab {
+    border-color: color-mix(in srgb, var(--color-slot-line) 70%, transparent);
+}
+
+.slot--tab .r {
+    font-family: var(--font-pixel);
+    font-size: calc(var(--cw) * 0.2);
+}
+
+.stock-count {
+    position: absolute;
+    top: 0;
+    left: 0;
+    min-width: 1.5rem;
+    padding: 0.18rem 0.35rem;
+    border-radius: 999px;
+    background: var(--color-lcd-panel);
+    color: var(--color-lcd-time);
+    font-family: var(--font-pixel);
+    font-size: 0.45rem;
+    text-align: center;
+    pointer-events: none;
+    transform: translate(var(--x), var(--y));
+}
+
+/* A legal target while a card is picked up: a dashed outline the size of the card that would land there. Below
+   TABLEAU_Z (300) so it never ties with the last card and shows in the strip beneath it. Hot = the drop target. */
+.ghost {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--cw);
+    height: var(--ch);
+    border: 2.5px dashed var(--color-legal);
+    border-radius: var(--cr);
+    background: color-mix(in srgb, var(--color-legal) 10%, transparent);
+    opacity: 0.8;
+    pointer-events: none;
+    transform: translate(var(--x), var(--y));
+    z-index: 250;
+}
+
+.ghost.is-hot {
+    border-style: solid;
+    background: color-mix(in srgb, var(--color-legal) 22%, transparent);
+    opacity: 1;
+    z-index: 1500;
+}
+
+/* A hint's destination: amber, pulsing twice. */
+.ghost.is-hint {
+    border-color: var(--color-hint-line);
+    background: color-mix(in srgb, var(--color-hint) 18%, transparent);
+    animation: ghost-pulse 900ms ease 2;
+}
+
+.slot.is-hint {
+    border-color: var(--color-hint-line);
+    color: var(--color-hint-line);
+    animation: ghost-pulse 900ms ease 2;
+}
+
+@keyframes ghost-pulse {
+    50% {
+        box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-hint-line) 35%, transparent);
+    }
+}
+
+/* No motion: the outline stays, so the hint is a steady amber mark. */
+:root[data-motion='off'] .ghost.is-hint,
+:root[data-motion='off'] .slot.is-hint {
+    animation: none;
+}
+
+/* The dealing overlay (7.3): covers the panel without changing its size; the table stays rendered underneath. It sits
+   inside the panel's isolated stacking context, above every card, and the sheet layer (outside it) stays above. */
+.deal-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3000;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--color-table) 70%, transparent);
+    backdrop-filter: blur(2px);
+}
+
+.deal-overlay__box {
+    display: grid;
+    justify-items: center;
+    gap: 0.6rem;
+    padding: 1rem 1.3rem;
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+
+.deal-overlay__box strong {
+    font-size: 0.85rem;
+}
+
+.deal-overlay__box span {
+    color: var(--color-on-surface-muted);
+    font-family: var(--font-pixel);
+    font-size: 0.7rem;
+}
+
+.spinner {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 4px;
+    background: var(--color-primary);
+    animation: spin-card 900ms ease-in-out infinite;
+}
+
+@keyframes spin-card {
+    0% {
+        transform: rotateY(0);
+    }
+    50% {
+        transform: rotateY(180deg);
+        background: var(--color-secondary);
+    }
+    100% {
+        transform: rotateY(360deg);
+    }
+}
+
+/* No motion: the spinner stays as a steady mark, it only stops turning. */
+:root[data-motion='off'] .spinner {
+    animation: none;
+}

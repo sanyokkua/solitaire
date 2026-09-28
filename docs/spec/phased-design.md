@@ -25,13 +25,13 @@
 | Fonts         | **Inter** (variable woff2) and **Press Start 2P** bundled locally                                                                    | No third-party hosts (*KS-PWA-04*); copy from the Minesweeper repo.                                                                                                                                                     |
 | i18n          | Typed catalog, one file per language (`src/i18n/locales/en.ts`, `uk.ts`) plus a locale registry; English is the typed source of keys | As in Minesweeper, restructured so a new language is one new file plus one registry line (*KS-I18N-03*).                                                                                                                |
 | Tests         | **Vitest 4** + jsdom + React Testing Library; **Playwright 1.62** (Chromium, Firefox, WebKit, plus mobile emulation with touch)      | As in Minesweeper, extended with touch projects.                                                                                                                                                                        |
-| Quality gates | Prettier (4 spaces, 120 cols, no semicolons, single quotes, trailing commas), ESLint 10 + typescript-eslint + react-hooks, `tsc -b`  | As in Minesweeper.                                                                                                                                                                                                      |
+| Quality gates | Prettier (4 spaces, 120 cols, semicolons, single quotes, trailing commas), ESLint 10 + typescript-eslint + react-hooks, `tsc -b`  | As in Minesweeper.                                                                                                                                                                                                      |
 | Runtime       | Node **≥ 22.22.2**, npm with lockfile                                                                                                | As in Minesweeper.                                                                                                                                                                                                      |
 
 **Pinned versions to start from** (Minesweeper's `package.json`; refresh at Phase 1):
 - Dependencies: `react` / `react-dom` 19.2.8, `@reduxjs/toolkit` 2.12.0, `react-redux` 9.2.0.
 - Build and tooling: `vite` 8.2.1, `@vitejs/plugin-react` 6.0.5, `vite-plugin-pwa` 1.3.0, `typescript` 5.9.3.
-- Tests: `vitest` / `@vitest/coverage-v8` 4.1.10, `@testing-library/react` 16.3.2, `@testing-library/user-event` 14.6.4, `@testing-library/jest-dom` 7.0.1, `jsdom` 30.0.1, `@playwright/test` 1.62.1.
+- Tests: `vitest` / `@vitest/coverage-v8` 5.0.1, `@testing-library/react` 16.3.2, `@testing-library/user-event` 14.6.4, `@testing-library/jest-dom` 7.0.1, `jsdom` 30.0.1, `@playwright/test` 1.62.1.
 - Lint and format: `eslint` 10.8.1, `typescript-eslint` 8.67.0, `prettier` 3.9.6.
 
 ---
@@ -72,7 +72,7 @@ flowchart TD
 ### 3.1 Repository layout
 ```text
 docs/spec/                     ← this spec pack (copied by the author in Phase 0)
-public/                        manifest.webmanifest, icons (192, 512, maskable), favicon
+public/                        manifest.webmanifest, icons (192, 512, maskable, Apple touch), favicon
 src/
   domain/                      pure game engine
     cards.ts                   Card id 0..51, suit/rank/colour helpers, labels
@@ -82,30 +82,54 @@ src/
     rules.ts                   canDrop, legalTargets, isMovable, groupAt
     engine.ts                  applyCommand(state, cmd) → { state, events }
     scoring.ts                 score deltas per event, time penalty, bonus
-    assist.ts                  hint heuristic, isSafe, finishPlan, isDeadEnd, bestTarget
-    types.ts
+    safeMoves.ts               isReady, isSafe, nextSafeMove
+    hint.ts                    hint heuristic, findMove
+    deadEnd.ts                 isDeadEnd, advise
+    position.ts                positionKey
+    smartTap.ts                bestTarget
+    finish.ts                  finishPlan
+    types.ts, validate.ts
   solver/
     solver.ts                  bounded DFS, returns { verdict, nodes, line? }
-    solver.worker.ts           worker entry: solve / findWinnable / hint
+    line.ts                    winning line as player commands
+    hint.ts                    solver hint from the first command of the line
+    winnable.ts                findWinnable: reject sampling over seeds
+    protocol.ts                SolverRequest / SolverResponse, handleRequest
+    solver.worker.ts           worker entry: findWinnable / hint
   features/
-    deal/dealService.ts        worker client, timeouts, overlay state, daily selection
+    deal/daily.ts              Daily v1 UTC date key and seeds
+    deal/solverClient.ts       worker client: lazy start, request ids, cancellation
+    deal/dealService.ts        deal per mode, provenance, overlay timing, timeouts, hint answering
     game/gameSlice.ts          session, history, future, timer accrual
-    game/gameClock.ts          injected-clock ticker (250 ms) as in Minesweeper
-    stats/statsSlice.ts
-    preferences/preferencesSlice.ts
-    persistence/{recordCodec,storageGateway,persistenceController}.ts
-  app/{store,appSlice,themeController,hooks}.ts
+    game/{gameThunks,history,clock}.ts   start, play, undo/redo, restart, finish; snapshot history; injected clock
+    game/clockTicker.ts        injected-clock ticker (250 ms)
+    interaction/{interactionSlice,selectors,interactionThunks}.ts   runtime-only selection, hint, announcement log, reported dead ends; selectCard, requestHint, checkDeadEnd thunks
+    stats/{statsSlice,dayKeys}.ts
+    preferences/{preferencesSlice,locale}.ts
+    persistence/{recordCodec,sessionCodec,storageGateway,persistenceLoader,persistenceWriter,persistenceSlice,resetThunks}.ts
+  app/{store,appSlice,appThunk,themeController,hooks,selectors,thunkExtra}.ts, lifecycle.tsx
   i18n/{catalog,translate,useTranslate,localeController}.ts   catalog = registry of locales/
   i18n/locales/{en,uk}.ts      one file per language; en.ts defines the key type
-  pwa/{registerPwa,installGateway,pwaGateway}.ts
+                               dependency direction: features/preferences/locale.ts re-exports Locale from i18n/catalog and app/lifecycle
+                               starts the locale controller; i18n imports nothing from app, features or ui
+                               (tests/unit/repo/layerBoundaries.test.ts); only useTranslate.ts may import React/react-redux
+  pwa/{registerPwa,deferredGateway,installGateway,pwaGateway}.ts
   ui/
-    screens/{HomeScreen,GameScreen}.tsx
-    board/{Board,CardView,PileSlot,Ghosts,layout,pointerController,keyboardController,animations}.ts(x)
-    components/{Hud,StatDisplay,Toolbar,ModeCard,DealChip,ModalSheet,Switch,Segmented,Notices,BuildStamp,…}.tsx
-    sheets/{Settings,Help,Stats,NewDeal,Paused,Win,DealCodeEntry,About}.tsx
-    styles/{tokens,global,layout,components,board,cards}.css
-  assets/fonts/                Inter-Variable.woff2, PressStart2P-Regular.ttf (+ README with licences)
-tests/{unit,component,e2e}/    + tests/fixtures/deals.ts (known seeds, solutions)
+    screens/{HomeScreen,GameScreen,profiles}.ts(x)
+    screens/home/{HomeTopbar,HomeHero,ModeTiles,WinnableToggle,HomeActions,RecordStrip,HomeLinks}.tsx
+    board/{Board,CardView,PileSlot,StockBadge,DealtEpochContext,Ghosts,metrics,layout,names,locate,
+    landing,constants,pointerController,keyboardController,cascadeFrames,selectors,useBoardSize,
+    useResizeSettle,useDealAnimation,useBoardPointer,useBoardActions,useBoardKeyboard,
+    useGameShortcuts,useCascade,cascade,animations}.ts(x)   (metrics through animations built in
+    Phase 5; Ghosts, locate, landing, constants, pointerController, keyboardController,
+    cascadeFrames and the board hooks built in Phase 6)
+    announce.ts, format.ts, useMediaQuery.ts, useToday.ts
+    components/{Hud,Toolbar,ModeChip,DealChip,DealCode,DealingOverlay,HintLine,NewDealButton,SettingsButton,ThemeToggle,
+    Switch,Segmented,SettingRow,Swatches,ConfirmAction,Notices,Announcer,Icon,BuildStamp}.tsx
+    sheets/{ModalSheet,SheetHost,SettingsSheet,HelpSheet,StatsSheet,NewDealSheet,PausedSheet,WinSheet,DealCodeSheet,AboutSheet}.tsx
+    styles/{tokens,global,layout,board,cards,hud,controls,sheets,home}.css
+  assets/fonts/                Inter-Variable-subset.woff2, PressStart2P-Regular.woff2 (+ README with licences and how they were generated)
+tests/{unit,component,e2e,bench}/    + tests/fixtures/ (deals.ts known seeds and solutions, board positions, viewports)
 scripts/validate-artifact.mjs  base path, manifest, SW, no external URLs
 .github/workflows/{ci,pages}.yml
 ```
@@ -119,32 +143,39 @@ type PileRef =
   | { pile: 'stock' } | { pile: 'waste' }
   | { pile: 'foundation'; suit: Suit }
   | { pile: 'tableau'; col: 0|1|2|3|4|5|6 }
-interface TableauCard { id: CardId; up: boolean }
-interface GameState {
+interface TableauCard { readonly id: CardId; readonly up: boolean }
+type Column = readonly TableauCard[]
+type Pile = readonly CardId[]
+interface GameState {                             // every field readonly, arrays included
   seed: number; mode: Mode; draw: 1 | 3; scoring: 'standard' | 'vegas'
   verdict: 'win' | 'random'; attempts: number   // deal-chip info
-  tableau: TableauCard[][]                        // 7 columns, index 0 = bottom
-  stock: CardId[]; waste: CardId[]                // last = top
-  foundations: [CardId[], CardId[], CardId[], CardId[]]  // by suit
-  score: number; moves: number; passes: number
-  elapsedMs: number; started: boolean; status: 'playing' | 'won'
+  tableau: readonly [Column, Column, Column, Column, Column, Column, Column]  // index 0 = bottom
+  stock: Pile; waste: Pile                        // last = top
+  foundations: readonly [Pile, Pile, Pile, Pile]  // by suit
+  score: number                                   // stored move score; displayed score is derived
+  moves: number; passes: number                   // passes = ordinal of the pass in progress; fresh deal = 1
+  elapsedMs: number
+  undos: number                                   // undo charges; engine never changes it
+  started: boolean; status: 'playing' | 'won'
 }
 type Command =
   | { type: 'draw' }
   | { type: 'move'; from: PileRef; index: number; to: PileRef } // index = position in source pile
   | { type: 'autoFoundation'; from: PileRef }                   // system-issued (safe / finish)
+type RejectReason = 'game-over' | 'not-movable' | 'illegal-target' | 'pass-limit' | 'nothing-to-draw'
 type GameEvent =
-  | { type: 'moved'; cards: CardId[]; from: PileRef; to: PileRef }
+  | { type: 'moved'; cards: readonly CardId[]; from: PileRef; to: PileRef }
   | { type: 'flipped'; card: CardId } | { type: 'drew'; count: number }
-  | { type: 'recycled'; pass: number } | { type: 'won' } | { type: 'rejected'; reason: string }
+  | { type: 'recycled'; pass: number } | { type: 'won' } | { type: 'rejected'; reason: RejectReason }
 ```
 `applyCommand(state, cmd)` is pure: it validates with `rules.ts`, returns the new state plus events, and `scoring.ts` maps events to score deltas. Events also drive announcements (*KS-A11Y-02*) and statistics.
 
 ### 3.3 Redux slices
 | Slice         | Holds                                                                                                                                            | Notes                                                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `app`         | route (`home`/`game`), open sheet, notices, document visibility, dealing overlay                                                                 | As in Minesweeper.                                                                                                       |
-| `game`        | `current: GameState \| null`, `history: GameState[]` (cap 200), `future: GameState[]`, `selection`, `hint`, `busy` (finish/cascade)              | Thunks: `startGame(mode, seed?)`, `play(cmd)` (snapshot → apply → auto-safe chain), `undo`, `redo`, `finish`, `restart`. |
+| `app`         | route (`home`/`game`), open sheet (`settings`, `help`, `stats`, `newDeal`, `paused`, `win`, `dealCode`, `about`), notices (ids `storage-read`, `storage-read-only`, `storage-write`, `dead-end`, `no-redeals`, `code-copied`, `update-ready`), document visibility, dealing overlay                                                                 | As in Minesweeper.                                                                                                       |
+| `game`        | `current: GameState \| null`, `history: GameState[]` and `future: GameState[]` (both unlimited in memory; 200 + 200 stored), `dailyKey`, `counted`, `busy` (finish/cascade)                                                    | Thunks: `startGame(mode, seed?)`, `play(cmd)` (snapshot → apply → auto-safe chain), `undo`, `redo`, `finish`, `restart`. |
+| `interaction` | `selection`, `hint`, pending hint, announcement log, reported dead ends, the `win` summary `{ mode, score, elapsedMs, moves, timeBonus, newBestTime }` of a just-won game (runtime-only, never persisted)                                          | Thunks: `selectCard(from, index)`, `requestHint()`, `checkDeadEnd()`; reset by the game actions that change the position (change `add-board-interaction`, D1). |
 | `preferences` | theme, nightCards, fourColor, cardBack, tapMode, highlight, autoSafe, stockRight, animations, locale, winnableOnly, selectedMode                 |                                                                                                                          |
 | `stats`       | per-mode `{ played, won, streak, bestStreak, bestTimeMs, bestScore }`, `daily: { completed: string[] (last 400 UTC dates), streak, bestStreak }` |                                                                                                                          |
 | `persistence` | hydration status, errors                                                                                                                         | Writes are debounced (250 ms) and flushed on `pagehide`/`visibilitychange`.                                              |
@@ -153,12 +184,21 @@ type GameEvent =
 ```text
 solitaire.local-state → {
   version: 1,
-  preferences: {...},                     // §3.3
-  stats: {...},
-  session?: { current: GameState, history: GameState[] ≤ 200 }  // only when status = playing
+  preferences: {...},                     // §3.3, the twelve preferences in a fixed key order
+  stats: {...},                           // per-mode stats + daily: { completed (≤ 400 dates), bestStreak }
+  session?: {                             // only when the game is started and status = playing
+    current: GameState,
+    history: Step[],                      // the newest 200 undo steps, oldest first
+    future: Step[],                       // the nearest 200 redo steps, the next redo last
+    dailyKey: string | null,              // the UTC date a Daily deal was selected for
+    counted: boolean                      // whether the game already counts as played in the statistics
+  }
 }
+Step = { tableau, stock, waste, foundations, score, moves, passes, elapsedMs, undos, started }
 ```
-Decode defensively: validate the shape and invariants (52 unique cards, legal pile structure). On failure use defaults, keep the raw value untouched and raise a notice (*KS-PER-03*). Add a `validate:lifecycle-storage` script as in Minesweeper.
+History and future are unlimited in memory (undo reaches the start of the deal, spec §4.4); the record keeps only the newest 200 undo steps and the nearest 200 redo steps. A stored step is compact: it carries just the ten fields above. `elapsedMs`, `undos` and `started` are stored because a snapshot keeps the values it had when it was captured, so they cannot be copied from `current`. The constant fields (`seed`, `mode`, `draw`, `scoring`, `verdict`, `attempts`) are copied from `current` on decode and `status` is `playing`, so every step belongs to the same deal by construction. A won or unstarted game is not stored.
+
+Decode defensively and whole: validate the exact key set of every object, the enum values, non-negative integer counts, real `YYYY-MM-DD` dates (≤ 400, strictly ascending) and the game invariants (52 unique cards, legal pile structure; `isValidGameState` for `current` and every rebuilt step). A record that is not valid JSON is `malformed`, one with a version above 1 is `future`, anything else that fails validation is `invalid`; a partly valid record is never salvaged. On any of these use defaults and raise a notice (*KS-PER-03*), and before anything is written over the unreadable value copy it unchanged to the backup key `solitaire.local-state.unreadable`; if that key already holds a different value or the copy fails, do not write the record for the rest of the session. No stored value at all (a first run) is silent. Add a `validate:lifecycle-storage` script as in Minesweeper.
 
 ---
 
@@ -170,23 +210,23 @@ Decode defensively: validate the shape and invariants (52 unique cards, legal pi
 | Shuffle            | Fisher–Yates with `j = floor(rng() * (i+1))`. Test: 60,000 shuffles of 4 items → chi-square across 24 permutations; and "not single-cycle-only" to catch Sattolo.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | R§3.1          |
 | Deal               | Row-by-row into columns; stock = `deck[28..51]`, last = top.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | R§2.1          |
 | Deal code          | `<m>-<seed base36, 7 chars>`, m ∈ {`1`,`3`,`V`,`D`}; case-insensitive; shown as `1-K7Q29XD`. **The code stores the final dealt seed**, so replay never needs the solver.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | R§3.3          |
-| Winnable selection | Attempt k uses seed `s_k` (random, or for Daily `hash(utcDate, k)`); solve with budget 5,000 nodes (Daily: 20,000, fixed forever as "daily v1"); accept on `win`; max 40 attempts, else accept and mark `random`. Runs in the worker; the UI shows the overlay after 160 ms.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | R§4.3–4.5      |
-| Solver             | Port of the mockup DFS (talon-as-set, canonical key, safe moves, move ordering, node budget). **Extend it to return the winning line** (list of `Command`s from the start position). Regression corpus: seeds 1–200 must reproduce 142 / 1 / 57 (win / loss / unknown) at 5,000 nodes, or update the fixture consciously.                                                                                                                                                                                                                                                                                                                                                                                                              | R§4.4          |
-| Hint               | Draw 1: ask the worker `hint(state, budget 3,000)`; map the first line move to UI refs; on `unknown` or timeout (150 ms) fall back to the heuristic. Draw 3: heuristic only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | R§6.1          |
+| Winnable selection | Attempt k uses seed `s_k` (random, or for Daily `(YYYYMMDD × 131 + k × 7919) >>> 0` on the UTC date); solve with budget 5,000 nodes (Daily: 20,000, fixed forever as "daily v1"); accept on `win`; max 40 attempts, else accept and mark `random`. Runs in the worker; the UI shows the overlay after 160 ms.                                                                                                                                                                                                                                                                                                                                                                                                                                                           | R§4.3–4.5      |
+| Solver             | Port of the mockup DFS (talon-as-set, canonical key, safe moves, move ordering, node budget), iterative, whose winning line is made of player commands (draws and moves, no `autoFoundation`). Regression corpus: seeds 1–200 must reproduce 142 / 1 / 57 (win / loss / unknown) at 5,000 nodes, or update the fixture consciously.                                                                                                                                                                                                                                                                                                                                                                                                              | R§4.4          |
+| Hint               | Draw 1 and Daily (no pass limit): ask the worker `hint(state, budget 3,000)` and map the first line move to UI refs; the heuristic answers instead on any non-win verdict, a timeout (150 ms), a failure, or a hint asked while a deal is pending. Draw 3 and Vegas: heuristic only, the solver is not asked. | R§6.1          |
 | Safe auto-move     | `isSafe(card, foundations)` per R§6.2; chain with 160 ms spacing (0 with reduced motion), all within one history entry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | R§6.2          |
-| Finish             | Allowed when every tableau card is up; a step loop plays the lowest-rank ready card, else draws or recycles (no penalty); 75 ms spacing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | R§6.3          |
+| Finish             | Available exactly when `finishPlan(state) !== undefined` (every tableau card up). The plan loops: send the lowest-ranked foundation-ready card via `autoFoundation`, else draw, else recycle; every step goes through `applyCommand`, so draws and recycles are scored, counted and pass-limited. 75 ms spacing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | R§6.3          |
 | Dead end           | Heuristic of R§6.4, evaluated after each settled move; notify once per position hash.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | R§6.4          |
 | Smart tap          | R§6.5.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | R§6.5          |
-| Layout             | `positions(state, metrics, prefs) → Map<CardId, {x, y, z, faceUp, buried}>` plus slot rects and landing points; pure and unit-tested at every §8.5 size. Geometry constants from R§10.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | R§10           |
+| Layout             | `positions(piles, metrics, { stockRight }) → { cards, slots, badge, dealOrder }` (card positions with z, face and buried flags, slot rects, the stock badge and the deal order); pure and unit-tested at every §8.5 size. Landing rects are built by `landing.ts` (`landingAreas`, `pickLargestOverlap`). Geometry constants from R§10.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | R§10           |
 | Layout profiles    | **Stacked** / **side rails** / **wide table** (spec §8.4). Side rails are pure CSS: `@media (orientation: landscape) and (max-height: 720px)` switches the HUD and toolbar to vertical rails. The wide table is chosen in `measure()`: compute the worst-case column's face-up strip (6 down + 13 up) for both the stacked and wide geometry, and use wide when stacked < 14 px (coarse pointer) or < 9 px (fine pointer) and wide is thicker. Wide geometry: 9 columns; stock and waste on one side, foundations stacked on the other with step `min(ch + gap, (height − ch) / 3)`; card width `min((w − 8g) / 9, 104, h / (1.4 × 2.5))`. Compression squeezes face-down offsets first (to 0.04 ch). Touch face-up offset is 0.30 ch. | R§10, R§13.3   |
-| Viewport changes   | `ResizeObserver` on the board plus `visualViewport` resize; re-lay out with transitions off for that frame; cancel an active drag (`pointercancel` path). Use `100dvh` and `viewport-fit=cover`, with `env(safe-area-inset-*)` padding on rails, the bottom bar and the Home sticky bar.                                                                                                                                                                                                                                                                                                                                                                                                                                               | spec §8.4      |
+| Viewport changes   | `ResizeObserver` on the board panel only, with no `visualViewport` listener (browser bars showing or hiding change the board's size, so the observer covers them); the re-layout suppresses transitions for one frame through `data-resizing` on the board (the first known size included); a resize also cancels an active drag (`useBoardPointer` feeds the controller's `resize` when the metrics change). Use `100dvh` and `viewport-fit=cover`, with `env(safe-area-inset-*)` padding on rails, the bottom bar and the Home sticky bar.                                                                                                                                                                                                                                                                                                                                                                                                                                               | spec §8.4      |
 | Rendering          | 52 persistent `CardView` elements, absolutely positioned via `transform: translate()`; `buried` cards drop their shadows; the board container has `isolation: isolate`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | R§10, R§12.5–6 |
-| Drag               | `pointerdown` on a movable card → capture; after the threshold (5 px mouse / 9 px touch) move the dragged cards via **direct style writes on refs** (no React state per frame); hit-test by the largest overlap with legal targets' landing rects; on release dispatch the move or re-render (cards glide back). `touch-action: none` on the board; no click handlers on cards.                                                                                                                                                                                                                                                                                                                                                        | R§8            |
+| Drag               | `pointerdown` on a movable card → capture; after the threshold (5 px mouse / 9 px touch) move the dragged cards via **direct style writes on refs** (no React state per frame); hit-test by the largest overlap with legal targets' landing rects; on release dispatch the move or re-render (cards glide back). `touch-action: none` on the board; no click handlers on cards. Implemented by `useBoardPointer` (`src/ui/board/useBoardPointer.ts`): delegated listeners on the board, capture on every accepted press, the click after a drag swallowed, and Esc, `pointercancel`, a lost capture, a resize or a closing input gate cancelling the drag.                                                                                                                                                                                                                                                                                                                                                        | R§8            |
 | Keyboard           | Roving focus across piles; Arrow keys move between piles and cards; Enter/Space = tap; global shortcuts per spec §4.8.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | R§9            |
-| Deal animation     | Park all cards at the stock with transitions off → force reflow → enable transitions with `--d = k·28 ms` and the flip delay `--fd = --d + 200 ms`; clear afterwards. Ignore resize events without an actual size change.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | R§12.3         |
-| Cascade            | WAAPI keyframes per card (gravity 0.5, bounce 0.72, 70 ms stagger), `fill: forwards`; cancel on the next deal; skipped with reduced motion.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | —              |
-| Timer              | Injected clock, 250 ms ticker; accrue `elapsedMs` only while `clockEligible` (Game route, no sheet, document visible, started, not won). Standard penalty: −2 per crossed 10 s boundary.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | spec §4.7      |
-| Dark themes        | Token sets for light, dark and night cards (spec §8.1) on `:root` via `data-theme`, with the `system` media query, plus `.night-cards` and `.four-color` classes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | spec §8        |
+| Deal animation     | Park all cards at the stock with transitions off → force reflow → enable transitions with `--d = k·28 ms` and the flip delay `--fd = --d + 200 ms`; clear afterwards (a 1384 ms timer). A deal plays once per epoch and only while the game is not started: `Board` compares the game `epoch` with the last-dealt epoch held in a UI context store (`DealtEpochContext`, created once by `App`; not in the game slice), claims the epoch at once (reduced motion claims it without playing), and gives it back if the deal is cut short (table removed, newer deal), so an interrupted deal replays and a finished one never does. Restored games are started, so they never deal. Ignore resize events without an actual size change.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | R§12.3         |
+| Cascade            | WAAPI keyframes per card (gravity 0.5, bounce 0.72, 70 ms stagger), `fill: forwards`; cancel on the next deal; skipped with reduced motion. The paths are `cascadeFrames.ts` (pure), the runner is `cascade.ts` and `useCascade.ts` starts it when the game of the same epoch becomes won, cancelling it on a new deal (`installed`), `cleared` and unmount.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | —              |
+| Timer              | Injected clock, 250 ms ticker; accrue `elapsedMs` only while `clockEligible` (Game route, no sheet, document visible, started, not won). Each accrual step adds at most 1 s in whole milliseconds (the anchor advances by what was added, so `elapsedMs` stays an integer on the fractional `performance.now` clock), and the anchor is reset whenever the clock is ineligible, so resuming never counts the gap. The clock only accrues `elapsedMs`; the Standard time penalty is a total derived from it (`2 × floor(s / 10)`), never deducted as time passes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | spec §4.7      |
+| Dark themes        | Token sets for light, dark and night cards (spec §8.1) on `:root` via `data-theme` (System resolved in JavaScript by the theme controller), plus `data-night-cards` (cards only), `data-four-color` and `data-back` attributes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | spec §8        |
 
 ---
 
@@ -194,29 +234,30 @@ Decode defensively: validate the shape and invariants (52 unique cards, legal pi
 - **Unit (Vitest):** domain and solver with fixed seeds (`tests/fixtures/deals.ts`: several seeds with known verdicts, one winning line); scoring tables; deal-code round-trip; codec decode for good, corrupt and future-version records; layout positions.
 - **Component (RTL):** Home tiles and switch state; HUD formatting (`-$52`, `h:mm:ss`); sheets (focus trap, Escape); toolbar enablement; Settings applying classes.
 - **End-to-end (Playwright):** projects `chromium`, `firefox`, `webkit` (desktop) plus touch projects `iphone-17-pro` (WebKit, 402×874), `iphone-14-pro-max` (WebKit, 430×932) and `galaxy-s25` (Chromium, 360×780), all with `hasTouch`/`isMobile`.
-- **Device-fit matrix (`tests/e2e/deviceFit.spec.ts`):** a table in `tests/e2e/devices.ts` mirrors R§13.1 (13 screens). Each is run in portrait and landscape, browser height and installed height: 52 cases. Each case:
-  - opens Home and asserts Deal cards is inside the viewport;
-  - starts a game from a fixture deal, then injects the worst-case column through a test-only `?fixture=worst-column` hook (only in dev/test builds);
-  - asserts no page scroll (`scrollHeight ≤ innerHeight`, `scrollWidth ≤ innerWidth`), every card inside the table, the toolbar inside the viewport, and a face-up strip ≥ 14 px in installed mode;
+- **Device-fit matrix (`tests/e2e/deviceFit.spec.ts`):** runs once, in its own Chromium project `device-fit` (`rtk npx playwright test --project=device-fit`); the six other projects ignore the spec. The table lives in `tests/fixtures/viewports.ts` (not `tests/e2e/devices.ts`) and mirrors R§13.1 (13 screens). Each is run in portrait and landscape, browser height and installed height: 52 configurations, plus 3 baselines (320x480 coarse, 1280x720 and 2560x1440 fine): 55 cases. Each case sets its viewport and pointer (`hasTouch`/`isMobile` for the touch ones) and:
+  - seeds a versioned `solitaire.local-state` record holding the worst-case column before the page loads (`tests/e2e/support/seed.ts`; no test hook ships in the build), opens Home and clicks Continue game;
+  - asserts no page scroll (`scrollHeight ≤ innerHeight`, `scrollWidth ≤ innerWidth`), every card inside the board panel, Back, the visible HUD values and the toolbar inside the viewport, the panel's content box at least as large as `boardSizeFor` (the chrome budget) less 1 px, and a face-up strip ≥ 14 px in installed mode;
   - saves a screenshot artifact.
+
+  Safe-area insets (`env(safe-area-inset-*)`) cannot be emulated in Playwright, so the matrix runs with zero insets: a static CSS test covers the safe-area rules, and the Phase 9 real-device checklist covers the rest.
 
   This is the same check that validated the mockup (R§13.2); port its logic.
   - **Test hook:** `?deal=<code>` URL parameter (always allowed; it's a feature, see *KS-DEAL-09*).
   - **Full-game autoplay:** load a fixture deal whose solver line is committed, execute each move through **real input** (tap in one test, drag in another, keyboard in a third) and assert the Win sheet. This proves the whole game is winnable through the UI.
   - Also cover persistence and resume, offline cold start (fresh persistent context, online visit, then offline new page, as in Minesweeper), the update prompt, reduced motion (`reducedMotion: 'reduce'`), theme and night-card contrast (axe), and no page scroll during drag on touch.
-- **Visual parity:** screenshot the key states (the same 13 as `mockup/screens/`) in CI as artifacts; compare by eye against the mockup at release. No pixel-diff gate.
+- **Visual parity (`tests/e2e/visualParity.spec.ts`, Chromium only):** screenshot the key states (nine of the mockup screens: 03–07 and 14–17, named like the mockup files) in CI as artifacts uploaded on every run; compare by eye against the mockup at release. No pixel-diff gate.
 - **The loop used to build the mockup (repeat it per phase):** (1) write pure logic and benchmark it in Node; (2) render one static state; (3) add interaction; (4) look once at light, dark and phone screenshots; (5) fix what the screenshots reveal; (6) lock it in with tests.
 
 ---
 
 ## 6. CI/CD (as in Minesweeper)
-- `ci.yml` (push/PR): `npm ci` → `format:check` → `lint` → `typecheck` → `test:unit` → `build` → `validate:artifact` → Playwright (all projects), uploading the report on failure.
+- `ci.yml` (push/PR): `npm ci` → `validate` (`format:check`, `lint`, `typecheck`, `validate:lifecycle-storage`, `test:unit`, `build`, `validate:artifact`) → `playwright install` → `e2e` (all projects, including `device-fit`), uploading the report on failure and the visual-parity screenshots (`test-results/visual-parity/`, artifact `visual-parity`) on every run.
 - `pages.yml` (push to `master` + manual dispatch): `validate` → build with `BUILD_TIMESTAMP` → `upload-pages-artifact` → `deploy-pages` (permissions `pages: write`, `id-token: write` on the deploy job only).
 - `vite.config.ts`:
   - `base: '/solitaire/'`
   - `define __APP_BUILD_TIMESTAMP__`
   - `VitePWA({ registerType: 'prompt', injectRegister: false, manifest: false, workbox: { navigateFallback: '/solitaire/index.html', globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,ttf}'] } })`
-  - Worker bundling uses the default ES module format.
+  - Worker bundling sets `worker: { format: 'es' }` explicitly, because Vite 8 defaults worker bundles to `iife`.
 
 ---
 
@@ -224,9 +265,13 @@ Decode defensively: validate the shape and invariants (52 unique cards, legal pi
 
 > **Phase 0 (author, out of scope):** create the repository, copy this pack to `docs/spec/`, initialise Speckit.
 
-Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed prompt** is a starting text for `/speckit.specify`; add "Context: docs/spec/*.md" so the agent reads the pack.
+> **Status legend:** each phase heading is followed by a status line — *Implemented* (its OpenSpec change is archived under `openspec/changes/archive/`) or *Not started*. Phases 1–6 are implemented (Phase 6 via `add-board-interaction`, archived 2026-09-27); Phases 7 and 8 are implemented via `add-screens-sheets-pwa` (archived 2026-09-28).
+
+Each phase is one OpenSpec change (`openspec/changes/<name>/`; the pack was written for Speckit feature folders `specs/00N-<name>/`). The **seed prompt** is a starting text for the change proposal (`/opsx:propose`); add "Context: docs/spec/*.md" so the agent reads the pack.
 
 ### Phase 1 — Repository foundation & tooling
+
+> **Status:** Implemented — OpenSpec change `setup-repository-foundation`, archived 2026-09-22. `validate-artifact.mjs` / `validate:artifact` was deferred to Phase 8 (design decision D6) and now exists.
 - **Goal:** an empty but production-shaped app that builds, lints, tests and deploys.
 - **Scope:**
   - Vite + React + TypeScript scaffold.
@@ -244,36 +289,42 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
 - **Seed:** *"Set up the Klondike Solitaire repository foundation: Vite 8 + React 19 + TypeScript strict, Redux Toolkit store shell, Vitest/RTL, Playwright (desktop + mobile touch projects), Prettier/ESLint as in the Minesweeper repo, semantic CSS tokens for light/dark/night-card palettes from docs/spec/specification.md §8.1, locally bundled Inter and Press Start 2P, placeholder domain/solver/features/ui folders per docs/spec/phased-design.md §3.1, artifact validation script, CI and GitHub Pages workflows with base path /solitaire/. No gameplay yet."*
 
 ### Phase 2 — Card engine (pure domain)
+
+> **Status:** Implemented — OpenSpec change `add-card-engine`, archived 2026-09-24.
 - **Goal:** the complete Klondike rules as a tested library.
-- **Scope:** `cards`, `prng`, `dealCode`, `deal`, `rules`, `engine.applyCommand`, `scoring` (Standard, Vegas, undo penalty, time penalty, bonus) and `assist` (heuristic hint, `isSafe`, finish plan, dead end, `bestTarget`), with fixtures.
+- **Scope:** `cards`, `prng`, `dealCode`, `deal`, `rules`, `engine.applyCommand`, `scoring` (Standard, Vegas, undo penalty, time penalty, bonus) and the assists (`safeMoves`: `isSafe`; `hint`: heuristic hint; `finish`: finish plan; `deadEnd`; `smartTap`: `bestTarget`), with fixtures.
 - **Requirements:** KS-DEAL-01/02, KS-MOVE-01…07, KS-SCO-01…04, KS-AST-05/06 (logic), KS-INP-01 (target choice).
 - **Done when:**
-  - At least 95% line coverage on `src/domain`.
+  - The project-wide 80% coverage floor holds, with every `src/domain` file included in the measurement.
   - The shuffle distribution test passes.
   - A scripted full game over a fixture seed reaches `won` via `applyCommand`.
   - No imports from outside `src/domain`.
 - **Seed:** *"Implement the pure Klondike game engine in src/domain per docs/spec/research.md §2, §3, §5, §6: card model, mulberry32 PRNG, deal codes, Fisher–Yates deal, move validation, applyCommand returning state+events, Standard/Vegas scoring with project undo rules, hint heuristic, safe-move rule, finish plan, dead-end detection and smart-tap target choice. Deterministic seeded unit tests only; no UI."*
 
 ### Phase 3 — Solver & deal service
+
+> **Status:** Implemented — OpenSpec change `add-solver-deal-service`, archived 2026-09-24.
 - **Goal:** winnable deals and solver hints without blocking the UI.
 - **Scope:**
   - `solver.ts` (a port of the mockup DFS, plus returning the winning line).
-  - `solver.worker.ts` messages: `findWinnable`, `solve`, `hint`.
+  - `solver.worker.ts` messages: `findWinnable`, `hint`.
   - `dealService` with attempt loop, budgets, timeouts and cancellation (a newer request wins).
   - Daily selection v1 (UTC date → deterministic seed); regression corpus; benchmark test.
 - **Requirements:** KS-DEAL-03…07, KS-DEAL-10, KS-AST-03, KS-PERF-02.
 - **Done when:**
   - The corpus numbers match (§4).
-  - The worker round-trip works in Vitest (worker polyfill) and in the browser.
-  - The Daily seed is identical for two time zones on the same UTC day.
-  - The median winnable deal takes < 300 ms in Chromium on CI.
+  - The in-process worker round-trip works in Vitest (worker polyfill).
+  - The Daily key and seed are identical across time zones and match the pinned golden dates.
+  - The benchmark (`rtk npm run bench`) reports the median and p95 winnable-search latency against the KS-PERF-02 targets (300 ms median, 1.5 s p95); it is informational, not a gate, and is outside `validate`, the hooks and CI.
 - **Seed:** *"Implement the bounded DFS Klondike solver (docs/spec/research.md §4.4) as a pure module returning verdict, node count and winning line, run it in a Vite module Web Worker, and build a deal service that produces winnable Draw 1 deals by reject sampling (budget 5,000, max 40 attempts), a UTC-based deterministic Daily deal (budget 20,000, 'daily v1'), and solver-based hints with heuristic fallback. Include a seeded regression corpus and a latency benchmark."*
 
 ### Phase 4 — State, persistence & timer
+
+> **Status:** Implemented — OpenSpec change `add-state-persistence-timer`, archived 2026-09-25.
 - **Goal:** the app state model around the engine.
 - **Scope:**
   - Slices `app`, `game`, `preferences`, `stats`, `persistence` (§3.3).
-  - Thunks: start, play, undo/redo (snapshot history, cap 200), restart, finish.
+  - Thunks: start, play, undo/redo (unlimited snapshot history in memory, 200 + 200 stored), restart, finish.
   - Auto-safe chain as one history entry; statistics rules; the clock with eligibility rules.
   - Codec v1 + storage gateway + hydrate/flush; Continue game; reset actions.
 - **Requirements:** KS-AST-04/07/08, KS-SCO-05/06, KS-STA-01…05, KS-PER-01…05, KS-SET-06, KS-GEN-04.
@@ -281,12 +332,14 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
   - Reducer tests cover every command.
   - Codec tests cover corrupt, future-version and quota-failure cases.
   - Reload restores an identical state in a jsdom test.
-- **Seed:** *"Build the Redux Toolkit state layer for Klondike Solitaire per docs/spec/phased-design.md §3.3–3.4: app/game/preferences/stats/persistence slices, game thunks (start, play, undo, redo, restart, finish, auto-safe chain), snapshot history capped at 200, statistics and streak rules (spec §5), injected-clock timer with pause eligibility, and a versioned localStorage record 'solitaire.local-state' v1 with defensive decoding. No visual UI beyond test harnesses."*
+- **Seed:** *"Build the Redux Toolkit state layer for Klondike Solitaire per docs/spec/phased-design.md §3.3–3.4: app/game/preferences/stats/persistence slices, game thunks (start, play, undo, redo, restart, finish, auto-safe chain), unlimited snapshot history in memory with 200 undo + 200 redo steps stored, statistics and streak rules (spec §5), injected-clock timer with pause eligibility, and a versioned localStorage record 'solitaire.local-state' v1 with defensive decoding. No visual UI beyond test harnesses."*
 
 ### Phase 5 — Table rendering, layout & motion
+
+> **Status:** Implemented — OpenSpec change `add-table-rendering`, archived 2026-09-26. Input, ghosts, landing rects, selection and hint visuals, the win cascade and drag cancel on resize moved to Phase 6.
 - **Goal:** the board looks like the mockup and animates, with static interactions stubbed.
 - **Scope:**
-  - `layout.ts`; the `Board` with 52 persistent `CardView`s, slots, stock badge, waste fan, placeholders and ghosts.
+  - `metrics.ts` and `layout.ts` (pure geometry); the `Board` with 52 persistent `CardView`s, slots, stock badge, waste fan and placeholders. Legal-target ghosts, landing rects, selection ring, shake, hint visuals, the win cascade and drag cancel on resize move to Phase 6, next to the code that uses them.
   - Card faces (corner index, pip, boxed J/Q/K, mirrored corner at larger sizes), backs (4 colours), night cards, four-colour deck.
   - Move, flip and deal animations; `isolation: isolate`; buried shadows; reduced-motion path; resize handling.
   - The three layout profiles (stacked, side rails, wide table), safe areas, fold/rotate handling, and the device-fit matrix test.
@@ -296,13 +349,19 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
   - The 52-case device-fit test passes.
   - Screenshots of a fixture deal in light, dark, night and phone views match mockup screens 03–07 and 14–17 by eye.
   - No layout shift on resize.
+  - A Playwright test starts a Winnable Draw 1 deal through the real solver worker in Chromium (browser worker round-trip, KS-DEAL-03/10) and reports its latency against KS-PERF-02 (300 ms median target, reported, not gated).
 - **Seed:** *"Render the Klondike table: pure layout engine (docs/spec/research.md §10), Board with 52 persistent absolutely positioned CardView elements moved by transform, pile slots and placeholders, Draw 3 waste fan, stock count badge, card faces/backs/night cards/four-colour deck per specification §8, deal/move/flip animations with a reduced-motion path, and the three layout profiles (stacked, side rails, wide table) from specification §8.4 so the game fits every device in §8.5 without scrolling, proven by a Playwright device-fit matrix (research §13). Match mockup/screens 03–07 and 14–17. Input handling is out of scope."*
 
 ### Phase 6 — Interaction & assistance UI
+
+> **Status:** Implemented — OpenSpec change `add-board-interaction`, archived 2026-09-27.
 - **Goal:** every way of playing works.
 - **Scope:**
   - Pointer controller: smart tap, select & place, double-tap, drag with threshold, overlap hit-testing, glide-back, no click after a drag.
   - Stock tap and recycle; keyboard controller and shortcuts.
+  - Legal-target ghosts and landing rects, selection ring, shake and hint visuals (moved from Phase 5).
+  - Ignore board input while `app.dealing !== null`: during a winnable search the previous table stays visible, as in the mockup.
+  - Cancel an active drag when the board is resized (moved from Phase 5).
   - Legal-target ghosts, hint display, dead-end notice, Finish button flow, cascade trigger.
   - Live-region announcements.
   - **Drag guardrails:**
@@ -316,6 +375,8 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
 - **Seed:** *"Implement Klondike input and assistance UI per specification §4.2–4.8: pointer controller (smart tap, select & place, double-tap to foundation, drag with 5/9 px thresholds, largest-overlap drop, glide back, no click after drag), stock draw/recycle, keyboard roving focus and shortcuts, legal-target highlights, hint visualisation, dead-end notice, Finish flow and polite live announcements. Prove with Playwright full-game autoplay via tap, drag and keyboard."*
 
 ### Phase 7 — Screens, sheets & localisation
+
+> **Status:** Implemented via the OpenSpec change `add-screens-sheets-pwa`, archived 2026-09-28 (groups 2–7: Home, Game chrome, the eight sheets, English/Ukrainian catalogs, pseudo-locale and Ukrainian device-fit checks). The change's PWA part (group 8) is Phase 8.
 - **Goal:** the complete product surface.
 - **Scope:**
   - Home (hero with fan and dither, mode cards, winnable switch, Deal cards / Continue / How to play, LCD record strip, links, install action).
@@ -332,6 +393,8 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
 - **Seed:** *"Build the Home and Game screen chrome and all sheets for Klondike Solitaire per specification §3 and mockup/screens: card-styled mode tiles, winnable switch, LCD record strip, HUD with Score/Bank, Moves and Time (tap to pause), mode and deal chips, toolbar, Settings, How to play, Statistics, New deal options (restart/new/cancel), Paused, Win with cascade, deal-code entry, About, notices, with English and Ukrainian catalogs and focus-trapped dialogs."*
 
 ### Phase 8 — PWA, offline & delivery hardening
+
+> **Status:** Implemented via the OpenSpec change `add-screens-sheets-pwa`, archived 2026-09-28 (groups 8–9: manifest and icons, prompt-mode service worker, update and install gateways, `validate:artifact`, offline and update e2e, axe scan). Service workers are blocked in e2e by default; the update case uses a test-owned `dist/` server (design decision D12). Lighthouse is a manual check.
 - **Goal:** installable, offline, safe updates, correct Pages artifact.
 - **Scope:** manifest and icons (including maskable); the service worker via vite-plugin-pwa; the update-ready flow that saves before activating; install gateway; artifact validation for the base path, precache and absence of external URLs; offline cold-start e2e.
 - **Requirements:** KS-PWA-01…04, KS-PERF-03.
@@ -342,11 +405,14 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
 - **Seed:** *"Make Klondike Solitaire an installable offline PWA on GitHub Pages under /solitaire/: manifest and icons, vite-plugin-pwa prompt registration with precache and navigation fallback, update-ready notice that persists the game before activating, install action, artifact validation script, and Playwright offline cold-start and update-flow tests — mirroring the Minesweeper repository approach."*
 
 ### Phase 9 — Full verification & edge cases
+
+> **Status:** Not started.
 - **Goal:** evidence that the whole game works everywhere.
 - **Scope:**
   - A requirements traceability matrix (KS IDs → tests).
   - The e2e matrix on all projects: full-game wins in each mode (the Vegas and Draw 3 fixtures use known-winnable seeds found offline), resume after reload mid-drag or mid-finish, the Vegas pass limit, the Draw 3 recycle penalty, the undo/redo storm (200+), rapid double-taps, resize during the deal, reduced motion, dark and night contrast, the Daily UTC-rollover (mocked clock), corrupt storage, quota errors, and keyboard-only play.
   - A performance trace of drag on a mobile emulation.
+  - KS-PERF-02 (winnable-deal latency) on a mid-range phone is a documented manual check; the benchmark and the Phase 5 Playwright report are informational only.
   - The device-fit matrix rerun against the production build, plus a **real-device checklist**: the phones and foldables you own. For each, record the actual `innerWidth × innerHeight` in portrait and landscape, browser and installed, and update R§13.1 where the estimates differ.
 - **Requirements:** all (verification only).
 - **Done when:**
@@ -355,6 +421,8 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
 - **Seed:** *"Create the verification feature for Klondike Solitaire: a traceability matrix from every KS-* requirement in docs/spec/specification.md to tests, fill gaps with Playwright tests across chromium/firefox/webkit and mobile touch projects (full-game wins in all modes via fixtures, edge cases listed in docs/spec/phased-design.md Phase 9), accessibility scans, and a drag performance check. No new product behaviour."*
 
 ### Phase 10 — Documentation & release
+
+> **Status:** Not started.
 - **Goal:** a maintainable, presentable repository.
 - **Scope:**
   - README with screenshots (desktop and phone, light and dark), feature list, commands and link to Pages.
@@ -367,6 +435,8 @@ Each phase is one Speckit feature folder (`specs/00N-<name>/`). The **seed promp
 - **Seed:** *"Document the finished Klondike Solitaire for maintainers and players in the Minesweeper documentation format: README with fresh screenshots and features, docs/index, architecture (mermaid), development, operations, updated AGENTS.md, changelog and release notes for v1.0.0. No behaviour changes."*
 
 ### Phase 11 (optional) — Draw 3 winnable deals & instant deals
+
+> **Status:** Not started.
 - **Scope:** an ordered-talon solver for Draw 3 and Vegas; a background pool of pre-verified deals in the worker (instant New deal); remove the "Random deal" caveat for Draw 3.
 - **Seed:** *"Extend the Klondike solver to Draw 3 with an ordered stock/waste model and pass counter, add a background pool of pre-verified deals per mode in the worker, and enable 'Winnable deals only' for Draw 3 and Vegas."*
 
