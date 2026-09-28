@@ -35,7 +35,7 @@ flowchart TD
 `npm run validate` (in `package.json`) runs these in order and stops at the first failure:
 
 ```
-format:check && lint && typecheck && validate:lifecycle-storage && test:unit && build && validate:artifact
+format:check && lint && typecheck && validate:lifecycle-storage && vitest run tests/unit tests/component --coverage && build && validate:artifact
 ```
 
 `tests/unit/repo/configContract.test.ts` asserts this exact order.

@@ -46,7 +46,7 @@ pass `createDealService` to observe or replace how the default service is built.
 | File                                            | Thunks                                                                                                 |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `src/features/game/gameThunks.ts`               | `commitCommand`, `play`, `finish`, `undo`, `redo`                                                      |
-| `src/features/game/sessionThunks.ts`            | `startGame`, `restart`, `continueGame`, `playDealCode`, `breakStreakOf`                                |
+| `src/features/game/sessionThunks.ts`            | `startGame`, `restart`, `continueGame`, `playDealCode`                                                 |
 | `src/features/game/navigationThunks.ts`         | `dealNewGame`, `requestNewDeal`, `restartDeal`, `goHome`, `openSheet`, `closeSheet`, `pause`, `resume` |
 | `src/features/interaction/interactionThunks.ts` | `selectCard`, `requestHint`, `checkDeadEnd`, `dealCodeCopied`                                          |
 | `src/features/stats/statsThunks.ts`             | `todayKey`                                                                                             |
