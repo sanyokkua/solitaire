@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { posix, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importSpecifiers } from './purityScanner';
+import { importSpecifiers, importStatements } from './purityScanner';
 
 const SRC_DIR = resolve(import.meta.dirname, '../../../src');
 const I18N_DIR = resolve(SRC_DIR, 'i18n');
@@ -94,6 +94,109 @@ describe('src/i18n layer boundary', () => {
             const reactImports = specifiers.filter((specifier) => REACT_SPECIFIERS.has(specifier));
             if (file === REACT_ALLOWED_FILE) return;
             expect(reactImports).toEqual([]);
+        });
+    });
+});
+
+/** app modules a features file may value-import: the slice (actions, selectors, types) and the selectors over it. */
+const APP_VALUE_MODULES = new Set(['app/appSlice', 'app/selectors']);
+/** app modules a features file may import as types only: the thunk type and the store's state and dispatch types. */
+const APP_TYPE_MODULES = new Set(['app/appThunk', 'app/store']);
+
+/**
+ * Imports in a `src/features` file (path relative to `src`, source text) that break the features → app direction:
+ * anything from `src/ui`, and anything from `src/app` beyond the slice, `app/selectors`, and the type-only thunk and
+ * store types. Pure so that fixture sources can be checked without touching the disk.
+ */
+function featuresImportViolations(file: string, source: string): string[] {
+    const violations: string[] = [];
+    for (const { specifier, typeOnly } of importStatements(source)) {
+        if (!specifier.startsWith('.')) continue;
+        const target = posix.normalize(posix.join(posix.dirname(file), specifier)).replace(/\.tsx?$/, '');
+        if (target === 'ui' || target.startsWith('ui/')) {
+            violations.push(`${file}: imports the interface layer (${specifier})`);
+        } else if (target === 'app' || target.startsWith('app/')) {
+            const allowed = APP_VALUE_MODULES.has(target) || (typeOnly && APP_TYPE_MODULES.has(target));
+            if (!allowed) violations.push(`${file}: ${typeOnly ? 'type ' : ''}import of ${specifier} is not allowed`);
+        }
+    }
+    return violations;
+}
+
+describe('src/features → src/app import direction', () => {
+    const featureFiles = sourceFiles(resolve(SRC_DIR, 'features')).map((file) => `features/${file}`);
+
+    it('finds the features modules', () => {
+        expect(featureFiles.length).toBeGreaterThan(0);
+    });
+
+    it('imports from src/app only the slice, app/selectors and the type-only thunk and store types, and nothing from src/ui', () => {
+        const violations = featureFiles.flatMap((file) =>
+            featuresImportViolations(file, readFileSync(resolve(SRC_DIR, file), 'utf8')),
+        );
+        expect(violations).toEqual([]);
+    });
+
+    describe('reports', () => {
+        it.each([
+            ["import { store } from '../../app/store';", 'the store instance as a value'],
+            ["import { createAppStore } from '../../app/store';", 'the store factory as a value'],
+            ["import { store, type RootState } from '../../app/store';", 'a mixed import from the store'],
+            [
+                "import { type RootState } from '../../app/store';",
+                'an inline-type import (a value import after compilation)',
+            ],
+            ["import * as store from '../../app/store';", 'a namespace value import of the store'],
+            ["import { startApp } from '../../app/lifecycle';", 'the lifecycle'],
+            ["import type { StartOptions } from '../../app/lifecycle';", 'a type from the lifecycle'],
+            ["import { useAppDispatch } from '../../app/hooks';", 'the typed hooks'],
+            ["import { assembleThunkExtra } from '../../app/thunkExtra';", 'the thunk dependencies'],
+            ["import { applyTheme } from '../../app/themeController';", 'the theme controller'],
+            ["import { AppThunk } from '../../app/appThunk';", 'the thunk type as a value import'],
+            ["import { type AppThunk } from '../../app/appThunk';", 'the thunk type through an inline modifier'],
+            ["import '../../app/store';", 'a side-effect import of the store'],
+            ["const m = await import('../../app/store');", 'a dynamic import of the store'],
+            ["export { store } from '../../app/store';", 'a re-export of the store'],
+            ["import { Board } from '../../ui/board/Board';", 'an interface-layer module'],
+            ["import type { CardProps } from '../../ui/board/Card';", 'an interface-layer type'],
+            ["import { x } from '../../ui';", 'the interface layer root'],
+            [
+                ['import {', '    store,', '    type RootState,', "} from '../../app/store';"].join('\n'),
+                'a multi-line mixed import of the store',
+            ],
+        ])('%s (%s)', (source) => {
+            expect(featuresImportViolations('features/game/example.ts', source)).toHaveLength(1);
+        });
+
+        it('resolves the specifier from the importing file, so a shallower features file is still checked', () => {
+            expect(
+                featuresImportViolations('features/example.ts', "import { store } from '../app/store';"),
+            ).toHaveLength(1);
+        });
+
+        it('ignores an import inside a comment', () => {
+            expect(
+                featuresImportViolations('features/game/example.ts', "// import { store } from '../../app/store';"),
+            ).toEqual([]);
+        });
+    });
+
+    describe('accepts', () => {
+        it.each([
+            "import { noticeRaised } from '../../app/appSlice';",
+            "import type { AppState } from '../../app/appSlice';",
+            "import { selectReducedMotion } from '../../app/selectors';",
+            "import type { AppThunk } from '../../app/appThunk';",
+            "import type { RootState } from '../../app/store';",
+            "import type { RootState, AppDispatch } from '../../app/store';",
+            "import { setRoute, sheetClosed, sheetOpened, type SheetId } from '../../app/appSlice';",
+            ['import type {', '    AppDispatch,', '    RootState,', "} from '../../app/store';"].join('\n'),
+            ['import {', '    dealingEnded,', '    type NoticeId,', "} from '../../app/appSlice';"].join('\n'),
+            "import { applyCommand } from '../../domain/rules';",
+            "import { dealSlice } from '../deal/dealSlice';",
+            "import { useEffect } from 'react';",
+        ])('%s', (source) => {
+            expect(featuresImportViolations('features/game/example.ts', source)).toEqual([]);
         });
     });
 });

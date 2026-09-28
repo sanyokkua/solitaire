@@ -195,7 +195,7 @@
     - **Tests:** the new contract suite. Every assertion from the removed file lives in it.
     - **Verify:** `rtk npx vitest run tests/unit/features/deal` passes.
 
-- [ ] 2.11 Guard the features → app import direction
+- [x] 2.11 Guard the features → app import direction
     - **Implements:** AS "The features layer depends on the app layer only through its slice, thunk type and store types".
     - **Files:**
       - `tests/unit/repo/layerBoundaries.test.ts` gains the features → app rule;

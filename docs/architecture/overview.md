@@ -16,6 +16,7 @@ flowchart TD
     app --> pwa
     app --> i18n
     features["features: deal, game, interaction, stats, preferences, persistence"] --> domain
+    features -. "slice, thunk type, store types" .-> app
     features -. "Web Worker, by URL" .-> solver
     solver["solver: bounded DFS"] --> domain
     domain["domain: pure Klondike engine"]
@@ -27,7 +28,7 @@ flowchart TD
 | ---------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `domain`   | Pure rules engine: `applyCommand(state, command)` returns `{ state, events }`.           | [domain and solver](domain-and-solver.md)                       |
 | `solver`   | Pure bounded depth-first search, run in a Web Worker to find winnable deals and hints.   | [domain and solver](domain-and-solver.md)                       |
-| `features` | Redux slices and thunks: game session and history, deal service, stats, preferences, persistence, interaction state. | [state and persistence](state-and-persistence.md) |
+| `features` | Redux slices and thunks: game session and history, deal service, stats, preferences, persistence, interaction state. Reaches `app` only through its slice, `app/selectors`, the thunk type and the store types; never `ui`. | [state and persistence](state-and-persistence.md) |
 | `app`      | Store composition, injected thunk dependencies, startup (`startApp`), theme controller.  | [state and persistence](state-and-persistence.md)               |
 | `ui`       | React components: board, Home and Game screens, sheets, CSS tokens; input handling.      | [ui](ui.md)                                                     |
 | `i18n`     | English and Ukrainian catalogs behind a registry and translator.                         | [i18n and pwa](i18n-and-pwa.md)                                 |
