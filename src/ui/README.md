@@ -94,7 +94,7 @@ snapshots; they never apply game rules.
 - `sheets/DealCodeSheet.tsx` — `DealCodeSheet`, registered in `SheetHost` as `dealCode` (5.9, D5, SH "Play a deal
   code sheet"), opened from Home's "Play a deal code" link. A `<form>` holding a labelled input (initial focus, I5)
   and a Play button, so Enter in the input submits alongside a click on Play. Submitting dispatches
-  `playDealCode(code)` (`features/game/navigationThunks.ts`), which trims whitespace and ignores case; on `{ ok:
+  `playDealCode(code)` (`features/game/sessionThunks.ts`), which trims whitespace and ignores case; on `{ ok:
 true }` this component dispatches `closeSheet()` itself, since the thunk installs the deal and shows Game but does
   not close the sheet. On `{ ok: false }` nothing else is dispatched: an inline error (`t('dealCode.error')`) is
   shown tied to the input through `aria-describedby`, the input gets `aria-invalid`, and focus is put back in it.

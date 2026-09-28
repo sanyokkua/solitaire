@@ -129,4 +129,4 @@ unstarted or won game does not (`src/features/game/sessionThunks.ts#breakStreakO
 
 Restart replays the same deal (same seed, mode, verdict and attempts) with no progress carried over. Entering a deal
 code deals that seed and mode as `random`, 1 attempt; a Daily code replays that seed but is not recorded as a
-completed Daily date (`dailyKey` is `null`). Source: `src/features/game/navigationThunks.ts#playDealCode`.
+completed Daily date (`dailyKey` is `null`). Source: `src/features/game/sessionThunks.ts#playDealCode`.

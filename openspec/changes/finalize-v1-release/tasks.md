@@ -164,7 +164,7 @@
       - `tests/component/gameShortcuts.test.tsx` and every `tests/component/sheets/*.test.tsx` stay green.
     - **Verify:** `rtk npx vitest run tests/component` and the full `rtk npm run e2e` pass. `rg "data-testid" src` finds nothing.
 
-- [ ] 2.8 `playDealCode` moves beside the other session thunks
+- [x] 2.8 `playDealCode` moves beside the other session thunks
     - **Implements:** D15 (session thunks). GS "Dealing from a deal code" is unchanged here.
     - **Files:**
       - `src/features/game/navigationThunks.ts:106-118` moves to `src/features/game/sessionThunks.ts`, and the callers are updated;

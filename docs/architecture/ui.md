@@ -21,8 +21,7 @@ siblings of the screen, so they work while a sheet makes the screen behind them 
 
 The UI must not change the route or open a sheet directly. An ESLint rule on `src/ui/**` (`eslint.config.js`) forbids
 importing `setRoute`, `sheetOpened` or `sheetClosed` from `app/appSlice`; components dispatch the intents in
-`src/features/game/navigationThunks.ts` (`openSheet`, `closeSheet`, `goHome`, `requestNewDeal`, `pause`, `resume`,
-`playDealCode`, ...).
+`src/features/game/navigationThunks.ts` (`openSheet`, `closeSheet`, `goHome`, `requestNewDeal`, `pause`, `resume`, ...).
 
 ## Board: pure modules and React modules
 

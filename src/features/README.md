@@ -78,8 +78,8 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   scored, counted and pass-limited by the engine and the win is recorded once). Before each step it waits `delay(75)`
   (`delay(0)` under `selectReducedMotion`) and stops if the `epoch` moved, the game is gone or won, or the engine refuses
   a step; `busy` is cleared at the end only if the epoch is unchanged
-- `game/sessionThunks.ts` — split out of `gameThunks.ts` (D15, a pure move; behaviour unchanged): `breakStreakOf(outgoing)`,
-  exported so `navigationThunks.ts`'s `playDealCode` can reuse it, breaks the streak of a game about to be replaced
+- `game/sessionThunks.ts` — split out of `gameThunks.ts` (D15, a pure move; behaviour unchanged): `breakStreakOf(outgoing)`
+  (module-private, shared by `startGame`, `restart` and `playDealCode`) breaks the streak of a game about to be replaced
   (`streakBroken(outgoing.mode)`) when it was started and not won; an unstarted or won outgoing game costs nothing.
   `startGame({ mode })` deals and installs a new game: it reads `winnableOnly` from the preferences and forwards it in
   the `dealService.deal` request, publishes the service's progress as `app.dealing` (a report that arrives after the
@@ -93,7 +93,11 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   reads no preference, keeps `dailyKey`, breaks the streak by the same rule, is allowed while `busy` (the install bumps
   the epoch and stops the sequence), and does nothing without a game. `continueGame()` shows the Game screen (`setRoute('game')`) only while
   `selectResumable` holds (a started game that is still playing) and does nothing otherwise; it touches nothing but the
-  route, so it never replaces the game or breaks a streak
+  route, so it never replaces the game or breaks a streak. `playDealCode(code)` (D5) trims and case-folds the code through
+  `domain/dealCode.ts`'s `decodeDealCode`; an invalid code changes nothing and reports `{ ok: false }`, a valid one
+  breaks the replaced game's streak, installs `dealFromSeed(seed, mode, { verdict: 'random', attempts: 1 })` with
+  `dailyKey: null`, ends any in-flight start's dealing progress (`dealingEnded()` — the epoch bump already makes that
+  start discard its own result), shows Game and reports `{ ok: true }`
 - `game/navigationThunks.ts` — the intent thunks that own every route and sheet change (D3): the UI dispatches these,
   never `setRoute`/`sheetOpened`/`sheetClosed` directly (an ESLint rule bans importing those three from `src/ui/**`,
   checked by `tests/unit/repo/eslintRules.test.ts`). `dealNewGame(mode)` closes any open sheet (including Win — this
@@ -105,12 +109,7 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   closes is `dealNewGame`'s Deal again), so Escape can never dismiss it. `pause()` opens the `paused` sheet when the exported `canPause(state)`
   holds: on the Game route, with a game that is not won, and not while `game.busy` or `app.dealing !== null` (the P
   shortcut checks the same predicate). `resume()` is
-  `closeSheet()`. `playDealCode(code)` (D5) trims and case-folds the code through `domain/dealCode.ts`'s
-  `decodeDealCode`; an invalid code changes nothing and reports `{ ok: false }`, a valid one breaks the replaced
-  game's streak (`breakStreakOf`, exported from `sessionThunks.ts` for this), installs `dealFromSeed(seed, mode, {
-verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight start's dealing progress
-  (`dealingEnded()` — the epoch bump already makes that start discard its own result), shows Game and reports
-  `{ ok: true }`
+  `closeSheet()`
 - `interaction/interactionSlice.ts` — the runtime-only interaction state (never persisted, and not read by the persistence
   writer, so changing it never writes): `selection: { from: PileRef, index } | null`, with `selectionSet` and
   `selectionCleared`. Its `extraReducers` clear the selection, the hint and the pending hint on the game actions

@@ -1,6 +1,7 @@
 import { dealingEnded, dealingProgressed, setRoute } from '../../app/appSlice';
 import type { AppThunk } from '../../app/appThunk';
 import { dealFromSeed } from '../../domain/deal';
+import { decodeDealCode } from '../../domain/dealCode';
 import type { GameState, Mode } from '../../domain/types';
 import type { DealService } from '../deal/dealService';
 import { streakBroken } from '../stats/statsSlice';
@@ -11,7 +12,7 @@ import { installed, selectResumable } from './gameSlice';
  * command and is not won. An unstarted game costs nothing to abandon and a won game already settled its streak, so
  * neither changes a statistic. The streak that breaks is the replaced game's own mode, whatever mode comes next.
  */
-export function breakStreakOf(outgoing: GameState | null): AppThunk {
+function breakStreakOf(outgoing: GameState | null): AppThunk {
     return (dispatch) => {
         if (outgoing?.started === true && outgoing.status !== 'won') dispatch(streakBroken(outgoing.mode));
     };
@@ -88,5 +89,27 @@ export function restart(): AppThunk {
 export function continueGame(): AppThunk {
     return (dispatch, getState) => {
         if (selectResumable(getState())) dispatch(setRoute('game'));
+    };
+}
+
+/**
+ * Plays a deal code (D5, GS "Dealing from a deal code"): trims whitespace and ignores case. An invalid code changes
+ * nothing and reports `{ ok: false }`. A valid one breaks the replaced game's streak (as any deal replacement does),
+ * installs `dealFromSeed(seed, mode)` marked `random` with one attempt and no Daily date, shows Game, and reports
+ * `{ ok: true }`. Installing bumps the game epoch, so any in-flight `startGame` discards its own result through its
+ * existing guard when it resolves; `dealingEnded()` here reopens the input gate at once instead of waiting for that
+ * stale start's own cleanup to run.
+ */
+export function playDealCode(code: string): AppThunk<{ readonly ok: boolean }> {
+    return (dispatch, getState) => {
+        const decoded = decodeDealCode(code);
+        if (decoded === null) return { ok: false };
+
+        dispatch(breakStreakOf(getState().game.current));
+        const state = dealFromSeed(decoded.seed, decoded.mode, { verdict: 'random', attempts: 1 });
+        dispatch(installed({ state, dailyKey: null }));
+        dispatch(dealingEnded());
+        dispatch(setRoute('game'));
+        return { ok: true };
     };
 }
