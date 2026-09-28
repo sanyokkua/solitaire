@@ -68,9 +68,9 @@ empty identifier.
 
 The date and time SHALL use the same language-neutral format in every language; only the words
 around them are translated. The identifier SHALL be presented as text with an accessible name in the
-active language, not as colour or image alone. It SHALL be shown in the Home footer, in the Game
-footer where the footer is displayed, and in the About sheet next to the version, and SHALL be the
-same in each.
+active language, not as colour or image alone. It SHALL be shown in the Home footer and in the About
+sheet next to the version, and SHALL be the same in both. The Game screen's footer holds the deal code
+instead (see `ui/game-screen` "Deal code footer").
 
 Input-agnostic: display only, with no interaction. No animation.
 

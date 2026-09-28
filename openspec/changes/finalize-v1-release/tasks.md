@@ -26,6 +26,7 @@
 >   | **RF** | `specs/tooling/repository-foundation` | **BL** | `specs/ui/board-layout` |
 >
 > - **Design decisions.** `Dn` is `design.md` decision *n*. Read every decision a task names before coding.
+> - **Grade naming (D9).** `grade` is the deal's grade in data (`GameState.grade`, `WinSummary.grade`, the protocol reply, the stored game). `difficulty` names only the player's preference, and `target` the grade a deal or selection request asks for.
 > - **Shared references.**
 >   - **State API:** `src/features/README.md`.
 >   - **UI map:** `src/ui/README.md`.
@@ -60,9 +61,9 @@
 
 ## 1. Branches and stale agent instructions
 
-- [ ] 1.1 Remove the stale branch and phase instructions, and commit the change artifacts
+- [ ] 1.1 Remove the stale branch and phase instructions
     - **Implements:** D1. No requirement change.
-    - **Branches:** the work happens on `feature/finalize-v1-release`, cut from the integration branch `feature/app-v1-release`, which was cut from `master`. Both already exist locally. Pushing either needs the author's explicit request.
+    - **Branches:** the work happens on `feature/finalize-v1-release`, which is already on `origin` with the change artifacts committed. It was cut from the integration branch `feature/app-v1-release`, which exists locally only and equals `master`. Any further push, including the integration branch's first one, needs the author's explicit request.
     - **Files:**
       - `AGENTS.md`:
         - "Repository state" says Phases 1–8 are merged to `master` and live, and that `finalize-v1-release` carries Phases 9–11.
@@ -72,9 +73,8 @@
           - squash-merge back at archive;
           - the integration branch reaches `master` by pull request.
         - Remove the `feature/app-v1-implementation` lines.
-      - `docs/development/workflow.md`: the same branch rules.
+      - `docs/development/workflow.md` (`:34`, `:51`): the same branch rules.
       - `openspec/config.yaml` `context`: implemented phases, and the active change.
-      - Commit `openspec/changes/finalize-v1-release/**` together with these edits.
     - **Tests:** none (process and docs).
     - **Verify:**
       - `git rev-parse --abbrev-ref HEAD` prints `feature/finalize-v1-release`;
@@ -104,13 +104,13 @@
     - **Tests:**
       - `tests/unit/app/thunkExtra.test.ts`: factory injection replaces the `vi.mock` of `createDealService`; it asserts that one deal service is built lazily and that overrides win;
       - `tests/component/appLifecycle.wiring.test.tsx` drops the `navigator.languages` patch (`:74-76`) and injects `languages`.
-    - **Verify:** `rtk npx vitest run tests/unit/app tests/component/appLifecycle.wiring.test.tsx`, `rtk npm run validate:lifecycle-storage` and the full `rtk npm run e2e` pass. A second worker now exists, so check specs that wait for a worker (`dealLatency`, `pwa`).
+    - **Verify:** `rtk npx vitest run tests/unit/app tests/component/appLifecycle.wiring.test.tsx`, `rtk npm run validate:lifecycle-storage` and the full `rtk npm run e2e` pass.
 
 - [ ] 2.3 Remove production code kept alive only by tests
     - **Implements:** D15 (dead code).
     - **Files:**
       - remove `readOnlyEntered` (`src/features/persistence/persistenceSlice.ts:19`), `selectBusy` (`src/features/game/gameSlice.ts:198`) and `selectPendingHint` (`src/features/interaction/selectors.ts:43`);
-      - `src/ui/sheets/StatsSheet.tsx:34` uses `selectWinRate` instead of its inline copy;
+      - `src/ui/sheets/StatsSheet.tsx:34` uses `selectWinRate` (`statsSlice.ts:88`, a fraction from 0 to 1) instead of its inline copy, formatting it as today's rounded percent and keeping "—" when nothing is played;
       - `src/features/README.md`.
     - **Tests:**
       - drop the assertions that only exercised the removed exports (find them with `rg "readOnlyEntered|selectBusy|selectPendingHint" tests`), keeping every behaviour assertion;
@@ -142,9 +142,9 @@
     - **Files:**
       - `src/domain/rules.ts` exports `samePile` (today private at `:77`);
       - `src/ui/board/keyboardController.ts:39-50` uses it;
-      - `pileKey` moves from `src/ui/board/landing.ts:18` to `src/ui/board/names.ts` or `locate.ts`, whichever holds pile identity;
-      - `useBoardActions.ts`, `useBoardKeyboard.ts` and `selectors.ts` import it from there;
-      - `useBoardKeyboard.ts:58-91` builds its hits from `selectCardLocations`, the same source the pointer path uses;
+      - `pileKey` moves from `src/ui/board/landing.ts:18` to `src/ui/board/locate.ts`, beside `cardIndex` (`names.ts` holds only localised labels);
+      - every consumer imports it from there: `useBoardActions.ts`, `useBoardKeyboard.ts`, `selectors.ts`, `Board.tsx`, `useBoardPointer.ts`, `PileSlot.tsx` and `Ghosts.tsx`;
+      - `useBoardKeyboard.ts` `hitOf` (`:82-91`, `movable: true` hard-coded at `:87`) takes movability from `selectCardLocations` (`selectors.ts:62`), which the hook already reads at `:106`;
       - `src/ui/README.md`.
     - **Tests:**
       - `tests/unit/ui/board/keyboardController.test.ts`, `landing.test.ts`, `tests/component/boardKeyboard.test.tsx` and `tests/unit/repo/boardPurity.test.ts` stay green;
@@ -155,23 +155,17 @@
 - [ ] 2.7 Sheet, settings and shortcut tidy-ups
     - **Implements:** D15 (sheets and shortcuts).
     - **Files:**
-      - `src/ui/sheets/ModalSheet.tsx`: `returnFocusFallback` defaults to `onDismiss` (every sheet passes the same function today), and `data-testid="modal-backdrop"` (`:118`) is removed;
+      - `src/ui/sheets/ModalSheet.tsx`: `returnFocusFallback` becomes optional and defaults to `onDismiss`. About, Help, NewDeal and Stats pass `dismiss` today and drop the prop; Settings (an inline `closeSheet`), Win, Paused and DealCode (which focus a screen heading) keep theirs. `data-testid="modal-backdrop"` (`:118`) is removed;
       - `SheetHost.tsx`: an exhaustive `Record<SheetId, …>`, and the stale comment goes;
       - `SettingsSheet.tsx`: the switch rows are built from one list;
       - `src/ui/board/useGameShortcuts.ts`: one pause guard, reusing the `pause()` thunk's refusal, and one auto-repeat check;
       - `src/ui/README.md`.
     - **Tests:**
-      - `tests/component/modalSheet.test.tsx` finds the backdrop through the dialog's parent, not a test id, and `spyOn(store.dispatch)` is replaced by an outcome assertion;
+      - `tests/component/modalSheet.test.tsx` (`:154`, `:166`), `tests/component/sheets/win.test.tsx:269` and `tests/component/sheets/paused.test.tsx:216` find the backdrop through the dialog's parent, not a test id, and `modalSheet.test.tsx`'s `spyOn(store, 'dispatch')` (`:204`) is replaced by an outcome assertion;
       - `tests/component/gameShortcuts.test.tsx` and every `tests/component/sheets/*.test.tsx` stay green.
     - **Verify:** `rtk npx vitest run tests/component` and the full `rtk npm run e2e` pass. `rg "data-testid" src` finds nothing.
 
-- [ ] 2.8 Card-back swatches read the tokens
-    - **Implements:** D15 (swatches). BR "Card backs" is unchanged.
-    - **Files:** `src/ui/sheets/SettingsSheet.tsx:96-109` renders swatches from the card-back token custom properties (`tokens.css:62-69`) instead of hex literals.
-    - **Tests:** `tests/component/sheets/settings.test.tsx` asserts that each swatch uses its `--card-back-*` token. `tests/unit/ui/tokens.test.ts` stays green.
-    - **Verify:** `rtk npx vitest run tests/component/sheets tests/unit/ui/tokens.test.ts` passes.
-
-- [ ] 2.9 `playDealCode` moves beside the other session thunks
+- [ ] 2.8 `playDealCode` moves beside the other session thunks
     - **Implements:** D15 (session thunks). GS "Dealing from a deal code" is unchanged here.
     - **Files:**
       - `src/features/game/navigationThunks.ts:106-118` moves to `src/features/game/sessionThunks.ts`, and the callers are updated;
@@ -179,7 +173,7 @@
     - **Tests:** `tests/unit/features/game/dealCode.test.ts` and `tests/component/sheets/dealCode.test.tsx` stay green.
     - **Verify:** `rtk npx vitest run tests/unit/features/game tests/component/sheets` passes.
 
-- [ ] 2.10 Test hygiene
+- [ ] 2.9 Test hygiene
     - **Implements:** D15 (test hygiene).
     - **Files:**
       - `tests/unit/features/game/finishable.test.ts` asserts that the Finish availability value stays stable across ticks, instead of counting `finishPlan` calls;
@@ -187,12 +181,12 @@
       - `tests/component/board.test.tsx` asserts on the rendered positions, not on the call counts of `positions`;
       - `tests/unit/app/savePort.test.ts` is folded into `tests/unit/app/pwaThunks.test.ts`, which flushes through a real writer;
       - `tests/unit/support/testStore.test.ts` keeps only the non-trivial override merge;
-      - one `tests/support/matchMedia.ts` fake, used by `tests/setup.ts:6-31` and `tests/component/appLifecycle.wiring.test.tsx:28-65`;
-      - `tests/README.md` (test-double policy).
-    - **Tests:** the listed suites, with the same behaviour covered. The only module mocks left are the justified ones in `hint.defensive.test.ts` and `pseudoLocale.test.tsx`.
-    - **Verify:** `rtk npm run test:unit` passes, and `rg "vi.mock\(" tests` lists only the two justified files.
+      - the existing `tests/support/matchMedia.ts` (`stubMatchMedia`, `controllableMatchMedia`; 13 files use it) becomes the only `matchMedia` fake. Fold in the copies in `tests/setup.ts:6-39` (`stubMediaQueryList`), `tests/component/appLifecycle.wiring.test.tsx:19-67` (`fakeMediaQuery`, `installMatchMedia`) and `tests/unit/app/themeController.test.ts:11-45` (plus its inline `vi.fn` at `:184`);
+      - `tests/README.md` (test-double policy, naming the three justified module mocks and why).
+    - **Tests:** the listed suites, with the same behaviour covered. The only module mocks left are the three justified ones: `hint.defensive.test.ts` (the solver entry), `pseudoLocale.test.tsx` and `tests/component/sheets/settings.test.tsx:190` (`vi.doMock`), which both register an extra language in the static catalog registry.
+    - **Verify:** `rtk npm run test:unit` passes, and `rg "vi\.(do)?[mM]ock\(" tests` lists only the three justified files.
 
-- [ ] 2.11 A `DealService` contract suite for the real service and the fake
+- [ ] 2.10 A `DealService` contract suite for the real service and the fake
     - **Implements:** D15 (contract suite).
     - **Files:**
       - new `tests/unit/features/deal/dealServiceContract.ts` (shared cases: deal per mode, cancellation by a newer deal, hint outcomes, dispose);
@@ -202,14 +196,24 @@
     - **Tests:** the new contract suite. Every assertion from the removed file lives in it.
     - **Verify:** `rtk npx vitest run tests/unit/features/deal` passes.
 
-- [ ] 2.12 Guard the features → app import direction
+- [ ] 2.11 Guard the features → app import direction
     - **Implements:** AS "The features layer depends on the app layer only through its slice, thunk type and store types".
     - **Files:**
       - `tests/unit/repo/layerBoundaries.test.ts` gains the features → app rule;
-      - `eslint.config.js` gets the matching `no-restricted-imports` entry if the override structure allows it;
+      - no ESLint entry: the test fails the gate on its own (D15);
       - `docs/development/code-standards.md`, `docs/architecture/overview.md`.
-    - **Tests:** the guard passes on today's code, and a fixture import of `app/store` or `app/lifecycle` from features is reported. Use the existing purity-scanner helper pattern.
+    - **Tests:** the guard passes on today's code (appSlice, appThunk, `app/selectors` and type-only `app/store` imports), and a fixture import of `app/store` as a value or of `app/lifecycle` from features is reported. Use the existing `tests/unit/repo/purityScanner.ts` helpers.
     - **Verify:** `rtk npx vitest run tests/unit/repo` and `rtk npm run lint` pass.
+
+- [ ] 2.12 Format the maintained docs
+    - **Implements:** RF "Deterministic source formatting" ("Maintained docs are checked"); D15 (docs formatting), D18 (formatting).
+    - **Files:**
+      - `.prettierignore`: `docs/` becomes `docs/spec/`, so only the spec pack stays excluded until 13.3 deletes it; `openspec/`, the lockfile and build output stay excluded;
+      - `docs/**/*.md` outside `docs/spec/`: formatted, with no content change;
+      - `tests/unit/repo/configContract.test.ts`: asserts that `.prettierignore` excludes `docs/spec/` and `openspec/`, and not `docs/`;
+      - `docs/development/code-standards.md` (what the formatter covers).
+    - **Tests:** the new `configContract` assertion.
+    - **Verify:** `rtk npm run format:check` passes with `docs/` included, and `git diff` shows only formatting in the docs.
 
 ## 3. Build identity and the card icon
 
@@ -223,11 +227,11 @@
     - **Files:**
       - new `scripts/build-info.mjs` with `resolveBuildInfo(env, now)`, and its `.d.mts` stub;
       - `vite.config.ts`: `__APP_BUILD__` replaces `__APP_BUILD_TIMESTAMP__`;
-      - `vitest.config.ts` (a fixed test define), `src/vite-env.d.ts`;
+      - `vitest.config.ts` (a fixed test define for `__APP_BUILD__`; today `buildStamp.test.tsx` stubs the old global), `src/vite-env.d.ts`;
       - `src/ui/components/BuildStamp.tsx`, `src/ui/sheets/AboutSheet.tsx`;
-      - the `build.*` keys in `src/i18n/locales/{en,uk}.ts`;
+      - the `build.*` keys in `src/i18n/locales/{en,uk}.ts` (D13): `build.label` stays the wrapper ("App build: {value}"), new `build.number` ("Build {number} · {time}"), and `build.dev` becomes "Development build · {time}";
       - `.github/workflows/ci.yml` and `pages.yml` drop `BUILD_TIMESTAMP`. Before editing, check each action's latest release online and pin the exact versions, per AGENTS.md "GitHub Actions";
-      - `docs/development/ci-and-deployment.md:94,141-160` (also drop its resolved TODOs);
+      - `docs/development/ci-and-deployment.md` (`:94`, the build-timestamp section at `:139-151`, and the resolved Pages-source TODO at `:123`);
       - `docs/development/getting-started.md:27-28`;
       - `src/ui/README.md`.
     - **Tests:**
@@ -235,25 +239,25 @@
         - a number plus the time gives `Build 57 · 2026-09-28 14:03 UTC`;
         - `GITHUB_RUN_NUMBER=""` or whitespace counts as absent and gives the development label;
         - the time is UTC whatever the time zone;
-      - `tests/component/buildStamp.test.tsx` and `tests/component/sheets/about.test.tsx`: the stamp is never empty;
-      - `tests/unit/repo/configContract.test.ts:33-41`:
-        - the define exists;
+      - `tests/component/buildStamp.test.tsx` and `tests/component/sheets/about.test.tsx`: the stamp is never empty; in Ukrainian only the surrounding words change, and the number and time read exactly as in English;
+      - `tests/unit/repo/configContract.test.ts` (next to the `__APP_VERSION__` block at `:33-41`):
+        - the `__APP_BUILD__` define exists;
         - no workflow sets `BUILD_TIMESTAMP` or uses `github.run_started_at`;
-        - action versions are exact pins;
-      - `tests/e2e/home.spec.ts:76`: the stamp matches `/^App build: (Build \d+|Development build) · \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/` or the catalog's equivalent.
+        - the existing exact-pin check (`:17`, `:207-217`) stays green after the version refresh;
+      - `tests/e2e/home.spec.ts:76`: the stamp's accessible name matches `/^App build: (Build \d+|Development build) · \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/`.
     - **Verify:** `rtk npx vitest run tests/unit/repo tests/component/buildStamp.test.tsx tests/component/sheets/about.test.tsx` and `rtk npx playwright test home --project=chromium` pass. After `GITHUB_RUN_NUMBER=7 rtk npm run build`, the preview's Home footer shows "Build 7".
 
 - [ ] 3.2 Card-fan pixel icon
     - **Implements:** PW "The app is installable"; D14.
     - **Files:**
-      - `scripts/generate-icons.mjs` (one rectangle list, emitted to SVG and PNG) and `scripts/generate-icons.d.mts`;
+      - `scripts/generate-icons.mjs` (one rectangle list, emitted to SVG and PNG; it already emits `favicon.svg`) and the existing `scripts/generate-icons.d.mts`;
       - `public/favicon.svg`;
       - `public/icons/{icon-192,icon-512,icon-maskable-512,apple-touch-icon}.png`;
       - `docs/architecture/i18n-and-pwa.md`, `src/pwa/README.md`, `docs/reference/scripts.md`.
     - **Tests:** `tests/unit/repo/icons.test.ts`:
-      - the committed PNGs **and** `favicon.svg` are byte-equal to a fresh render;
+      - every committed output, PNGs and `favicon.svg`, stays byte-equal to a fresh render (the loop at `:15-20` already covers both);
       - the sizes are right;
-      - the maskable mark lies inside the central 80% circle on `#0b2545`;
+      - the maskable check changes from today's 10%-margin square (`:34-53`) to the W3C safe zone: every non-`#0b2545` pixel lies inside the centred circle whose diameter is 80% of the icon;
       - the mark contains a light card-face region, not only background.
 
       `tests/unit/repo/manifest.test.ts` and `validateArtifact.test.ts` stay green.
@@ -291,9 +295,9 @@
     - **Tests:**
       - `tests/unit/domain/deadEnd.test.ts` and `advise.test.ts`:
         - Draw 3: a playable card at an unreachable position is a dead end;
-        - Vegas on its last pass;
+        - Vegas on its second and last pass;
         - Draw 1 cases unchanged.
-      - The existing expectation that `vegasAtLimit({ passes: 2, waste: [H1, S9] })` is not a dead end becomes a dead end under the grouping rule. Change it with a comment that cites the AST scenario.
+      - The existing expectation at `tests/unit/domain/deadEnd.test.ts:50,53` (`vegasAtLimit({ passes: 2, waste })` with `waste = [H1, S9]`, draw 3) is not a dead end today. Under the grouping rule the one recycle left brings back only S9 on top, so it becomes a dead end. Change it with a comment that cites the AST scenario.
       - `tests/unit/features/interaction/deadEnd.test.ts` stays green.
     - **Verify:** `rtk npx vitest run tests/unit/domain tests/unit/features/interaction` passes.
 
@@ -333,10 +337,10 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 - [ ] 5.4 A storm of 200+ undos and redos, and rapid double taps
     - **Implements:** RF "Edge cases are proven end to end" ("Undo storm survives a reload", "A double tap never applies two moves"); GS "Undo history has no in-memory limit"; PE stored-history limits.
-    - **Files:** new `tests/e2e/history.spec.ts`, and `tests/e2e/support/play.ts` (a helper to play N commands of the recorded line).
+    - **Files:** new `tests/e2e/history.spec.ts`; `tests/e2e/support/play.ts` only if needed. `playLine` already plays any command list, so a Draw 1 game can be padded with draws and recycles.
     - **Tests:**
-      - play at least 405 moves (draws and recycles count), undo 205 of them, then reload: exactly 200 undo steps and 200 redo steps are restored, and both sides still work;
-      - five rapid taps on the same card apply at most one move each double-tap window.
+      - apply at least 410 undoable commands (draws and recycles count), undo 205 of them so more than 200 steps sit on each side, then reload: exactly 200 undo steps (the newest) and 200 redo steps (the nearest) are restored, and both sides still work;
+      - a rapid double tap on a movable card applies at most one move, and the move counter rises by at most one.
     - **Verify:** `rtk npx playwright test history --project=chromium --project=galaxy-s25` passes.
 
 - [ ] 5.5 Resize during the deal
@@ -412,11 +416,11 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes.
 
 - [ ] 6.5 Per-mode budgets from the benchmark
-    - **Implements:** DS "Deals per mode record their provenance" (the budget column); RF "Informational solver benchmark outside the validation gate".
+    - **Implements:** DS "Deals per mode record their provenance" (the budget column); RF "Informational solver benchmark outside the validation gate" (verdicts and selection latency per mode; the grading report is 7.3's and the target-grade row is 7.4's).
     - **Files:**
       - new `src/features/deal/budgets.ts`: `WINNABLE_BUDGET` for Draw 1 moves there unchanged from `dealService.ts:18-22`, alongside `MAX_ATTEMPTS`, `HINT_BUDGET` and the Draw 3 and Vegas budgets;
-      - `tests/bench/winnable.bench.ts` (per mode: verdict distribution, median and p95 per selection; for Draw 1 also with difficulty Hard);
-      - `tests/README.md` (the recorded results with date, machine and Node version);
+      - `tests/bench/winnable.bench.ts` (per mode: verdict distribution, median and p95 per selection);
+      - `tests/README.md` (the recorded results with date, machine and Node version; the Draw 1 figures are the baseline for 7.4's latency guard);
       - `specs/features/deal-service/spec.md` of this change, if the benchmark moves the Draw 3 or Vegas value away from 20,000;
       - `src/features/README.md`.
     - **Stop condition:** if cold Draw 3 or Vegas selection misses 1 s at the median or 3 s at p95 on the desktop benchmark at any budget that still proves most deals, stop and surface it (design Risks).
@@ -435,16 +439,17 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Verify:** `rtk npx vitest run tests/unit/domain` passes.
 
 - [ ] 7.2 Seeded playouts and grading
-    - **Implements:** GRD "Seeded playouts that see only face-up cards" and "Grading v1 turns playout wins into a grade" (mechanism, with the initial table); D6.
-    - **Files:** new `src/solver/grading.ts` (`GRADING_V1`, `playout`, `gradeDeal`), `src/solver/README.md`.
+    - **Implements:** GRD "Seeded playouts that see only face-up cards" and "Grading v1 turns playout wins into a grade" (mechanism, with the parameters and table of the GRD parameters table); D6.
+    - **Files:** new `src/solver/grading.ts` (`GRADING_V1` holding the D6 parameters, `fmix32`, `playoutSeed`, `playout`, `gradeDeal`), `src/solver/README.md`.
     - **Tests:** new `tests/unit/solver/grading.test.ts`:
+      - `playoutSeed` matches pinned vectors for a few `(seed, index)` pairs;
+      - with a scripted generator, the walk takes the first candidate below the take probability, moves on otherwise and always takes the last candidate it reaches, and an unforced draw happens only when a draw or recycle is legal;
       - the same seed gives the same grade and win count;
       - hidden-card permutations do not steer choices before a reveal;
       - the player draws when it has nothing to play;
-      - a stall ends a playout;
+      - a stall (the talon arrangement repeats with no board move) ends a playout;
       - the Vegas pass limit is respected;
       - every playout ends within the step cap;
-      - a `random` deal is never graded;
       - a Daily deal grades like its Draw 1 twin.
     - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/repo/solverPurity.test.ts` passes, and `rg "Math.random" src/solver src/domain` finds nothing.
 
@@ -452,29 +457,32 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Implements:** GRD "Grading v1 turns playout wins into a grade" ("Every grade is common enough", "Pinned grades do not drift").
     - **Files:**
       - new `tests/bench/grading.bench.ts` (per mode: grade shares over a pinned calibration sample of verified seeds, and grading cost);
-      - `src/solver/grading.ts` (the calibrated table, and N if cost requires it, down to 8);
+      - `src/solver/grading.ts`: only the parameters D6 marks as tunable (the take and unforced-draw probabilities, the table, and N down to 8 if cost requires it);
       - new `tests/fixtures/gradingGolden.ts`;
-      - `specs/solver/deal-grading/spec.md` of this change (table and N, when they change);
+      - `specs/solver/deal-grading/spec.md` of this change (the parameters table and the thresholds) and `design.md` D6's table, whenever a value changes;
       - `tests/README.md` (distribution and cost).
     - **Tests:** new `tests/unit/solver/gradingGolden.test.ts` pins about 10 seeds per mode with their grade and win count. It also asserts each grade's share on the calibration sample, which is small enough to run in `test:unit`, is at least 15%.
-    - **Stop condition:** if no table reaches 15% per grade in a mode after tuning the policy weights, stop and surface it.
+    - **Stop condition:** if no setting of the tunable parameters reaches 15% per grade in a mode, stop and surface it.
     - **Verify:** `rtk npm run bench` shows the shares, and `rtk npx vitest run tests/unit/solver` passes.
 
 - [ ] 7.4 Selection with a target grade
     - **Implements:** GRD "A requested grade, or the closest one found"; SEL "Winnable selection by reject sampling" (grade) and "Background-thread message interface" (the target and grade fields); D7.
     - **Files:**
-      - `src/solver/winnable.ts`, `src/solver/protocol.ts`, `src/features/deal/solverClient.ts` (the target and the returned grade);
+      - `src/solver/winnable.ts`, `src/solver/protocol.ts`, `src/features/deal/solverClient.ts` (the request's `target` and the reply's `grade`);
       - `tests/fixtures/dailyGolden.ts` gains a grade column, leaving seeds and attempts untouched;
+      - `tests/bench/winnable.bench.ts`: Draw 1 with target Hard, and Draw 1 Any again now that grading runs;
+      - `tests/README.md` (the new figures);
       - `src/solver/README.md`.
     - **Tests:**
       - `tests/unit/solver/winnable.test.ts`:
         - `any` equals today's selection on `SOLVER_CORPUS` seeds;
         - the exact-match position;
         - the closest grade, with the earlier seed on a tie;
-        - nothing proven gives `random` with no grade and attempts equal to the list length;
+        - nothing proven gives `random` with no grade and attempts equal to the list length, and grading never runs for it;
       - `protocol.test.ts`, `solverClient.test.ts`;
       - `tests/unit/features/deal/daily.test.ts` also checks the pinned grades.
-    - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes.
+    - **Stop condition:** if Draw 1 Any selection's desktop median or p95, now with grading, is more than 20% above the 6.5 baseline in `tests/README.md`, stop and surface it (D6 latency guard, KS-PERF-02).
+    - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes, and `rtk npm run bench` prints the Draw 1 Hard and Any rows.
 
 ## 8. Deal provenance and the storage record v2
 
@@ -487,7 +495,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Files:**
       - `src/features/preferences/preferencesSlice.ts` (`difficulty: 'any' | 'easy' | 'medium' | 'hard'`, default `any`);
       - `src/features/persistence/recordCodec.ts` (versioned key lists, dispatch on version, `upgradeV1`, `RECORD_VERSION = 2`);
-      - `src/features/persistence/sessionCodec.ts` (takes the record version; the game keys are still the same in v1 and v2 until 8.2);
+      - `src/features/persistence/sessionCodec.ts` (takes the record version; the game keys are still the same in v1 and v2 until 8.2). Between this task and 8.2 the branch writes a v2 record whose game has no `grade` key, which 8.2 makes unreadable. That interim format never leaves the branch, so it needs no upgrade path;
       - `src/features/persistence/persistenceLoader.ts` (no backup for a readable v1);
       - `tests/fixtures/storage.ts` (a pinned v1 record string);
       - `docs/reference/storage-format.md` (both versions and the upgrade);
@@ -508,21 +516,21 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Implements:**
       - DG "A deal records its provenance";
       - GE "A game state can be checked for validity" (the grade clauses);
-      - PE "An older record is upgraded without loss" (games get no grade);
+      - PE "One versioned record holds what the device keeps" (the stored game's grade) and "An older record is upgraded without loss" (the game gets no grade);
       - GS "Restart replays the same deal" and "Dealing from a deal code";
       - D9.
 
       This must land in one task: a separate `GameState` field would break stored games.
     - **Files:**
-      - `src/domain/types.ts` (`difficulty`), `src/domain/deal.ts` (`dealFromSeed` provenance), `src/domain/validate.ts`;
-      - `src/features/persistence/sessionCodec.ts` (the v2 game keys gain `difficulty`; `upgradeV1` sets `null` on the current game and every step);
+      - `src/domain/types.ts` (`GameState.grade`), `src/domain/deal.ts` (`DealMeta.grade`, set by `dealFromSeed`), `src/domain/validate.ts`;
+      - `src/features/persistence/sessionCodec.ts`: the v2 `GAME_KEYS` gain `grade` right after `attempts`; `STEP_KEYS` do not change, and a decoded step copies `grade` from the stored game like the other deal constants; `upgradeV1` sets `grade: null` on the stored game only (D9, D10);
       - `src/features/game/sessionThunks.ts` (restart keeps the grade; `playDealCode` gives `null`);
-      - `tests/fixtures/states.ts`, `tests/fixtures/deals.ts` (fixtures gain `difficulty: null`);
+      - `tests/fixtures/states.ts`, `tests/fixtures/deals.ts` (fixtures gain `grade: null`);
       - `tests/e2e/support/seed.ts`;
       - `docs/reference/storage-format.md`, `src/domain/README.md`.
     - **Tests:**
-      - `tests/unit/domain/{deal,validate}.test.ts`: a grade with verdict `random` is invalid, and an unknown grade is invalid;
-      - `sessionCodec.test.ts` and `recordCodec.test.ts`: a pinned v1 record **holding a game with undo and redo steps** decodes, and every game upgrades to `null` before the validity check runs (D10), so it is never rejected;
+      - `tests/unit/domain/{deal,validate}.test.ts`: a grade with verdict `random` is invalid; an unknown grade is invalid; a `win` fixture deal graded Medium, and every position of the fixture winning lines, are valid;
+      - `sessionCodec.test.ts` and `recordCodec.test.ts`: a pinned v1 record **holding a game with undo and redo steps** decodes. Its game gets `grade: null` before the validity check runs (D10), so it is never rejected, and every restored step reads `grade: null`. A v2 step carrying a `grade` key is `invalid`;
       - `tests/unit/features/game/{startRestart,dealCode}.test.ts`.
     - **Verify:** `rtk npm run test:unit` and `rtk npx playwright test board storage --project=chromium` pass.
 
@@ -534,8 +542,8 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - GS "Starting a game installs a fresh deal" and "Settings never change a game in progress";
       - HO "Home actions" (Deal cards honours the switch and Difficulty).
     - **Files:**
-      - `src/features/deal/dealService.ts`: `DealRequest` gains `difficulty`; Draw 1, Draw 3 and Vegas go to the worker when the switch is on; fallbacks for every mode; Daily is graded;
-      - `src/features/game/sessionThunks.ts` (`startGame` reads `difficulty` when the start begins);
+      - `src/features/deal/dealService.ts`: `DealRequest` gains `target`; Draw 1, Draw 3 and Vegas go to the worker when the switch is on; fallbacks for every mode; Daily is graded;
+      - `src/features/game/sessionThunks.ts` (`startGame` reads the `difficulty` preference when the start begins and passes it as the request's `target`);
       - `tests/fixtures/dealService.ts` (the fake honours the new request);
       - `src/features/README.md`, `docs/architecture/data-flows.md`.
     - **Tests:**
@@ -545,7 +553,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
         - the switch off deals once;
         - worker failure per mode;
       - the contract suite;
-      - `tests/unit/features/game/startRestart.test.ts`: the difficulty is read at start, and changing it afterwards leaves the game alone.
+      - `tests/unit/features/game/startRestart.test.ts`: the Difficulty is read at start, and changing it afterwards leaves the game and its grade alone.
     - **Verify:** `rtk npx vitest run tests/unit/features` passes.
 
 - [ ] 9.2 Solver hints in every mode
@@ -558,9 +566,10 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 - [ ] 9.3 The deal pool
     - **Implements:** DS "Instant deals from a pre-verified pool" (the pool's own behaviour); D8.
-    - **Files:** new `src/features/deal/dealPool.ts` (a FIFO per `mode:difficulty`, at most 2, fill one at a time, pause and resume, error drops only the fill in flight, dispose), `src/features/README.md`.
-    - **Tests:** new `tests/unit/features/deal/dealPool.test.ts`, with a stub worker, fake timers and an injected seed source:
-      - the selected key fills first;
+    - **Files:** new `src/features/deal/dealPool.ts` (`createDealPool`; it takes the `SolverClient` the service builds, D8): a FIFO per `mode:target`, at most 2, filling one at a time and only the current choice, pooling whatever `findWinnable` returns (a `random` fallback included, never retried), pause and resume, a failure drops only the fill in flight, dispose; `src/features/README.md`.
+    - **Tests:** new `tests/unit/features/deal/dealPool.test.ts`, with a `SolverClient` over a stub worker, fake timers and an injected seed source:
+      - only the current choice fills, and a change of choice moves the next fill;
+      - a `random` result is pooled once with its label and no grade, and is not searched again;
       - oldest first, and each deal is taken once;
       - it refills after use;
       - pause stops new fills but keeps the fill in flight;
@@ -572,7 +581,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 - [ ] 9.4 The deal service serves from the pool
     - **Implements:** DS "Instant deals from a pre-verified pool" (delivery, timing) and "A newer request wins" (the pool is never cancelled); KS-PERF-02 (warm deals).
     - **Files:**
-      - `src/features/deal/dealService.ts` (a second `SolverClient` for the pool, `prefetch(choice)`, `pause()`, delivery from the pool with no progress reports);
+      - `src/features/deal/dealService.ts` (a second `SolverClient` for the pool, built with the same `createSolverClient(createWorker)` and passed to `createDealPool`; `prefetch(choice)`, `pause()`; delivery from the pool with no progress reports);
       - `src/app/thunkExtra.ts` (the `DealService` type);
       - `tests/fixtures/dealService.ts` (the fake gains `prefetch` and `pause`);
       - `src/features/README.md`.
@@ -591,8 +600,9 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 - [ ] 9.5 The pool follows the player's choice
     - **Implements:** DS "The pool follows the player's choice" and "Instant deals from a pre-verified pool" (a hidden page pauses); D8.
     - **Files:**
-      - new `src/app/dealPoolController.ts` (subscribes to `selectedMode`, `winnableOnly`, `difficulty` and document visibility; starts after the first idle period through an injected scheduler);
+      - new `src/app/dealPoolController.ts` (subscribes to `selectedMode`, `winnableOnly`, `difficulty` and document visibility; starts after the first idle period through an injected scheduler whose default uses `requestIdleCallback(cb, { timeout: 2000 })` where it exists and `setTimeout(cb, 2000)` otherwise, D8);
       - `src/app/lifecycle.tsx` starts and stops it;
+      - `tests/e2e/dealLatency.spec.ts` (`:97`) and `tests/e2e/pwa.spec.ts` (`:85`): once the pool worker exists, identify the player's solver worker by creation order and request type instead of taking the first `worker` event;
       - `docs/architecture/data-flows.md` (the pool sequence, in mermaid);
       - `docs/architecture/state-and-persistence.md`.
     - **Tests:**
@@ -602,15 +612,16 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
         - Daily or the switch off stops filling;
         - hidden pauses and visible resumes;
         - nothing starts before the idle signal;
+        - the default scheduler uses `requestIdleCallback` when present and falls back to a 2 s timer when it is absent;
       - `tests/component/appLifecycle.wiring.test.tsx` (injected gateway): the controller starts and is disposed.
-    - **Verify:** `rtk npx vitest run tests/unit/app tests/component/appLifecycle.wiring.test.tsx` and `rtk npm run validate:lifecycle-storage` pass.
+    - **Verify:** `rtk npx vitest run tests/unit/app tests/component/appLifecycle.wiring.test.tsx`, `rtk npm run validate:lifecycle-storage` and the full `rtk npm run e2e` pass (the App composition changes and a second worker now starts).
 
 ## 10. Difficulty and all-mode UI
 
 - [ ] 10.1 The Winnable card in every mode, with the Difficulty control
     - **Implements:** HO "Winnable deals only switch" (KS-DEAL-03, KS-DEAL-11); D11.
     - **Files:**
-      - `src/ui/components/Segmented.tsx` (`disabled`, the radio group semantics if they are not there yet, and a coarse-pointer target of at least 44×44 px);
+      - `src/ui/components/Segmented.tsx` (gains `disabled`; it already has the `radiogroup` and `radio` roles and a roving tabindex; each option keeps a coarse-pointer target of at least 44×44 px);
       - `src/ui/screens/home/WinnableToggle.tsx`;
       - `src/ui/styles/home.css` and `controls.css`;
       - `src/i18n/locales/{en,uk}.ts` (difficulty labels; captions that replace `home.winnable.captionDraw1`, `captionSolver` and `captionDaily`);
@@ -643,13 +654,14 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 - [ ] 10.3 The Win sheet shows the grade
     - **Implements:** SH "Win sheet"; IN "Win summary".
     - **Files:**
-      - `src/features/interaction/interactionSlice.ts:12-19` (`WinSummary.difficulty`);
-      - the win-summary builder in `src/features/game/gameThunks.ts`;
-      - `src/ui/sheets/WinSheet.tsx`. The title uses the pixel typeface, as the SH requirement states; today it uses the body typeface;
+      - `src/features/interaction/interactionSlice.ts:12-19` (`WinSummary.grade`);
+      - the win-summary builder in `src/features/game/gameThunks.ts` (`commitCommand`, `:86-94`);
+      - `src/ui/sheets/WinSheet.tsx`;
+      - the title's typeface: the Win title is the shared `ModalSheet` `<h2>` (`ModalSheet.tsx:128`), styled by `.modal-sheet__header h2` in `src/ui/styles/sheets.css:40`, which sets no font. Add a Win-only title variant (a `ModalSheet` prop or a Win sheet class) so the title uses the pixel typeface, as SH "Win sheet" states, and no other sheet changes;
       - the catalogs.
     - **Tests:**
       - `tests/unit/features/interaction/winSummary.test.ts` (the grade, or none);
-      - `tests/component/sheets/win.test.tsx` ("Hard deal" is shown; nothing for an ungraded game; the title is in the pixel typeface class).
+      - `tests/component/sheets/win.test.tsx` ("Hard deal" is shown; nothing for an ungraded game; a restarted graded game that is won still shows its grade; the Win title carries the pixel-typeface class and other sheets' titles do not).
     - **Verify:** `rtk npx vitest run tests/unit/features/interaction tests/component/sheets` passes.
 
 - [ ] 10.4 How to play explains Winnable deals and the grades
@@ -663,7 +675,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 - [ ] 11.1 Winning-line fixtures for Draw 3, Vegas and Daily
     - **Implements:** RF "Input is proven end to end" (fixtures); D16.
     - **Files:**
-      - `tests/fixtures/deals.ts`: new `DRAW3_LINE`, `VEGAS_LINE` and `DAILY_LINE`. Each is the shortest line among the first winnable seeds that has no foundation → column move. Daily uses a golden date's seed;
+      - `tests/fixtures/deals.ts`: new `DRAW3_LINE`, `VEGAS_LINE` and `DAILY_LINE`. Each is the shortest line with no foundation → column move among the winnable seeds 1–50 of its mode. Daily uses a golden date's seed from `tests/fixtures/dailyGolden.ts`;
       - new `tests/unit/fixtures/winningLines.test.ts`;
       - `tests/README.md` (the generation recipe).
     - **Tests:** every line, including `WINNING_LINE`, replays through `applyCommand` to a won state, with the recorded moves, score and passes, without the solver.
@@ -675,10 +687,11 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - new `tests/e2e/playModes.spec.ts`:
         - Draw 3 by keyboard;
         - Vegas by drag;
-        - Daily by tap, started from Home under `page.clock` on the golden date so that the real worker selects the seed;
-      - `tests/e2e/playBy{Tap,Drag,Keyboard}.spec.ts` stop skipping Firefox, WebKit and one touch project where the input exists;
-      - `tests/e2e/support/{play,seed}.ts` (the line parameter, and `d` steps as stock taps or the draw key);
-      - `tests/unit/e2e-support/lineGestures.test.ts`.
+        - Daily by tap, started from Home under `page.clock.setFixedTime` on the golden date (Date only; timers and the worker run normally) so that the real worker selects the seed;
+      - `tests/e2e/playBy{Tap,Drag,Keyboard}.spec.ts` stop skipping Firefox, WebKit and `iphone-17-pro` (today they are Chromium-only);
+      - `tests/unit/repo/playwrightProjects.test.ts` (`:9-17`, `:38`): the Chromium-only list and skip guards change with them;
+      - `tests/e2e/support/play.ts`: `playLine` already plays any command line and turns draws into stock taps or the draw key; only `seedWinningGame` (`:36-41`), which is tied to `WINNING_LINE`, gains a line parameter;
+      - `tests/unit/e2e-support/lineGestures.test.ts` only if a gesture plan changes.
     - **Tests:** the Win sheet appears with the expected moves and score in each mode. Animations are off in these specs.
     - **Verify:** `rtk npx playwright test playModes playByTap playByDrag playByKeyboard --project=chromium --project=firefox --project=webkit --project=iphone-17-pro` passes.
 
@@ -694,24 +707,25 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - an unknown KS id in a test or a manual check fails;
       - uncovered ids are listed but do not fail yet (a `STRICT = false` constant);
       - a delta-only id cited by a test is accepted and leaves the matrix unchanged;
+      - the informational list of delta-only ids that no test or manual check declares names such an id without failing (D17);
       - running the generator twice changes nothing, and Prettier leaves its output unchanged.
     - **Verify:** `rtk npx vitest run tests/unit/repo` passes, and `rtk npm run trace` followed by `rtk npm run format:check` reports no change.
 
 - [ ] 11.4 Annotate the deal, move, scoring and assistance tests
-    - **Implements:** RF "Requirement traceability is generated and checked" (coverage). KS-DEAL, KS-MOVE, KS-SCO, KS-AST.
-    - **Files:** `// covers:` comments only, in `tests/unit/{domain,solver,features/deal,features/game,features/interaction}/**`, the matching `tests/e2e/*.spec.ts`, and the regenerated `docs/reference/traceability.md`.
+    - **Implements:** RF "Requirement traceability is generated and checked" (coverage). KS-DEAL, KS-MOVE, KS-SCO, KS-AST, including this change's delta-only KS-DEAL-11 (grading, target selection, the grade in state and UI) and KS-DEAL-12 (the pool).
+    - **Files:** `// covers:` comments only, in `tests/unit/{domain,solver,features/deal,features/game,features/interaction}/**`, the matching `tests/e2e/*.spec.ts` and component tests for the new ids, and the regenerated `docs/reference/traceability.md`.
     - **Tests:** no assertion changes. A comment is added only where the test really proves that id.
-    - **Verify:** `rtk npm run trace` shows no uncovered KS-DEAL, KS-MOVE, KS-SCO or KS-AST id, or lists the gaps for 11.7. `rtk npx vitest run tests/unit/repo` passes.
+    - **Verify:** `rtk npm run trace` shows no uncovered KS-DEAL, KS-MOVE, KS-SCO or KS-AST id, or lists the gaps for 11.7, and KS-DEAL-11 and KS-DEAL-12 are absent from the informational delta-only list. `rtk npx vitest run tests/unit/repo` passes.
 
 - [ ] 11.5 Annotate the input, accessibility, general and settings tests
-    - **Implements:** RF traceability (coverage). KS-INP, KS-A11Y, KS-GEN, KS-SET.
+    - **Implements:** RF traceability (coverage). KS-INP, KS-A11Y, KS-GEN, KS-SET, including the delta-only KS-GEN-11 (build identity: `buildInfo`, `buildStamp`, About and the Home stamp tests).
     - **Files:** `// covers:` comments in `tests/component/**`, `tests/unit/ui/**`, `tests/e2e/**` and `tests/unit/features/preferences/**`, plus the regenerated matrix.
     - **Verify:** as 11.4, for these prefixes.
 
 - [ ] 11.6 Annotate the persistence, PWA, i18n, statistics and performance tests, and list the manual checks
     - **Implements:** RF traceability (coverage); RF "Performance and installability are checked manually and recorded" (the list).
     - **Files:**
-      - `// covers:` comments in `tests/unit/{features/persistence,features/stats,pwa,i18n,app}/**` and the matching e2e specs;
+      - `// covers:` comments in `tests/unit/{features/persistence,features/stats,pwa,i18n,app}/**` and the matching e2e specs, including the delta-only KS-PER-06 (the v1 upgrade in `recordCodec`, `sessionCodec`, `persistenceLoader` and `storage.spec.ts`);
       - `docs/reference/manual-checks.md` rows for KS-PERF-01, KS-PERF-02, KS-PERF-03 with KS-PWA-02, the real-device fit (KS-GEN-03, KS-GEN-05, KS-GEN-10) and KS-INP-10, each with procedure, target and result columns;
       - the regenerated matrix.
     - **Verify:** as 11.4, for these prefixes.
@@ -725,8 +739,8 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 - [ ] 11.8 Make the traceability guard strict
     - **Implements:** RF "Requirement traceability is generated and checked" (strict).
     - **Files:** `tests/unit/repo/traceability.test.ts` (`STRICT = true`), `docs/development/testing.md`.
-    - **Tests:** the guard fails when a fixture matrix has an uncovered main-spec id. The new ids KS-DEAL-11, KS-DEAL-12, KS-PER-06 and KS-GEN-11 are enforced once 14.4 syncs them into the main specs.
-    - **Verify:** `rtk npm run validate` passes.
+    - **Tests:** the guard fails when a fixture matrix has an uncovered main-spec id. The new ids KS-DEAL-11, KS-DEAL-12, KS-PER-06 and KS-GEN-11 join the strict rule once 14.4 syncs them into the main specs, so this task makes sure they are already covered.
+    - **Verify:** `rtk npm run validate` passes, and the guard's informational delta-only list is empty (each of the four new ids is declared by at least one test).
 
 - [ ] 11.9 Informational drag-performance trace
     - **Implements:** RF "Performance and installability are checked manually and recorded" (the trace) and "Test suites separated by execution layer" (a Chromium-only spec); KS-PERF-01.
@@ -743,9 +757,8 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/e2e/dealLatency.spec.ts`:
         - per mode, on demand with a fresh page;
         - warm pool deals against the 100 ms target. The spec knows the pool is warm by wrapping `postMessage` in the pool worker through `worker.evaluate` and counting its `findWinnable` replies, never by a fixed wait;
-        - for information, Draw 1 with difficulty Hard, and Draw 1 while a pre-verification is in flight;
-        - the pool worker must not be mistaken for the player worker (identify workers by creation order and request type);
-      - `tests/e2e/pwa.spec.ts` if its `waitForEvent('worker')` assumptions change;
+        - for information, Draw 1 with target Hard, and Draw 1 while a pre-verification is in flight;
+        - the player's worker is identified as task 9.5 set up (creation order and request type);
       - `tests/README.md` (recorded results).
     - **Verify:** `rtk npx playwright test dealLatency pwa --project=chromium` passes and prints every path.
 
@@ -819,6 +832,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Implements:** RF "No references to the retired spec pack" (the folder is gone; the guard); the proposal's constitution changes (principle 10, the source-of-truth order).
     - **Files:**
       - delete `docs/spec/**`;
+      - `.prettierignore`: remove the `docs/spec/` line that 2.12 left;
       - `AGENTS.md`:
         - "Source of truth": code, configuration, tests and CI, then `openspec/specs`, then `docs/`;
         - the repository layout;
@@ -828,50 +842,58 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `openspec/config.yaml`: `context`, and `rules` (the KS rule points at KS ids in `openspec/specs`, and the proposal rule no longer cites the phase plan);
       - `README.md:59`, `docs/README.md:49-55`, `docs/development/workflow.md:34`, `docs/development/project-structure.md:11`, `docs/architecture/overview.md:69`, `docs/reference/game-rules.md:3-4`;
       - new `tests/unit/repo/noSpecPack.test.ts`:
-        - it scans tracked files;
+        - it scans tracked and new files (`git ls-files -co --exclude-standard`) for exactly the D18 patterns: `docs/spec`, `klondike-mockup`, `specification.md`, `research.md`, `phased-design`, `R§`, `spec §` and `specification §` (not the bare word "mockup");
         - it exempts `openspec/changes/**`, revision-pinned references and its own source;
         - `openspec/specs/**` stays exempt until 14.4;
         - it fails if the folder exists.
-    - **Tests:** the new guard. A fixture file with an `R§` citation fails, and a revision-pinned citation passes.
-    - **Before adding the guard:** run a repo-wide `rg -n "docs/spec|klondike-mockup|R§|phased-design|research\.md|specification\.md" --glob '!openspec/changes/**' --glob '!openspec/specs/**'` and fix every hit, including docs written earlier in this change.
+    - **Tests:** the new guard. A fixture file with an `R§` or a `spec §3.2` citation fails, and a revision-pinned citation passes.
+    - **Before adding the guard:** run a repo-wide `rg -n "docs/spec|klondike-mockup|R§|spec §|specification §|phased-design|research\.md|specification\.md" --glob '!openspec/changes/**' --glob '!openspec/specs/**'` and fix every hit, including docs written earlier in this change.
     - **Verify:** `rtk npm run validate` passes, and `test -d docs/spec` fails.
 
-- [ ] 13.4 Format the maintained docs
-    - **Implements:** RF "Deterministic source formatting" ("Maintained docs are checked").
-    - **Files:** `.prettierignore` (stop excluding `docs/`; keep `openspec/`, the lockfile and build output excluded), `docs/**/*.md` (formatted), `tests/unit/repo/configContract.test.ts` if it pins the ignore list.
-    - **Verify:** `rtk npm run format:check` passes with `docs/` included.
-
-- [ ] 13.5 Architecture docs and module READMEs match the code, and a docs-link test
-    - **Implements:** RF "Maintained documentation links resolve"; constitution 9.
+- [ ] 13.4 A docs-link test, and the broken links it finds
+    - **Implements:** RF "Maintained documentation links resolve".
     - **Files:**
-      - `docs/architecture/{overview,domain-and-solver,state-and-persistence,ui,i18n-and-pwa,data-flows}.md`, with cited paths and symbols checked, and mermaid diagrams for the layers, the deal pool and the storage upgrade;
-      - `src/{domain,solver,features,i18n,pwa,ui}/README.md`;
-      - new `tests/unit/repo/docsLinks.test.ts`: relative Markdown links, and inline-code paths starting with `src/`, `tests/`, `docs/`, `scripts/`, `public/`, `openspec/` or `.github/` (including `path#symbol`), resolve in the README, the changelog, `docs/**`, the module READMEs and `AGENTS.md`. Globs, brace lists, `<placeholders>`, generated folders (`dist/`, `coverage/`, `playwright-report/`, `test-results/`) and `https://` links are skipped.
-    - **Tests:** the new docs-link test. A fixture doc with a broken link fails.
+      - new `tests/unit/repo/docsLinks.test.ts`: relative Markdown links, and inline-code paths starting with `src/`, `tests/`, `docs/`, `scripts/`, `public/`, `openspec/` or `.github/` (including `path#symbol`), resolve in `README.md`, `CHANGELOG.md` once it exists (13.9), `docs/**`, the module READMEs under `src/` and `tests/`, and `AGENTS.md`. Globs, brace lists, `<placeholders>`, generated folders (`dist/`, `coverage/`, `playwright-report/`, `test-results/`) and `https://` links are skipped;
+      - only the broken links and stale paths the test reports, wherever they are; content rewrites belong to 13.5–13.7.
+    - **Tests:** the new docs-link test. A fixture doc with a broken link fails, and it names the file, line and target.
     - **Verify:** `rtk npx vitest run tests/unit/repo` passes.
 
-- [ ] 13.6 Development and reference docs, the docs index and the tests README match the code
+- [ ] 13.5 Architecture docs and module READMEs match the code
+    - **Implements:** constitution 9 (docs are part of the change); RF "Maintained documentation links resolve" (kept green).
+    - **Files:**
+      - `docs/architecture/{overview,domain-and-solver,state-and-persistence,ui,i18n-and-pwa,data-flows}.md`, with cited paths and symbols checked, and mermaid diagrams for the layers, the deal pool and the storage upgrade;
+      - `src/{domain,solver,features,i18n,pwa,ui}/README.md`.
+    - **Verify:** the docs-link test and `rtk npm run format:check` pass.
+
+- [ ] 13.6 Development docs and the docs index match the code
     - **Implements:** constitution 9 (docs are part of the change).
     - **Files:**
       - `docs/README.md` (the index and reading order, with no spec-pack section);
-      - `docs/development/{getting-started,project-structure,workflow,code-standards,testing,ci-and-deployment}.md`;
-      - `docs/reference/{scripts,keyboard-and-controls,game-rules,storage-format}.md`;
-      - `tests/README.md`.
-    - **Verify:** the docs-link test and `rtk npm run format:check` pass. Every npm script in `package.json` appears in `docs/reference/scripts.md`, checked by `configContract.test.ts` if such a check exists; otherwise add one.
+      - `docs/development/{getting-started,project-structure,workflow,code-standards,testing,ci-and-deployment}.md`.
+    - **Verify:** the docs-link test and `rtk npm run format:check` pass.
 
-- [ ] 13.7 README
+- [ ] 13.7 Reference docs and the tests README match the code
+    - **Implements:** constitution 9 (docs are part of the change).
+    - **Files:**
+      - `docs/reference/{scripts,keyboard-and-controls,game-rules,storage-format}.md`;
+      - `tests/README.md` (including the stale "twelve" visual-parity note at `:125`);
+      - `tests/unit/repo/configContract.test.ts`: a new check that every npm script in `package.json` appears in `docs/reference/scripts.md` (no such check exists today).
+    - **Tests:** the new script-documentation check.
+    - **Verify:** the docs-link test, `rtk npx vitest run tests/unit/repo` and `rtk npm run format:check` pass.
+
+- [ ] 13.8 README
     - **Implements:** RF "Committed reference screenshots are the look-and-feel reference" (the README uses them); Phase 10 README.
     - **Files:** `README.md`: what the game is, the features (modes, winnable and graded deals, instant deals, offline and install, languages, accessibility), the screenshots from `docs/assets/screenshots/`, the Pages link, the commands and the docs map.
     - **Verify:** the docs-link test passes, and the README renders with every image resolving.
 
-- [ ] 13.8 Version 1.0.0, the changelog and the release procedure
+- [ ] 13.9 Version 1.0.0, the changelog and the release procedure
     - **Implements:** RF "Releases are versioned and recorded"; D20.
     - **Files:**
       - `package.json` and `package-lock.json` (the root version 1.0.0);
       - new `CHANGELOG.md` (1.0.0 with date and highlights of Phases 1–11, describing the retired pack in words, not by path);
       - new `docs/development/release.md`;
-      - `docs/development/ci-and-deployment.md`, `AGENTS.md` ("Git and review" points to the procedure).
-    - **Tests:** `tests/component/sheets/about.test.tsx` shows version 1.0.0 through the define, and `configContract.test.ts` checks that the version is valid semver.
+      - `docs/development/ci-and-deployment.md` (the procedure link, and the resolved integration-branch TODO at `:155`), `AGENTS.md` ("Git and review" points to the procedure).
+    - **Tests:** `tests/unit/repo/configContract.test.ts` checks that the version is 1.0.0, valid semver, and equal to the lockfile's root entry. `tests/component/sheets/about.test.tsx` keeps asserting its Vitest fallback, because Vitest defines no `__APP_VERSION__` (D20).
     - **Verify:** `rtk npm run validate` passes.
 
 ## 14. Integration checks
@@ -901,14 +923,16 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - there are no spec-pack references;
       - every string comes from the catalogs;
       - every animation has a no-motion path;
-      - no test mocks our own modules beyond the two justified ones.
+      - no test mocks our own modules beyond the three justified ones (2.9);
+      - the deal's grade is named `grade` in data, and `difficulty` only names the preference (D9);
+      - stored undo and redo steps carry no provenance of their own (D9, D10).
     - **Verify:** no open Blocking or Important findings, and every fix is committed after `rtk npm run validate`.
 
 - [ ] 14.4 Archive readiness: sync the specs, the editorial pass, and a strict guard
     - **Implements:** RF "No references to the retired spec pack" (main specs included); D18 (the editorial pass).
     - **Steps:**
-      1. Run `openspec validate finalize-v1-release --strict`, then `openspec sync` (the `openspec-sync-specs` skill).
-      2. Edit `openspec/specs/**` directly, for non-normative citations only. That means `spec §n`, `R§n` and "from the mockup" footnotes. It also means the `## Purpose` lines of `ui/home-screen`, `ui/board-assist` and `features/preferences`, and the "phased-design" mention in `features/interaction`. Keep every KS id.
+      1. Run `openspec validate finalize-v1-release --strict`, then sync the delta specs into the main specs with the `openspec-sync-specs` skill (sync is not a CLI command).
+      2. Edit `openspec/specs/**` directly, for non-normative citations only: every footnote that still cites `spec §n`, `specification §n`, `R§n`, `phased-design` or "the mockup" (in `ui/{game-screen,sheets,board-render,board-layout,board-motion,win-cascade}`, `app/appearance`, `features/{statistics,game-session,interaction}` and any other hit of the verify `rg`), and the `## Purpose` lines of `ui/home-screen`, `ui/board-assist` and `features/preferences`. Keep every KS id.
       3. Remove the `openspec/specs/**` exemption from `tests/unit/repo/noSpecPack.test.ts`.
       4. Regenerate the traceability matrix.
     - **Verify:**

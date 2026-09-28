@@ -17,8 +17,8 @@ did. The groups follow the order the author asked for:
 What is wrong or missing today:
 - **The build stamp is empty on Pages.** Both workflows set `BUILD_TIMESTAMP: ${{ github.run_started_at }}`.
   That is not a property of the `github` context, so it evaluates to `""`, and `vite.config.ts`
-  (`?? 'dev version'`) keeps the empty string. The live bundle renders "Build:" with nothing after it,
-  and no build number exists at all.
+  (`?? 'dev version'`) keeps the empty string. The live bundle renders "App build:" with nothing after
+  it, and no build number exists at all.
 - **Only Draw 1 deals can be proven winnable.** The solver models the stock and waste as an unordered
   set, which only holds for Draw 1 with unlimited passes. Draw 3 and Vegas are always dealt at random, and
   Home says so.
@@ -54,13 +54,13 @@ What is wrong or missing today:
 
 `design.md` (D1–D20) says how each item is built. This section says only what changes.
 
-- **Stale agent instructions (group 1).**
+- **Stale agent instructions (tasks section 1).**
   - `AGENTS.md`, `docs/development/workflow.md` and `openspec/config.yaml` stop naming the merged
     `feature/app-v1-implementation` branch and the old phase status.
   - This change runs on `feature/finalize-v1-release`, cut from the new integration branch
     `feature/app-v1-release`, which reaches `master` by pull request.
-- **Quality work with no behaviour change (group 2).** Each item keeps the existing suites green and adds
-  its own test:
+- **Quality work with no behaviour change (tasks section 2).** Each item keeps the existing suites green
+  and adds its own test:
   - coverage thresholds enforced by `validate`;
   - one thunk-dependency assembly;
   - dead selectors and actions removed;
@@ -68,11 +68,12 @@ What is wrong or missing today:
   - engine updates without casts;
   - one pile identity for the board;
   - the sheet, settings and shortcut tidy-ups, including no `data-testid` in production markup;
-  - card-back swatches read from the tokens;
   - `playDealCode` moves beside the other session thunks;
   - test hygiene: no module mocks of our own code, one `matchMedia` fake;
   - a shared deal-service contract suite for the real service and the test fake;
-  - an import guard for features → app.
+  - an import guard for features → app;
+  - the maintained docs are formatted and checked by `format:check` from the start of the change (the
+    spec pack stays excluded until it is deleted).
 - **Build identity.**
   - Home and About show the CI **build number** and the **UTC build date and time**, fixed when the app
     is built.
@@ -148,7 +149,6 @@ What is wrong or missing today:
   - Facts that still apply move to `docs/reference/` and `docs/architecture/`.
   - Requirements whose normative text depended on the mockup or the pack are rewritten to stand alone.
   - A guard test forbids references to the pack.
-  - Maintained docs are formatted by `format:check`.
 - **Documentation and release (Phase 10).**
   - Architecture, development and reference docs, module READMEs, the README (with screenshots) and
     `AGENTS.md` match the code.
@@ -235,7 +235,7 @@ What is wrong or missing today:
   - new `talon.ts` (talon stepping and reachable tops);
   - `engine.ts` uses it;
   - `deadEnd.ts`, `validate.ts` and `hint.ts` (hint candidates) change;
-  - `types.ts` and `deal.ts` gain the `difficulty` provenance field and one exported mode list.
+  - `types.ts` and `deal.ts` gain the `grade` provenance field and one exported mode list.
   - The layer stays pure.
 - **`src/solver`:**
   - new `ordered.ts` (ordered-talon search), `search.ts` (routes by mode) and `grading.ts` (playouts and

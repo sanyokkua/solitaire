@@ -47,8 +47,11 @@ checked against the code.
   - `hint.ts#findMove` returns only the first move of the best priority.
 - **Persistence.**
   - `recordCodec.ts` has one `RECORD_VERSION = 1`, and anything above it is `future`.
-  - Preferences and games are decoded with exact key sets (`PREFERENCE_KEYS`, and `GAME_KEYS` in
-    `sessionCodec.ts`).
+  - Preferences and games are decoded with exact key sets (`PREFERENCE_KEYS`, 12 keys, and the 17
+    `GAME_KEYS` in `sessionCodec.ts`).
+  - A stored undo or redo step keeps only the 10 `STEP_KEYS` (piles, score, moves, passes, time, undos,
+    started). The deal constants (seed, mode, draw, scoring, verdict, attempts) are copied from the
+    stored game when a step is decoded, so every step belongs to the same deal by construction.
   - A readable record never touches the backup key. An occupied backup key switches saving off after a
     later unreadable record (`persistenceLoader.ts:19-25`).
 - **Build identity.**
@@ -58,8 +61,9 @@ checked against the code.
 - **Icons.**
   - `scripts/generate-icons.mjs` hand-encodes PNGs with `node:zlib`. It has no dependencies and no SVG
     source.
-  - `tests/unit/repo/icons.test.ts` requires the committed PNGs to be byte-equal to a fresh render, and
-    checks the maskable safe zone against the `#0b2545` background.
+  - The script also emits `public/favicon.svg`. `tests/unit/repo/icons.test.ts` requires every
+    committed output (the PNGs and `favicon.svg`) to be byte-equal to a fresh render, and checks that the
+    maskable mark stays within a 10% margin square on the `#0b2545` background.
 - **Tests.**
   - Only 3 of the 84 KS ids appear in test code. The openspec specs cite all 84 as `*(KS-…)*` notes.
   - End-to-end wins exist only for Draw 1 (`WINNING_LINE`, seed 49, 117 commands). The Phase 9 edge cases
@@ -67,8 +71,9 @@ checked against the code.
   - Coverage thresholds exist in the Vitest config, but `validate` never runs coverage.
 - **Docs.**
   - `.prettierignore` excludes all of `docs/`.
-  - No code, test, script or workflow reads `docs/spec`. Only prose, links, and about 50 requirement
-    texts or footnotes in `openspec/specs` cite it or the mockup.
+  - No code, test, script or workflow reads `docs/spec`. Only prose, links, and about 75 lines across 19
+    main specs in `openspec/specs` cite it or the mockup. Every citation inside normative (SHALL) text
+    sits in a requirement this change MODIFIES; the rest are footnotes and three `## Purpose` lines.
 
 ## Goals / Non-Goals
 
@@ -234,35 +239,52 @@ checked against the code.
   a property test pins that.
   - Candidates use only visible cards: face-up runs, the waste top and the foundation heights.
   - A test checks that permuting the hidden cards among themselves never changes the candidates.
-- **Playout player** (`src/solver/grading.ts`):
-  - At each step it takes the candidates and picks the first one with a fixed probability. Otherwise it
-    picks a later one, weighted toward higher priority.
-  - With a small probability it draws even though a move exists, as people do.
-  - It draws when it has nothing to play, and recycles when the pass limit allows.
-  - It stops:
-    - at a win;
-    - when nothing is left;
-    - after a full talon cycle with no board move (a stall);
-    - at a step cap.
-  - Randomness is `mulberry32(mix(dealSeed, playoutIndex))` and nothing else.
+- **Playout player** (`src/solver/grading.ts`). Its parameters are `GRADING_V1`, and the
+  `solver/deal-grading` delta holds their values:
+
+  | Parameter | Initial value | Tuned by task 7.3 |
+  | --- | --- | --- |
+  | Playouts per deal, N | 16 | yes, down to 8 if cost requires |
+  | Take probability | 0.6 | yes |
+  | Unforced-draw probability | 0.05 | yes |
+  | Step cap | 1,000 commands | no |
+  | Thresholds per mode | Easy *w* ≥ 10, Medium 3–9, Hard ≤ 2 | yes |
+
+  - At each step, when a candidate exists and a draw or recycle is also legal, it first draws with the
+    unforced-draw probability (one random value), as people do.
+  - Otherwise it walks the candidates from the first, taking each with the take probability (one random
+    value per candidate visited); the last candidate is taken when reached. This geometric walk favours
+    higher priorities with a single parameter.
+  - With no candidate it draws, and recycles when the pass limit allows.
+  - It stops at a win; when no move, draw or recycle is left; at a stall, detected when the talon
+    arrangement (stock and waste ids) repeats since the last board move; or at the step cap.
+  - Randomness is `mulberry32(playoutSeed(dealSeed, i))` and nothing else, with
+    `playoutSeed(s, i) = fmix32((s + Math.imul(i + 1, 0x9e3779b9)) >>> 0)` and `fmix32` the MurmurHash3
+    finalizer (`h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
+    h ^= h >>> 16; return h >>> 0`). Both live in `grading.ts`, so the domain's `crypto` exception and
+    `prng.ts` stay untouched.
 - **Grade.**
-  - N playouts (16 to start) give *w* wins. The per-mode table `GRADING_V1.thresholds[mode]` maps *w* to
-    Easy, Medium or Hard.
-  - The initial values are Easy *w* ≥ 10, Medium 3–9, Hard ≤ 2 in every mode.
+  - N playouts give *w* wins. The per-mode table `GRADING_V1.thresholds[mode]` maps *w* to Easy, Medium
+    or Hard.
   - Daily is graded with the Draw 1 table.
 - **Calibration** (task 7.3).
   - `tests/bench/grading.bench.ts` grades the verified deals of seeds 1–N per mode and reports each
     grade's share and the cost.
-  - The table, and N if the cost demands it (down to 8), are then set so that every grade holds at least
-    about 15% of verified deals in each mode.
-  - The result is pinned in `tests/fixtures/gradingGolden.ts` and in the Daily golden dates.
-  - Changing N, the policy or the table creates a new grading version.
-- **Where it runs.** Grading runs in the worker, only after a `win`, and costs roughly N × 200 cheap
-  steps.
+  - Only the parameters marked "yes" above may change, so that every grade holds at least 15% of
+    verified deals in each mode. Task 7.3 writes the final values back into this table and into the
+    `solver/deal-grading` parameters table.
+  - The result is pinned in `tests/fixtures/gradingGolden.ts` and, by task 7.4, in the Daily golden
+    dates.
+  - After that pin, changing any parameter, the policy or the table creates a new grading version.
+- **Where it runs.** Grading runs in the worker, only after a `win`, and costs at most N × 1,000 engine
+  steps (typically a few hundred per playout).
+- **Latency guard.** Grading adds cost to every winnable deal, Draw 1 with Any included. Task 7.4 re-runs
+  the Draw 1 Any selection benchmark with grading and stops to surface the result if its desktop median
+  or p95 rises by more than 20% over the task 6.5 baseline (KS-PERF-02).
 - **Alternatives rejected.**
   - Counting distinct winning lines: infeasible, because easy deals have millions.
   - Solver node count: it depends on move ordering, not on difficulty for a person.
-  - One greedy playout: that only wins about 13% of Draw 1 seeds (`tests/fixtures/deals.ts:66-68`), too
+  - One greedy playout: that only wins about 13% of Draw 1 seeds (`tests/fixtures/deals.ts:69`), too
     coarse to split into three grades.
 
 ### D7 — Selection with a target grade and an honest fallback
@@ -284,15 +306,19 @@ checked against the code.
 ### D8 — The instant-deal pool lives on the main thread, with its own worker
 
 - **Where it lives.** `src/features/deal/dealPool.ts` is created inside the deal service.
-  - It owns a second `SolverClient`, built by the same `createSolverClient(defaultCreateWorker)`. That
-    means the same bundled worker chunk, and no change to `validate-artifact`.
-  - It keeps a FIFO of pre-verified outcomes, at most 2, keyed by `mode:difficulty`.
-  - It fills one deal at a time with an ordinary `findWinnable` request: fresh crypto seeds, the same
-    budgets and grading as a requested deal. So a pooled deal's provenance means exactly what an
-    on-demand one means.
+  - The deal service builds a second `SolverClient` with the same `createSolverClient(createWorker)` it
+    uses for the player, and passes it to `createDealPool`. That means the same bundled worker chunk,
+    no change to `validate-artifact`, and a stub worker in the pool's own tests.
+  - It keeps a FIFO of pre-verified outcomes, at most 2, keyed by `mode:target`.
+  - It fills one deal at a time, only for the current choice, with an ordinary `findWinnable` request:
+    fresh crypto seeds, the same budgets and grading as a requested deal. So a pooled deal's provenance
+    means exactly what an on-demand one means.
+  - It keeps whatever the request returns. A `random` fallback is pooled with its honest label, as an
+    on-demand request would have dealt it, and there is no retry loop.
 - **Control.**
-  - `dealService.prefetch(choice)` sets the key to fill first and starts filling. `pause()` stops it after
-    the request in flight.
+  - `dealService.prefetch(choice)` sets the current choice (mode, switch, target) and starts filling it;
+    a choice that is Daily or has the switch off stops filling. `pause()` stops it after the request in
+    flight.
   - Filling also pauses by itself while a player's deal is pending.
   - `deal()` takes from the pool first when the switch is on and the mode is not Daily. A pooled deal is
     delivered at once, with no progress and no overlay, and a refill is scheduled.
@@ -301,10 +327,18 @@ checked against the code.
     no notice is shown, and the next fill starts a new worker. The player path is unaffected.
 - **Controller.** `src/app/dealPoolController.ts` is started by `lifecycle.tsx` after the first idle
   period, through an injected scheduler, so it does not affect Lighthouse's first load.
+  - The default scheduler uses `requestIdleCallback(cb, { timeout: 2000 })` where it exists and
+    `setTimeout(cb, 2000)` otherwise, because WebKit and Safari have not reliably shipped
+    `requestIdleCallback`, and three of the seven e2e projects are WebKit.
   - It calls `prefetch` whenever `selectedMode`, `winnableOnly` or `difficulty` change, or the page
     becomes visible.
   - It calls `pause` when the page is hidden.
-  - `ThunkExtra` keeps its shape; `DealService` gains `prefetch` and `pause`.
+  - `ThunkExtra` keeps its shape; `DealService` gains `prefetch` and `pause`. Only the controller calls
+    them; the thunks keep using `deal`, `hint` and `dispose`. Splitting the interface for two methods is
+    not worth a second port.
+  - Once the controller runs, the app has two solver workers. The e2e specs that wait for "the" worker
+    (`dealLatency.spec.ts`, `pwa.spec.ts`) must identify the player's worker by creation order and
+    request type; task 9.5 makes that change.
 - **Why not in the worker, as the Phase 11 text says.** The spec requires a stateless worker. Also,
   `cancel()` terminates a busy worker, so a pool held there would be killed by every player deal, and
   hints would queue behind refills.
@@ -313,35 +347,41 @@ checked against the code.
 
 ### D9 — The grade is deal provenance on `GameState`
 
-- **The field.** `GameState.difficulty: 'easy' | 'medium' | 'hard' | null` sits beside `verdict` and
+- **Names.** The deal's grade is `grade` everywhere it is data: `GameState.grade`, `WinSummary.grade`,
+  the protocol's reply and the stored game. `difficulty` names only the player's preference, and `target`
+  the grade a selection request asks for. The specs use the same split ("grade" and "Difficulty").
+- **The field.** `GameState.grade: 'easy' | 'medium' | 'hard' | null` sits beside `verdict` and
   `attempts`.
-  - `dealFromSeed(seed, mode, provenance)` sets it.
+  - `dealFromSeed(seed, mode, meta)` sets it; `DealMeta` gains `grade`.
   - `isValidGameState` requires a known value, and requires `null` unless the verdict is `win`. It also
     requires `passes ≤ passLimit(mode)` (the task 4.1 fix).
 - **Where it is kept.**
   - Restart keeps the grade.
   - `playDealCode` gives `null`, because a code cannot carry provenance.
   - The win summary copies it.
-- **The two slices land together.** `GameState` and the session codec's v2 key set land in **one task**
-  (8.2). Otherwise stored games stop decoding.
+- **The two slices land together.** `GameState` and the session codec's v2 game key set land in **one
+  task** (8.2). Otherwise stored games stop decoding.
+- **Steps inherit it.** `grade` joins `GAME_KEYS` right after `attempts`. `STEP_KEYS` does not change: a
+  decoded step copies `grade` from the stored game, like the other deal constants.
 
 ### D10 — Record v2, with a lossless upgrade from v1
 
 - **Version dispatch.**
   - A parsed record is dispatched on `version`:
-    - `1`: check the exact v1 key sets (12 preferences, the v1 game keys), add the v2 fields
-      (`difficulty: 'any'`, and `difficulty: null` on every game), and only then run the full validity
-      checks (`isValidGameState` and the rest), which require the v2 fields. A readable v1 game is
-      therefore never rejected for lacking a grade;
-    - `2`: decode with the v2 key sets (13 preferences, with `difficulty` last; the game keys plus
-      `difficulty`);
+    - `1`: check the exact v1 key sets (12 preferences, the 17 v1 game keys, the unchanged step keys),
+      add the v2 fields (`difficulty: 'any'` in preferences, `grade: null` on the stored game), and only
+      then run the full validity checks (`isValidGameState` and the rest), which require the v2 fields.
+      A readable v1 game is therefore never rejected for lacking a grade;
+    - `2`: decode with the v2 key sets (13 preferences, with `difficulty` last; 18 game keys, with
+      `grade` after `attempts`; the same step keys);
     - above 2: `future`;
     - anything else: `invalid`.
   - The key lists are versioned constants. There is still one field-by-field decoder, parameterised by
     version, not two copies.
 - **The upgrade.** `upgradeV1` is a total function:
   - `difficulty: 'any'` in preferences;
-  - `difficulty: null` on the current game and every rebuilt step.
+  - `grade: null` on the stored game. The steps need nothing: they are decoded after the game and copy
+    its `grade`.
 
   Nothing is salvaged: a v1 record that fails v1 validation is unreadable as a whole, with a backup, the
   defaults and a notice, exactly as today.
@@ -357,7 +397,8 @@ checked against the code.
 ### D11 — The Difficulty control
 
 - **The control.**
-  - `Segmented` gains `disabled`.
+  - `Segmented` already exposes `radiogroup` and `radio` roles with a roving tabindex; it gains only
+    `disabled`.
   - `WinnableToggle` renders it inside the Winnable card, under the caption, as a radio group named
     "Difficulty": Any, Easy, Medium, Hard.
   - It is enabled only when the switch is on and the mode is not Daily. While disabled it shows the stored
@@ -383,15 +424,22 @@ checked against the code.
 - **Wiring.**
   - `vite.config.ts` defines `__APP_BUILD__` from it.
   - `vitest.config.ts` defines a fixed test value.
-  - `BuildStamp` and About format it with the catalog keys:
-    - `build.label`: "Build {number} · {time}";
-    - `build.dev`: "Development build · {time}".
+  - `BuildStamp` and About format it with the catalog keys. `build.label` stays the wrapper, used as both
+    the visible text and the accessible name ("App build: {value}"; "Збірка: {value}"), and its value is
+    one of:
+    - `build.number`: "Build {number} · {time}";
+    - `build.dev`: "Development build · {time}" (it replaces "dev version").
+
+    So a CI build reads "App build: Build 57 · 2026-09-28 14:03 UTC". The number and time are never
+    translated.
 - **Workflows.** Both drop `BUILD_TIMESTAMP`. GitHub Actions sets `GITHUB_RUN_NUMBER` by itself, so the
   deployed Pages build and the CI end-to-end build both carry a number. Action versions are refreshed from
-  their release pages in the same task (AGENTS.md "GitHub Actions").
+  their release pages in the same task (AGENTS.md "GitHub Actions"); `configContract.test.ts` already
+  requires exact pins.
 - **Tests** cover exactly what was missed before:
   - the `""` case;
   - the define in the config contract;
+  - the Ukrainian stamp, where only the surrounding words change;
   - a stamp that is never empty in the end-to-end check.
 
 ### D14 — A card-fan pixel icon from one geometry
@@ -411,6 +459,9 @@ checked against the code.
   - It matches the retro Press Start 2P look.
   - The previous change decided against rasterising with a browser (D10 there), because the output
     differs between platforms.
+- **The test.** `icons.test.ts` keeps its byte-equality check over every output, `favicon.svg` included.
+  Its maskable check changes from the 10%-margin square to the W3C safe zone, a centred circle whose
+  diameter is 80% of the icon.
 - **After the change**, look at the icon at 16, 32, 180 and 512 px by eye.
 
 ### D15 — Quality work: first, with no behaviour change, and bounded
@@ -422,16 +473,16 @@ test:
 | --- | --- |
 | Coverage | `validate` runs the unit and component suites with coverage, so the 80% thresholds are enforced. If they fail, stop and surface it; never lower the bar |
 | Thunk extra | One `assembleThunkExtra(overrides)` used by `store.ts` and `lifecycle.tsx`. The loader reads `extra.languages` |
-| Dead code | `readOnlyEntered`, `selectBusy` and `selectPendingHint` are removed. `StatsSheet` uses `selectWinRate` |
+| Dead code | `readOnlyEntered`, `selectBusy` and `selectPendingHint` are removed. `StatsSheet` uses `selectWinRate` (a fraction from 0 to 1), formatting it as today's rounded percent and keeping "—" when nothing is played |
 | Single sources | `MODES` in `domain/deal.ts`; `MAX_DAILY_COMPLETED` in `statsSlice`; the codec guards in `persistence/guards.ts`, with `dayKeys` reusing `isDayKey` |
 | Engine casts | `engine.ts:47,53` use a typed tuple update, with no `as unknown as` |
-| Pile identity | One exported `samePile` (from `rules.ts`). `pileKey` moves out of the geometry module. Keyboard hits come from `selectCardLocations` |
-| Sheets and shortcuts | `ModalSheet` gets a default focus fallback and loses `data-testid` (tests use roles); `SheetHost` has an exhaustive map; `SettingsSheet` builds its switch rows from one list; `useGameShortcuts` has one pause guard |
-| Swatches | Card-back swatches read the colours from the tokens |
+| Pile identity | One exported `samePile` (from `rules.ts`). `pileKey` moves from `landing.ts` to `locate.ts`, beside `cardIndex`. Keyboard hits come from `selectCardLocations` |
+| Sheets and shortcuts | `ModalSheet`'s `returnFocusFallback` becomes optional and defaults to `onDismiss`; About, Help, NewDeal and Stats, which pass `dismiss` today, drop it, while Settings, Win, Paused and DealCode keep their own. `ModalSheet` loses `data-testid` (tests find the backdrop through the dialog's parent). `SheetHost` has an exhaustive map; `SettingsSheet` builds its switch rows from one list; `useGameShortcuts` has one pause guard and one auto-repeat check |
 | Session thunks | `playDealCode` moves to `sessionThunks.ts` |
-| Test hygiene | No `vi.mock` of our own modules (outcome or factory-injection tests instead); one `matchMedia` fake; the low-value `savePort` and `testStore` tests are trimmed |
+| Test hygiene | No `vi.mock` or `vi.doMock` of our own modules (outcome or factory-injection tests instead), apart from the three justified ones: `hint.defensive` (the solver entry itself), and the pseudo-locale and third-language catalogs, which register an extra language in the static catalog registry; the existing `tests/support/matchMedia.ts` becomes the only `matchMedia` fake; the low-value `savePort` and `testStore` tests are trimmed |
 | Contract suite | One `DealService` contract suite runs against the real service (stub worker) and the test fake. It replaces `fakeDealService.test.ts` and guards the fake while the service grows |
-| Import guard | A guard for features → app: only the app slice's actions and selectors (including `app/selectors`), the thunk type and the store types |
+| Import guard | A guard for features → app in `layerBoundaries.test.ts`: only the app slice's actions and selectors (including `app/selectors`), the thunk type and the store types. No ESLint entry: the test fails the gate on its own |
+| Docs formatting | `.prettierignore` stops excluding `docs/`, but keeps `docs/spec/` excluded until it is deleted; the maintained docs are formatted, so every doc this change writes is checked by `format:check` and lint-staged |
 
 **Left alone on purpose:**
 - the `ThunkExtra` shape and its narrow ports;
@@ -439,6 +490,9 @@ test:
 - `commitCommand` and `runSequence`;
 - the field-by-field codecs, which give deterministic output with exact keys;
 - `DAILY_V1` kept separate from `MAX_ATTEMPTS`;
+- the card-back swatch colours in `SettingsSheet`: the night-card palette overrides the
+  `--color-back-*` tokens on `:root`, so swatches that read them would all turn the same steel blue and
+  stop showing the choices;
 - the worker, storage, ResizeObserver, WAAPI and pointer-capture test doubles, all of which stand in for
   real boundaries.
 
@@ -450,15 +504,19 @@ test:
     moves.
   - `tests/unit/fixtures/winningLines.test.ts` replays every line through `applyCommand` without the
     solver.
+  - `tests/e2e/support/play.ts#playLine` already plays any command line and turns draws into stock taps
+    or the draw key; only `seedWinningGame` is tied to `WINNING_LINE`.
   - The recipe is written in `tests/README.md`.
 - **The spec.** `tests/e2e/playModes.spec.ts` covers:
   - Draw 1 by tap, drag and keyboard (the existing specs, extended to more projects);
   - Draw 3 by keyboard;
   - Vegas by drag;
-  - Daily by tap: started from Home with `page.clock` fixed on a golden date, so the real worker selects
-    the pinned seed.
+  - Daily by tap: started from Home with `page.clock.setFixedTime` on a golden date, so the app computes
+    that date's candidates while timers and the real worker run normally, and the worker selects the
+    pinned seed.
 
-  Each runs on Chromium, Firefox, WebKit and one touch project.
+  Each runs on Chromium, Firefox, WebKit and one touch project; `playwrightProjects.test.ts` changes with
+  the skip guards.
 - **Speed.** Animations are off in these specs (`animations: false`), which keeps the runtime in bounds.
 
 ### D17 — Traceability is generated and guarded
@@ -478,13 +536,19 @@ test:
   - the committed file differs from a fresh generation;
   - a test claims an unknown id;
   - in strict mode, any main-spec id has neither a test nor a manual check.
+
+  It also lists, for information only, the ids that only active changes' delta specs cite and that no
+  test or manual check declares yet. That list never fails the guard, but it shows before sync which
+  new ids still lack coverage.
 - **Formatting.** The generator writes Prettier-stable Markdown by formatting its output with the
   project's Prettier configuration before writing. The matrix therefore survives `format:check` and the
-  pre-commit hook once `docs/` is formatted (task 13.4).
+  pre-commit hook, because `docs/` is formatted from task 2.12 on.
 - **Regeneration.** From task 11.3 on, any task that changes a `covers:` comment, a main-spec KS citation
   or `manual-checks.md` runs `rtk npm run trace` and commits the matrix.
-- **Two stages.** The guard starts in report mode (task 11.3). Annotation (11.4–11.6) and gap filling
-  (11.7) follow, and then 11.8 switches it to strict.
+- **Two stages.** The guard starts in report mode (task 11.3). Annotation (11.4–11.6), which covers the
+  main-spec ids and this change's four new delta-only ids, and gap filling (11.7) follow. Then 11.8
+  switches it to strict and requires the informational delta-only list to be empty, so the sync in task
+  14.4 cannot uncover a gap.
 - **Where the ids live.** Once `specification.md` is deleted, the KS ids are defined by the requirements
   that cite them. New ids in this change:
   - KS-DEAL-11: difficulty;
@@ -507,15 +571,19 @@ test:
   - Requirements whose normative text depends on the pack or the mockup are MODIFIED in this change's
     deltas and made self-contained. For example, `ui/board-render` "Card faces follow the mockup" is
     renamed "Card faces".
-  - Non-normative footnote citations (`spec §x`, `R§x`) and two `## Purpose` lines (`ui/home-screen`,
-    `ui/board-assist`) get an editorial pass directly in the main specs after `openspec sync` (task 14.4).
-    Carrying about 30 more full MODIFIED copies would duplicate roughly 1,500 lines and invite drift.
-- **Guard.** `tests/unit/repo/noSpecPack.test.ts` scans the tracked files and forbids `docs/spec`,
-  `klondike-mockup`, `R§` and the pack's file names, unless the reference is pinned to a git revision
-  (`<sha>:docs/spec/…`).
+  - Non-normative footnote citations (`spec §x`, `R§x`, `phased-design`, "from the mockup") and three
+    `## Purpose` lines (`ui/home-screen`, `ui/board-assist`, `features/preferences`) get an editorial pass
+    directly in the main specs after the sync (task 14.4). Sync is the `openspec-sync-specs` skill, not a
+    CLI command. Carrying about 30 more full MODIFIED copies would duplicate roughly 1,500 lines and
+    invite drift.
+- **Guard.** `tests/unit/repo/noSpecPack.test.ts` scans the tracked files and forbids exactly these
+  patterns: `docs/spec`, `klondike-mockup`, `specification.md`, `research.md`, `phased-design`, `R§`,
+  `spec §` and `specification §`. A reference pinned to a git revision (`<sha>:docs/spec/…`) is allowed.
+  The bare word "mockup" is not forbidden, because the frozen `src/solver/solver.ts` uses it.
   - `openspec/changes/archive/**` is exempt.
   - `openspec/specs/**` is exempt until task 14.4 includes it.
-- **Formatting.** `.prettierignore` stops excluding `docs/`, and the maintained docs are formatted.
+- **Formatting.** `.prettierignore` stops excluding `docs/` in task 2.12 but keeps `docs/spec/` excluded;
+  task 13.3 removes that line when it deletes the folder.
 - **`AGENTS.md` and `openspec/config.yaml`:**
   - the source-of-truth order becomes: code, configuration, tests and CI; then `openspec/specs`; then
     `docs/`;
@@ -540,7 +608,9 @@ test:
 
 ### D20 — Release
 
-- `package.json` goes to version 1.0.0, and the lockfile's root entry matches.
+- `package.json` goes to version 1.0.0, and the lockfile's root entry matches. `configContract.test.ts`
+  checks both and that the version is valid semver. The About sheet's Vitest fallback stays: Vitest
+  defines no `__APP_VERSION__`, and `about.test.tsx` asserts that fallback.
 - A new `CHANGELOG.md` has a 1.0.0 entry summarising Phases 1–11.
 - A new `docs/development/release.md` gives the procedure:
   1. validate and run the end-to-end suite;
@@ -548,8 +618,8 @@ test:
   3. open a PR to `master`;
   4. Pages deploys;
   5. tag `vX.Y.Z` on `master`.
-- `docs/development/ci-and-deployment.md` loses its resolved TODOs. The Pages source is already GitHub
-  Actions.
+- `docs/development/ci-and-deployment.md` loses its resolved TODOs (`:123`, the Pages source is already
+  GitHub Actions; `:155`, how the integration branch reaches `master`).
 - Tagging and publishing are done only on the author's request.
 
 ### Defaults recorded for minor product choices
@@ -585,7 +655,8 @@ test:
   per-mode tables, the policy weights, and a per-mode N. Task 7.3 stops and surfaces the result if any grade
   holds under about 15% of verified deals after tuning.
 - **Grading adds cost to every verified deal, Daily included.** → It runs only on `win` candidates. The
-  benchmark measures it, and N can drop to 8.
+  benchmark measures it, N can drop to 8, and task 7.4 stops if Draw 1 Any latency rises by more than 20%
+  (D6).
 - **Traceability annotation touches many test files.** → It is split by area (11.4–11.6), each task a
   comments-only diff. The guard stays in report mode until 11.8.
 - **Full-game end-to-end runs are long.** The 117-command line already takes up to 180 s. → Pick the
@@ -596,7 +667,7 @@ test:
 - **The coverage gate may fail on today's code.** → Task 2.1 measures it first, and adds tests for the
   gaps rather than lowering the thresholds. If the gap is large, it stops and surfaces it.
 - **A second worker adds memory and battery use.** → It is lazy, starts after idle, pauses when the page
-  is hidden, stops at 2 deals per key, and fills only the selected key first.
+  is hidden, stops at 2 deals per key, and fills only the current choice.
 - **Deleting the mockup removes the old visual authority.** → The visual review comes first (D19). The
   self-contained requirements (D18) and the committed screenshots then carry the look.
 

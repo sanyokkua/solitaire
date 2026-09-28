@@ -10,29 +10,38 @@ from a list of candidate deals.
 
 ### Requirement: Seeded playouts that see only face-up cards
 
-To grade a deal, the system SHALL play it 16 times from its dealt position as a simulated player, and
-count the playouts that end in a win. Each playout SHALL follow these rules.
+To grade a deal, the system SHALL play it *N* times from its dealt position as a simulated player, with
+*N* and every other number below taken from the grading v1 parameters (see "Grading v1 turns playout
+wins into a grade"), and count the playouts that end in a win. Each playout SHALL follow these rules.
 
 - **What it sees.** It SHALL decide only from what a player can see: the face-up tableau cards, which
   places hold face-down cards (not which cards they are), the waste top, the foundation heights,
   whether the stock holds cards, and the pass in progress. Exchanging face-down tableau cards and stock
   cards among themselves, with every pile size and every face-up card unchanged, SHALL NOT change any
   choice it makes before one of the exchanged cards is turned face up or becomes the waste top.
-- **What it plays.** At each step it SHALL choose among the productive moves, listed in hint priority
-  order (see assistance "Hint candidates in priority order"), with a seeded bias toward earlier
-  candidates. When there is no productive move, or its seeded choice is to draw, it SHALL draw while
-  the stock holds cards, and recycle when the stock is empty and the pass limit allows. Every command
-  SHALL be applied by the game rules, exactly as a player's would be.
+- **What it plays.** At each step it SHALL list the productive moves in hint priority order (see
+  assistance "Hint candidates in priority order") and choose, in this order:
+  1. when at least one candidate exists and a draw or a recycle is also possible, it SHALL draw (or
+     recycle) instead, with the unforced-draw probability;
+  2. otherwise, when at least one candidate exists, it SHALL walk the list from the first candidate,
+     taking each with the take probability and moving on to the next one otherwise; the last candidate
+     is taken whenever the walk reaches it;
+  3. with no candidate, it SHALL draw while the stock holds cards, and recycle when the stock is empty
+     and the pass limit allows.
+
+  Every command SHALL be applied by the game rules, exactly as a player's would be. Every random choice
+  draws exactly one value from the playout's generator.
 - **When it stops.** It SHALL stop at the first of:
   - a win;
   - a position with no move, no draw and no recycle left;
-  - a full cycle through the talon with no board move (a stall);
-  - the grading v1 step cap.
+  - a stall: the stock and waste return to an arrangement they already had since the last board move,
+    so a full cycle through the talon played nothing;
+  - the step cap: the number of commands a playout may apply.
 
   Only a win counts; every other stop counts as a loss.
 - **Randomness.** Every random choice SHALL come from the seeded generator (see card-model
-  "Deterministic pseudo-random sequence"), seeded from the deal's seed and the playout's index alone.
-  Nothing else SHALL be random.
+  "Deterministic pseudo-random sequence"), seeded with the playout seed of the grading v1 parameters,
+  which depends on the deal's seed and the playout's index alone. Nothing else SHALL be random.
 
 Input-agnostic: no interaction; winnable selection calls grading.
 
@@ -73,7 +82,17 @@ gets the same number of wins.
 The system SHALL grade a deal only when its search verdict is `win`. A deal dealt as `random` SHALL
 have no grade.
 
-The grade SHALL be read from the number of winning playouts, *w* out of 16, through the grading v1
+Grading v1 uses these parameters:
+
+| Parameter | Grading v1 value |
+| --- | --- |
+| Playouts per deal, *N* | 16 |
+| Take probability | 0.6 |
+| Unforced-draw probability | 0.05 |
+| Step cap | 1,000 commands per playout |
+| Playout seed for playout *i* (from 0) of a deal with seed *s* | `fmix32((s + (i + 1) × 0x9E3779B9) mod 2³²)`, where `fmix32` is the MurmurHash3 32-bit finalizer |
+
+The grade SHALL be read from the number of winning playouts, *w* out of *N*, through the grading v1
 table for the deal's mode:
 
 | Mode | Easy | Medium | Hard |
@@ -88,8 +107,8 @@ row.
 The table SHALL give every grade at least 15% of the proven-winnable deals of a pinned calibration
 sample in each mode. A pinned set of golden deals per mode, each with its grade, SHALL pin grading v1.
 
-Grading v1 is the number of playouts, the playout rules, the step cap and the table taken together.
-Changing any of them SHALL be a new grading version, made on purpose by updating the pinned grades.
+Grading v1 is the parameters, the playout rules and the table taken together. Changing any of them
+SHALL be a new grading version, made on purpose by updating the pinned grades.
 
 Input-agnostic: no interaction.
 

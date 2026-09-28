@@ -189,8 +189,10 @@ No tracked file SHALL refer to it, apart from the exemptions below. This covers:
 A reference is any of:
 - a path into the retired folder;
 - the mockup's file name;
-- the file name of one of the pack's three documents;
-- a research-notes section citation (the letter R followed by a section sign and a number).
+- the file name of one of the pack's three documents, and the phased design's name (`phased-design`)
+  with or without its extension;
+- a research-notes section citation (the letter R followed by a section sign and a number);
+- a product-specification section citation (`spec §` or `specification §` followed by a number).
 
 These are exempt:
 - OpenSpec change folders, active or archived, because they record history;
@@ -209,6 +211,11 @@ Input-agnostic: a repository gate.
 #### Scenario: A research-notes citation fails the guard
 
 - **WHEN** a source comment cites a research-notes section, or a doc links into the retired folder
+- **THEN** the guard test fails and names the file and line
+
+#### Scenario: A specification section citation fails the guard
+
+- **WHEN** a main-spec footnote cites a product-specification section such as "spec §3.2"
 - **THEN** the guard test fails and names the file and line
 
 #### Scenario: Change history is exempt

@@ -7,8 +7,8 @@
 A readable version 1 record SHALL be decoded whole, under version 1's own rules, and then upgraded
 to version 2 by adding exactly what version 2 adds:
 - the Difficulty setting, set to Any;
-- a grade of none for every stored game: the current game and the game held in each undo and redo
-  step.
+- a grade of none for the stored game. Its undo and redo steps store no provenance of their own; each
+  restored step takes the stored game's provenance, so every restored position has no grade.
 
 Nothing else SHALL change: every setting, statistic, game, undo and redo step, undo charge, Daily date
 and played flag SHALL be kept exactly as version 1 held it. Nothing readable SHALL be dropped. A
@@ -23,7 +23,7 @@ of it SHALL be salvaged.
 
 A tab still running an earlier version of the app can later save a version 1 record over a version 2
 one. The next load SHALL upgrade that record again as above, so only what version 1 cannot hold is
-lost: the Difficulty setting returns to Any and the stored games carry no grade.
+lost: the Difficulty setting returns to Any and the stored game carries no grade.
 
 Input-agnostic: no interaction.
 
@@ -37,13 +37,13 @@ same state.
 - **WHEN** a readable version 1 record holding custom settings, statistics and a started game with 3
   undo steps and 1 redo step is loaded
 - **THEN** the settings, statistics, game and its undo and redo steps are restored exactly, the
-  Difficulty setting is Any, every stored game has no grade, no notice is shown and the backup key is
-  untouched
+  Difficulty setting is Any, the game and every restored step have no grade, no notice is shown and the
+  backup key is untouched
 
 #### Scenario: The next save writes version 2
 
 - **WHEN** a version 1 record has been upgraded and the state is then saved
-- **THEN** the stored record carries version 2 and holds the Difficulty setting and each stored game's
+- **THEN** the stored record carries version 2 and holds the Difficulty setting and the stored game's
   grade
 
 #### Scenario: An unreadable version 1 record is not salvaged
@@ -57,7 +57,7 @@ same state.
 - **WHEN** a version 2 record is stored, and a tab still running the earlier version of the app then
   saves a version 1 record over it
 - **THEN** the next load upgrades that record without a notice or a backup copy, keeping everything
-  that tab saved, with the Difficulty setting back to Any and no grade on its games
+  that tab saved, with the Difficulty setting back to Any and no grade on its game
 
 ## MODIFIED Requirements
 
@@ -66,9 +66,11 @@ same state.
 The system SHALL store, under the single device-storage key `solitaire.local-state`, one record
 carrying a format version (2), the settings (including the Difficulty setting), the statistics and,
 only while a game is resumable, that game with its newest 200 undo steps, its nearest 200 redo steps,
-its undo charges, its Daily date if any, and whether it has been counted as played. Every stored game
-(the current game and the game held in each undo and redo step) SHALL carry its deal's provenance,
-including its grade, or none when it has no grade. A won or unstarted game SHALL NOT be stored.
+its undo charges, its Daily date if any, and whether it has been counted as played. The stored game
+SHALL carry its deal's provenance: its verdict, its attempt count and its grade, or none when it has no
+grade. Each undo and redo step SHALL store only what can differ between two positions of one deal; a
+restored step takes the deal's provenance, grade included, from the stored game, so every step belongs
+to the same deal. A won or unstarted game SHALL NOT be stored.
 
 Input-agnostic: no interaction.
 

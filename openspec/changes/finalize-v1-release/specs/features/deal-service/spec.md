@@ -13,6 +13,11 @@ of a requested deal (see "Deals per mode record their provenance"), so a pooled 
 apart from one searched on request.
 
 The pool SHALL:
+- pre-verify one deal at a time, only for the current choice; it never fills a choice the player has
+  not selected;
+- keep whatever pre-verification selects: a deal that ends `random`, because no candidate was proven
+  winnable, is pooled with that verdict and no grade, exactly as a request searched at that moment
+  would have been dealt, and it is not searched again;
 - hold at most 2 deals for each pair of mode and difficulty;
 - live in memory only: nothing about it is stored, and a reload starts with an empty pool;
 - never be filled or used for the Daily deal, nor while "Winnable deals only" is off;
@@ -83,6 +88,13 @@ solver.
 
 - **WHEN** deals are pooled and the app is reloaded
 - **THEN** the pool is empty and the stored record holds nothing about it
+
+#### Scenario: An unproven pre-verification is pooled as it is
+
+- **WHEN** a pre-verification for Vegas with target Any proves none of its candidates winnable
+- **THEN** its last candidate is pooled with verdict `random`, the length of the list as its attempts
+  and no grade, and the next pre-verification starts only while fewer than 2 deals are pooled for that
+  choice
 
 #### Scenario: No pool for Daily or with the switch off
 
