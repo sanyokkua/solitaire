@@ -5,7 +5,7 @@ import { dealFromSeed } from '../../../../src/domain/deal';
 import type { Command } from '../../../../src/domain/types';
 import { accrued, installed } from '../../../../src/features/game/gameSlice';
 import { play } from '../../../../src/features/game/gameThunks';
-import { readOnlyEntered } from '../../../../src/features/persistence/persistenceSlice';
+import type { PersistenceState } from '../../../../src/features/persistence/persistenceSlice';
 import { createPersistenceWriter } from '../../../../src/features/persistence/persistenceWriter';
 import { STORAGE_KEY, decodeRecord } from '../../../../src/features/persistence/recordCodec';
 import { createStorageGateway, type StorageGateway } from '../../../../src/features/persistence/storageGateway';
@@ -28,7 +28,7 @@ interface Env {
  * A store on the Game route with a started-game-ready Draw 1 deal, over an in-memory storage whose write attempts are
  * listed. Every clock is the fake `Date.now()`. `prepare` runs before the writer exists, so its dispatches are not seen.
  */
-function setup(prepare: (store: Env['store']) => void = () => undefined): Env {
+function setup(prepare: (store: Env['store']) => void = () => undefined, persistence?: PersistenceState): Env {
     const storage = memoryStorage();
     const inner = createStorageGateway(storage);
     const attempts: number[] = [];
@@ -39,7 +39,10 @@ function setup(prepare: (store: Env['store']) => void = () => undefined): Env {
             return inner.write(key, value);
         },
     };
-    const store = testStore({ deps: { now: () => Date.now(), gateway } });
+    const store = testStore({
+        ...(persistence === undefined ? {} : { preloadedState: { persistence } }),
+        deps: { now: () => Date.now(), gateway },
+    });
     store.dispatch(preferenceSet({ key: 'autoSafe', value: false }));
     store.dispatch(installed({ state: dealFromSeed(WINNING_LINE.seed, 'draw1'), dailyKey: null }));
     store.dispatch(setRoute('game'));
@@ -246,24 +249,13 @@ describe('persistence writer: flush, cancel and dispose', () => {
 
 describe('persistence writer: read-only', () => {
     it('writes nothing while the session is read-only', async () => {
-        const env = setup((store) => {
-            store.dispatch(readOnlyEntered());
-        });
+        const env = setup(undefined, { readOnly: true, lastError: 'read' });
         await move(env, 0);
         expect(vi.getTimerCount()).toBe(0);
         vi.advanceTimersByTime(10_000);
         env.writer.flush();
         expect(env.attempts).toHaveLength(0);
         expect(env.storage.getItem(STORAGE_KEY)).toBeNull();
-    });
-
-    it('drops a pending write when the session turns read-only before it runs', async () => {
-        const env = setup();
-        await move(env, 0);
-        env.store.dispatch(readOnlyEntered());
-        vi.advanceTimersByTime(10_000);
-        env.writer.flush();
-        expect(env.attempts).toHaveLength(0);
     });
 });
 

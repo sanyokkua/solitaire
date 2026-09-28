@@ -3,7 +3,6 @@ import {
     initialPersistenceState,
     persistenceReducer,
     persistenceReset,
-    readOnlyEntered,
     writeFailed,
     writeSucceeded,
     type PersistenceState,
@@ -13,16 +12,6 @@ describe('persistence slice', () => {
     it('starts writable with no error', () => {
         expect(persistenceReducer(undefined, { type: '@@init' })).toEqual({ readOnly: false, lastError: null });
         expect(initialPersistenceState).toEqual({ readOnly: false, lastError: null });
-    });
-
-    it('enters read-only and keeps the last error', () => {
-        const state: PersistenceState = { readOnly: false, lastError: 'read' };
-
-        expect(persistenceReducer(state, readOnlyEntered())).toEqual({ readOnly: true, lastError: 'read' });
-        expect(persistenceReducer(initialPersistenceState, readOnlyEntered())).toEqual({
-            readOnly: true,
-            lastError: null,
-        });
     });
 
     it('records a failed write', () => {

@@ -9,7 +9,7 @@ import { play, redo, undo } from '../../../../src/features/game/gameThunks';
 import { restart } from '../../../../src/features/game/sessionThunks';
 import type { Announcement } from '../../../../src/features/interaction/announcements';
 import { HINT_DURATION_MS, requestHint } from '../../../../src/features/interaction/interactionThunks';
-import { selectAnnouncement, selectHint, selectPendingHint } from '../../../../src/features/interaction/selectors';
+import { selectAnnouncement, selectHint } from '../../../../src/features/interaction/selectors';
 import { preferenceSet } from '../../../../src/features/preferences/preferencesSlice';
 import { fakeDealService, type FakeDealService } from '../../../fixtures/dealService';
 import { faceUp, makeState, tableauOf } from '../../../fixtures/states';
@@ -132,7 +132,7 @@ describe('requestHint sources', () => {
         await store.dispatch(requestHint());
 
         expect(selectHint(store.getState())).toBeNull();
-        expect(selectPendingHint(store.getState())).toBeNull();
+        expect(store.getState().interaction.pendingHint).toBeNull();
         expect(itemsOf(store)).toEqual([]);
         expect(delays).toEqual([]);
     });
@@ -192,14 +192,14 @@ describe('a hint that arrives late', () => {
         const { store, service } = setup();
         service.deferHints = true;
         const done = store.dispatch(requestHint());
-        expect(selectPendingHint(store.getState())).not.toBeNull();
+        expect(store.getState().interaction.pendingHint).not.toBeNull();
 
         await store.dispatch(play(TO_FOUNDATION));
         service.resolveHint(0, SOLVER_OUTCOME);
         await done;
 
         expect(selectHint(store.getState())).toBeNull();
-        expect(selectPendingHint(store.getState())).toBeNull();
+        expect(store.getState().interaction.pendingHint).toBeNull();
         expect(itemsOf(store).some(({ type }) => type === 'hinted')).toBe(false);
     });
 
@@ -242,7 +242,7 @@ describe('a hint that arrives late', () => {
         await done;
 
         expect(selectHint(store.getState())).toBeNull();
-        expect(selectPendingHint(store.getState())).toBeNull();
+        expect(store.getState().interaction.pendingHint).toBeNull();
     });
 });
 
@@ -357,7 +357,7 @@ describe('requests in flight', () => {
         expect(service.hintRequests).toHaveLength(1);
         service.resolveHint(0, { status: 'none' });
         await first;
-        expect(selectPendingHint(store.getState())).toBeNull();
+        expect(store.getState().interaction.pendingHint).toBeNull();
     });
 
     it('asks again once the answer has landed', async () => {
@@ -376,7 +376,7 @@ describe('requests in flight', () => {
         void store.dispatch(requestHint());
 
         const { epoch } = store.getState().game;
-        expect(selectPendingHint(store.getState())).toEqual({ epoch, key: expect.any(String) as string });
+        expect(store.getState().interaction.pendingHint).toEqual({ epoch, key: expect.any(String) as string });
     });
 });
 

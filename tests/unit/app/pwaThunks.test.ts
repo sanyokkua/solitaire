@@ -5,7 +5,6 @@ import { createSavePort } from '../../../src/app/savePort';
 import { dealFromSeed } from '../../../src/domain/deal';
 import { installed } from '../../../src/features/game/gameSlice';
 import { play } from '../../../src/features/game/gameThunks';
-import { readOnlyEntered } from '../../../src/features/persistence/persistenceSlice';
 import { createPersistenceWriter } from '../../../src/features/persistence/persistenceWriter';
 import { STORAGE_KEY } from '../../../src/features/persistence/recordCodec';
 import { createStorageGateway } from '../../../src/features/persistence/storageGateway';
@@ -15,7 +14,11 @@ import { memoryStorage } from '../../fixtures/storage';
 import { testStore } from '../../support/testStore';
 
 function setup(
-    overrides: { flush?: () => void; promptInstall?: () => Promise<'accepted' | 'dismissed' | 'unavailable'> } = {},
+    overrides: {
+        flush?: () => void;
+        promptInstall?: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
+        readOnly?: boolean;
+    } = {},
 ) {
     const calls: string[] = [];
     const flushQuietly = vi.fn(() => {
@@ -28,6 +31,7 @@ function setup(
     });
     const promptInstall = vi.fn(overrides.promptInstall ?? (() => Promise.resolve('accepted' as const)));
     const store = testStore({
+        preloadedState: overrides.readOnly === true ? { persistence: { readOnly: true, lastError: 'read' } } : {},
         deps: {
             saver: { flush: () => undefined, flushQuietly, cancel: () => undefined },
             pwa: { applyUpdate: applyUpdateOnPwa, promptInstall },
@@ -46,8 +50,7 @@ describe('applyUpdate', () => {
     });
 
     it('still applies when persistence is read-only and the flush writes nothing', async () => {
-        const { store, calls } = setup();
-        store.dispatch(readOnlyEntered());
+        const { store, calls } = setup({ readOnly: true });
         expect(store.getState().persistence.readOnly).toBe(true);
 
         await store.dispatch(applyUpdate());
@@ -107,12 +110,13 @@ describe('applyUpdate with the real writer over a storage that fails (PW "Update
     });
 
     /** A real store, saver and writer over an in-memory storage, with one move played and its save still pending. */
-    async function pending() {
+    async function pending(readOnly = false) {
         const storage = memoryStorage();
         const gateway = createStorageGateway(storage);
         const saver = createSavePort();
         const applyOnPwa = vi.fn(() => Promise.resolve());
         const store = testStore({
+            preloadedState: readOnly ? { persistence: { readOnly: true, lastError: 'read' } } : {},
             deps: {
                 now: () => Date.now(),
                 gateway,
@@ -131,8 +135,7 @@ describe('applyUpdate with the real writer over a storage that fails (PW "Update
     }
 
     it('proceeds when saving is read-only: nothing is written and the update still applies', async () => {
-        const { store, storage, applyOnPwa, writer } = await pending();
-        store.dispatch(readOnlyEntered());
+        const { store, storage, applyOnPwa, writer } = await pending(true);
 
         await store.dispatch(applyUpdate());
 

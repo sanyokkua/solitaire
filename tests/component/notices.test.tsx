@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { noticeDismissed, noticeRaised, setRoute, type NoticeId } from '../../src/app/appSlice';
 import { App } from '../../src/App';
-import { readOnlyEntered, writeFailed, writeSucceeded } from '../../src/features/persistence/persistenceSlice';
+import { writeFailed, writeSucceeded } from '../../src/features/persistence/persistenceSlice';
 import { Notices } from '../../src/ui/components/Notices';
 import { playedGame } from '../fixtures/games';
 import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
@@ -193,9 +193,8 @@ describe('Update-ready notice', () => {
     });
 
     it('shows the warning text when saving is read-only or the last save failed', () => {
-        const { store } = setup();
-        act(() => {
-            store.dispatch(readOnlyEntered());
+        const { store } = renderWithStore(<Notices onUpdate={() => undefined} />, {
+            preloadedState: { game: playedGame(), persistence: { readOnly: true, lastError: 'read' } },
         });
         raise(store, 'update-ready');
 
@@ -209,10 +208,6 @@ describe('Update-ready notice', () => {
 
         act(() => {
             store.dispatch(writeFailed());
-        });
-        expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
-        act(() => {
-            store.dispatch(readOnlyEntered());
         });
         expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
     });

@@ -106,7 +106,7 @@
       - `tests/component/appLifecycle.wiring.test.tsx` drops the `navigator.languages` patch (`:74-76`) and injects `languages`.
     - **Verify:** `rtk npx vitest run tests/unit/app tests/component/appLifecycle.wiring.test.tsx`, `rtk npm run validate:lifecycle-storage` and the full `rtk npm run e2e` pass.
 
-- [ ] 2.3 Remove production code kept alive only by tests
+- [x] 2.3 Remove production code kept alive only by tests
     - **Implements:** D15 (dead code).
     - **Files:**
       - remove `readOnlyEntered` (`src/features/persistence/persistenceSlice.ts:19`), `selectBusy` (`src/features/game/gameSlice.ts:198`) and `selectPendingHint` (`src/features/interaction/selectors.ts:43`);

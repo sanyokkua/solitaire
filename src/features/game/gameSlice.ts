@@ -194,11 +194,6 @@ export function selectCanFinish(state: GameRoot): boolean {
     return !state.game.busy && selectFinishable(state);
 }
 
-/** Whether a safe-card chain or finish is running. */
-export function selectBusy({ game }: GameRoot): boolean {
-    return game.busy;
-}
-
 /** The game epoch, bumped whenever a game is installed or cleared. */
 export function selectEpoch({ game }: GameRoot): number {
     return game.epoch;

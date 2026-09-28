@@ -12,7 +12,6 @@ import {
     installed,
     redone,
     replaced,
-    selectBusy,
     selectCanFinish,
     selectCanRedo,
     selectCanUndo,
@@ -281,7 +280,7 @@ describe('selectCanFinish', () => {
     });
 });
 
-describe('selectCurrentGame, selectEpoch and selectBusy', () => {
+describe('selectCurrentGame and selectEpoch', () => {
     const drawnState = dealFromSeed(7, 'draw1');
     const playing = withGame(drawnState);
 
@@ -293,11 +292,6 @@ describe('selectCurrentGame, selectEpoch and selectBusy', () => {
     it('selectEpoch reads the game epoch, which installing a game advances', () => {
         expect(selectEpoch({ game: initial })).toBe(0);
         expect(selectEpoch({ game: playing })).toBe(1);
-    });
-
-    it('selectBusy reads the busy flag', () => {
-        expect(selectBusy({ game: playing })).toBe(false);
-        expect(selectBusy({ game: gameReducer(playing, busySet(true)) })).toBe(true);
     });
 });
 

@@ -39,7 +39,7 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   `replaced(next)` (over `history.ts`'s `commit` and `replace`), `undone()` / `redone()` (ignored while `busy`),
   `accrued({ atMs, eligible })`, `busySet`, `countedSet` and `cleared()` (no game, epoch + 1). Selectors take the
   structural shape `{ game }`: `selectCanUndo`, `selectCanRedo`, `selectResumable` (started and still playing), `selectDisplayedScore` (charges
-  applied), `selectCanFinish` (not busy and `finishPlan` exists, memoised on the piles plus draw, passes, mode and status, so clock ticks never recompute the plan), `selectBusy`, `selectEpoch` and `selectCurrentGame` (moved here from `src/app/selectors.ts`, since they read only `game` state). `selectGameControlsIdle` (structural `{ app, game }`) is false while `busy` or `app.dealing` is non-null, used by the HUD New deal control and Time (Phase 7). `accrued` settles play
+  applied), `selectCanFinish` (not busy and `finishPlan` exists, memoised on the piles plus draw, passes, mode and status, so clock ticks never recompute the plan), `selectEpoch` and `selectCurrentGame` (moved here from `src/app/selectors.ts`, since they read only `game` state). `selectGameControlsIdle` (structural `{ app, game }`) is false while `busy` or `app.dealing` is non-null, used by the HUD New deal control and Time (Phase 7). `accrued` settles play
   time at an injected-clock reading: while `eligible` and an anchor is set it adds the whole milliseconds since the
   anchor to `current.elapsedMs` (so it stays an integer on a fractional clock), capped at 1 s per step and never
   negative, then moves the anchor forward by what was added (the sub-millisecond remainder carries over; a larger or
@@ -120,7 +120,7 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
   (`{ mode, score, elapsedMs, moves, timeBonus, newBestTime }`), set by `winRecorded` (dispatched from `gameThunks.ts`'s
   `commitCommand` right after `won`) and cleared, alongside `deadEndSeen`, by `installed` and `cleared` only; never
   read by the persistence writer, so it is never in the encoded record
-- `interaction/selectors.ts` — structural `{ game, interaction }` selectors: `selectSelection`, `selectAnnouncement`, `selectHint`, `selectPendingHint`, `selectNextHintId`, `selectWinSummary`, `selectSelectedGroup`
+- `interaction/selectors.ts` — structural `{ game, interaction }` selectors: `selectSelection`, `selectAnnouncement`, `selectHint`, `selectNextHintId`, `selectWinSummary`, `selectSelectedGroup`
   (`groupAt` over the position in play) and `selectLegalTargets` (`legalTargets` for that run), the last two memoised
   and `undefined` when nothing is selected, no game is in play, or the card no longer starts a movable run. `selectInputEnabled` (structural `{ app, game }`) is the one input gate every input path reads: true only on the Game route with no deal in flight, no sheet open, a game that is not won and no chain or Finish running; there is no cascade term because the game stays won for the whole win cascade
 - `interaction/interactionThunks.ts` — `selectCard(from, index)`: dispatches `selectionSet` only when the position in
@@ -217,8 +217,8 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
   copied from `current`, `status` `playing`) that must pass `isValidGameState` too, so a round trip is exact. Also
   exports the shared `isRecord`, `hasExactKeys` and `isDayKey` checks
 - `persistence/persistenceSlice.ts` — what the shell needs to know about saving: `{ readOnly, lastError }`, starting at
-  `{ readOnly: false, lastError: null }` (`initialPersistenceState`). `readOnlyEntered()` stops saving for the session,
-  `writeFailed()` sets `lastError` to `'write'`, and `writeSucceeded()` clears it only if it is `'write'`, so a
+  `{ readOnly: false, lastError: null }` (`initialPersistenceState`). Read-only comes only from the loader's `preloadedState`, and stops saving for the
+  session; `writeFailed()` sets `lastError` to `'write'`, and `writeSucceeded()` clears it only if it is `'write'`, so a
   start-up `'read'` error stays. `persistenceReset()` restores the initial state, and is how
   `resetAllLocalData` (in `resetThunks.ts`) ends a read-only session
 - `persistence/persistenceLoader.ts` — `loadInitialState(gateway, languages)` reads the record before the store exists

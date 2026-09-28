@@ -61,6 +61,22 @@ describe('StatsSheet', () => {
         expect(cells[1]).toHaveTextContent('—');
     });
 
+    it('shows the win rate as a rounded percent, and "—" for a mode never played', () => {
+        let stats = initial();
+        for (let i = 0; i < 3; i += 1) {
+            stats = statsReducer(stats, played('draw1'));
+        }
+        stats = statsReducer(stats, won({ mode: 'draw1', elapsedMs: 60_000, score: 100 }));
+        const store = testStore({ preloadedState: { stats } });
+        renderWithStore(<StatsSheet />, { store });
+
+        const table = screen.getByRole('table');
+        const winRateRow = within(table).getByRole('rowheader', { name: 'Win rate' }).closest('tr');
+        const cells = within(winRateRow as HTMLElement).getAllByRole('cell');
+        // Draw 1, Draw 3, Vegas, Daily: 1 won of 3 played is 33%; the others were never played.
+        expect(cells.map((cell) => cell.textContent)).toEqual(['33%', '—', '—', '—']);
+    });
+
     it('shows the Vegas best as money', () => {
         const store = testStore({ preloadedState: { stats: mixedStats() } });
         renderWithStore(<StatsSheet />, { store });

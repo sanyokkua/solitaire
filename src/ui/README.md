@@ -577,7 +577,7 @@ is part of the purity rule below.
   map but keeps the previous reference and `Board` does not re-render.
 - **App selectors** (`src/app/selectors.ts`) — besides `selectReducedMotion`, the named readers `selectDealing` (the
   deal in flight or `null`; `GameScreen`), `selectEpoch` (the game epoch; `useDealAnimation`, `useCascade`), `selectCurrentGame` (the position in
-  play or `null`; `Hud`) and `selectBusy` (the gate flag; no component reads it yet). They take a structural root, so
+  play or `null`; `Hud`). They take a structural root, so
   the module imports no store.
 
 ## Board purity rule

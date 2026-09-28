@@ -128,8 +128,7 @@ flowchart TD
   set (checked again at write time). A record that encodes to the string already written is skipped. A failed write
   dispatches `writeFailed` and raises `storage-write` once until a write succeeds. `flush` and `flushQuietly` write
   a waiting or failed save now; `cancel` drops it and forgets what was last written; `dispose` also unsubscribes.
-- Read-only mode: `persistence.readOnly` is set through the loader's `preloadedState`; the reducer
-  `readOnlyEntered` in `src/features/persistence/persistenceSlice.ts` exists but no source file dispatches it. Only
+- Read-only mode: `persistence.readOnly` is set only through the loader's `preloadedState`. Only
   `persistenceReset` (reset-all) clears the flag.
 - Reset: `src/features/persistence/resetThunks.ts#resetStatistics` clears stats and `counted`.
   `resetAllLocalData` clears the game (epoch bump), restores default preferences with the language from
