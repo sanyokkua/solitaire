@@ -40,12 +40,14 @@ export interface ThunkExtra {
  * A deal service that creates the real one (and so its solver worker) on first use, so a store that never deals
  * never starts a worker. `dispose` disposes the real service only if it was created, then forgets it. `now` feeds
  * `createDealService`'s own clock (D8), so the Daily deal it selects reads whatever `now` resolves to at call time,
- * not at the moment this lazy wrapper was built. Exported so `createAppStore`/`startApp` can rebuild the default deal
- * service against their own final, merged `today`, without duplicating the lazy-creation logic.
+ * not at the moment this lazy wrapper was built. `create` is the seam tests use to count and observe creation.
  */
-export function lazyDealService(now: () => Date): DealService {
+function lazyDealService(
+    now: () => Date,
+    create: (options: { now: () => Date }) => DealService = createDealService,
+): DealService {
     let created: DealService | undefined;
-    const service = (): DealService => (created ??= createDealService({ now }));
+    const service = (): DealService => (created ??= create({ now }));
     return {
         deal: (request, onProgress) => service().deal(request, onProgress),
         hint: (state) => service().hint(state),
@@ -56,25 +58,34 @@ export function lazyDealService(now: () => Date): DealService {
     };
 }
 
+/** What a caller may replace: any dependency, plus the factory the default lazy deal service builds through. */
+export interface ThunkExtraOverrides extends Partial<ThunkExtra> {
+    /** Builds the real deal service on first use; ignored when `dealService` is supplied. Defaults to `createDealService`. */
+    readonly createDealService?: (options: { now: () => Date }) => DealService;
+}
+
 /**
- * The production dependencies: a lazy deal service (its clock is `today`), `performance.now`, a `setTimeout` delay,
- * `today: () => new Date()` and a gateway over the browser's local storage. `createAppStore`/`startApp` replace the
- * deal service's clock with one that lazily reads their own final, merged `today` (D8) whenever the caller does not
- * inject a `dealService` of its own; called alone, this default deal service simply reads the real date.
+ * The one place the thunk dependencies are assembled (D15), used by `createAppStore` and `startApp`. The production
+ * defaults are `performance.now`, a `setTimeout` delay, `today: () => new Date()`, a gateway over the browser's local
+ * storage, an unconnected save port, an inert PWA port and `navigator.languages`; every override wins over its
+ * default. Unless `dealService` is overridden, the default one is a lazy service whose clock reads the final, merged
+ * `today` at call time (D8), so an injected `today` drives the Daily deal date and is not shadowed by a captured one.
  */
-export function defaultThunkExtra(): ThunkExtra {
-    const today = (): Date => new Date();
-    return {
-        dealService: lazyDealService(today),
+export function assembleThunkExtra(overrides: ThunkExtraOverrides = {}): ThunkExtra {
+    const { createDealService: create, ...supplied } = overrides;
+    const extra: ThunkExtra = {
         now: performance.now.bind(performance),
         delay: (ms) =>
             new Promise<void>((resolve) => {
                 setTimeout(resolve, ms);
             }),
-        today,
+        today: () => new Date(),
         gateway: createStorageGateway(),
         saver: createSavePort(),
         pwa: inertPwaPort(),
         languages: () => navigator.languages,
+        ...supplied,
+        dealService: supplied.dealService ?? lazyDealService(() => extra.today(), create),
     };
+    return extra;
 }

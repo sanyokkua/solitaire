@@ -27,7 +27,7 @@ they are large.
 
 | Field | Default | Purpose |
 | --- | --- | --- |
-| `dealService` | `src/app/thunkExtra.ts#lazyDealService` | deal and hint; the solver worker starts on first use |
+| `dealService` | a lazy `createDealService` wrapper built in `assembleThunkExtra` | deal and hint; the solver worker starts on first use |
 | `now` | `performance.now` | monotonic clock for play time |
 | `delay` | `setTimeout` promise | spacing of chains, finish and hint display |
 | `today` | `() => new Date()` | source of the UTC Daily key |
@@ -36,8 +36,10 @@ they are large.
 | `pwa` | `src/app/thunkExtra.ts#inertPwaPort` | apply update, prompt install; inert unless `main.tsx` supplies real gateways |
 | `languages` | `navigator.languages` | first-run language (`resolveLocale`) |
 
-`createAppStore({ preloadedState, deps })` and `startApp` rebuild the default deal service against the final merged
-`today`, unless the caller injected its own `dealService`.
+`src/app/thunkExtra.ts#assembleThunkExtra(overrides)` is the one place these are assembled; `createAppStore({
+preloadedState, deps })` and `startApp` both call it. Every override wins over its default. Unless the caller injected
+its own `dealService`, it builds the lazy default once, reading the final merged `today` at call time. Tests may also
+pass `createDealService` to observe or replace how the default service is built.
 
 ## Thunks by file
 
@@ -138,9 +140,9 @@ flowchart TD
 
 `src/app/lifecycle.tsx#startApp(root, deps?)` runs everything outside React, once. Order:
 
-1. Create a save port and merge thunk dependencies (`defaultThunkExtra`, the save port, optional PWA port,
-   `deps.extra`); rebuild the default deal service against the merged `today`.
-2. `loadInitialState(gateway, navigator.languages)`; create the store from it.
+1. Create a save port and assemble the thunk dependencies with `assembleThunkExtra` (the save port, optional PWA
+   port, `deps.extra`).
+2. `loadInitialState(gateway, extra.languages())`; create the store from it.
 3. Dispatch document visibility and system reduced-motion; raise the loader's notices.
 4. `src/app/themeController.ts#createThemeController` and `src/i18n/localeController.ts#createLocaleController`
    write appearance attributes, `<html lang>` and the title, before the first render.

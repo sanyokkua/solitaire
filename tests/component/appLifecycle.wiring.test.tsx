@@ -71,11 +71,6 @@ function stubVisibility(state: DocumentVisibilityState): void {
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
 }
 
-/** Makes `navigator.languages` read `languages`; `afterEach` removes the override. */
-function stubLanguages(languages: readonly string[]): void {
-    Object.defineProperty(navigator, 'languages', { configurable: true, get: () => languages });
-}
-
 function fireVisibilityChange(state: DocumentVisibilityState): void {
     stubVisibility(state);
     act(() => {
@@ -131,7 +126,6 @@ afterEach(() => {
         });
     });
     Reflect.deleteProperty(document, 'visibilityState');
-    Reflect.deleteProperty(navigator, 'languages');
     APPEARANCE_ATTRIBUTES.forEach((name) => {
         document.documentElement.removeAttribute(name);
     });
@@ -389,8 +383,7 @@ describe('application lifecycle wiring', () => {
     });
 
     it('renders a first run in Ukrainian, with no English text, when the browser prefers Ukrainian', async () => {
-        stubLanguages(['uk-UA']);
-        const { root } = start();
+        const { root } = start(memoryStorage(), { extra: { languages: () => ['uk-UA'] } });
 
         expect(document.documentElement.lang).toBe('uk');
         expect(await screen.findByRole('button', { name: 'Роздати карти' })).toBeInTheDocument();

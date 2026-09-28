@@ -94,7 +94,7 @@
     - **Stop condition:** measure first. Where a threshold fails, add behaviour tests for the uncovered code, never lower the bar. If the gap needs more than about five new test files, stop and surface it.
     - **Verify:** `rtk npm run validate` passes with the coverage summary printed.
 
-- [ ] 2.2 One thunk-dependency assembly
+- [x] 2.2 One thunk-dependency assembly
     - **Implements:** D15 (thunk extra). No requirement change.
     - **Files:**
       - `src/app/thunkExtra.ts`: new `assembleThunkExtra(overrides)` that merges the defaults and builds `lazyDealService` once;

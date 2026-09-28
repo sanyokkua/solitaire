@@ -263,14 +263,14 @@ inject `fakeDealService()` or a fake clock. The store's development state checks
 `game.future`, which are unbounded.
 
 One dependency needs care (5.4, D8): the default (lazy) deal service's Daily-deal date logic reads a `now` clock
-(`createDealService({ now })`), and that clock must track whichever `today` a caller ends up with — even though the
-deal service is unavoidably built before `deps.today` is known. `defaultThunkExtra()` alone builds a self-consistent
-pair (its own `today`, and a deal service reading that same `today`) so it still works stand-alone. `createAppStore`
-and `startApp` (`src/app/lifecycle.tsx`) then, only when the caller did not inject its own `dealService`, replace it
-with `lazyDealService(() => extra.today())` from `src/app/thunkExtra.ts` (now exported for this): that closure reads
-the final, merged `extra.today` lazily, at the moment a deal actually happens, not when the store was built — so
-`createAppStore({ deps: { today } })`'s injected clock is what the default deal service's Daily deal reads. An
-explicitly injected `deps.dealService` bypasses this rebuild and is used exactly as given.
+(`createDealService({ now })`), and that clock must track whichever `today` a caller ends up with. The single assembly
+`assembleThunkExtra(overrides)` in `src/app/thunkExtra.ts` (used by `createAppStore` and `startApp`) merges the
+overrides over the defaults and, only when the caller did not inject its own `dealService`, builds the lazy default
+once as `lazyDealService(() => extra.today())`: that closure reads the final, merged `extra.today` at the moment a deal
+actually happens, not when the store was built, so `createAppStore({ deps: { today } })`'s injected clock is what the
+default deal service's Daily deal reads. An explicitly injected `deps.dealService` is used exactly as given. `startApp`
+also reads the browser languages for the loader through `extra.languages()`, so a test injects `languages` instead of
+patching `navigator.languages`.
 
 This layer may depend on `src/domain` and Redux Toolkit. It reaches `src/solver` only through the worker
 URL (a `new URL(...)` string, not an import) and typed messages, so solver code never loads on the input

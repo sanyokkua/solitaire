@@ -39,7 +39,7 @@ flowchart TD
 2. **Deterministic by seed.** A deal is a function of a 32-bit seed (mulberry32 + Fisher-Yates). Deals can be shared as codes.
 3. **UI renders state and issues commands.** Components dispatch thunks; rules run only in the domain.
 4. **One input gate, three equal input paths.** Tap, drag and keyboard all end in the same `play` thunk.
-5. **Injected dependencies.** Clock, delay, deal service, storage and PWA access are passed through `thunkExtra`, so tests replace them.
+5. **Injected dependencies.** Clock, delay, deal service, storage and PWA access are passed through `thunkExtra` (assembled once by `assembleThunkExtra`), so tests replace them.
 6. **Defensive persistence.** One versioned record, decoded all-or-nothing; unreadable data is backed up, never silently deleted.
 7. **Optional motion, accessible by default.** One no-motion path; announcements, focus management and contrast are requirements.
 

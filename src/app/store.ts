@@ -5,7 +5,7 @@ import { persistenceReducer } from '../features/persistence/persistenceSlice';
 import { preferencesReducer } from '../features/preferences/preferencesSlice';
 import { statsReducer } from '../features/stats/statsSlice';
 import { appReducer } from './appSlice';
-import { defaultThunkExtra, lazyDealService, type ThunkExtra } from './thunkExtra';
+import { assembleThunkExtra, type ThunkExtraOverrides } from './thunkExtra';
 
 const rootReducer = combineReducers({
     app: appReducer,
@@ -25,19 +25,11 @@ export interface AppStoreOptions {
     /** State to start from, e.g. the loaded persistent record; missing slices start at their defaults. */
     preloadedState?: Partial<RootState>;
     /** Replacements for the thunk dependencies (deal service, clock, timer, date); the rest keep their defaults. */
-    deps?: Partial<ThunkExtra>;
+    deps?: ThunkExtraOverrides;
 }
 
 export function createAppStore(options: AppStoreOptions = {}) {
-    const merged: ThunkExtra = { ...defaultThunkExtra(), ...options.deps };
-    // Rebuilt against the final, merged `extra` (D8), unless the caller already injected its own `dealService`:
-    // `extra.today()` inside this closure is read only once a deal actually happens, so an injected `deps.today`
-    // drives the default deal service's Daily-deal date logic, read at call time rather than captured when the store
-    // was built. An explicitly injected `deps.dealService` is left untouched.
-    const extra: ThunkExtra =
-        options.deps?.dealService === undefined
-            ? { ...merged, dealService: lazyDealService(() => extra.today()) }
-            : merged;
+    const extra = assembleThunkExtra(options.deps);
     return configureStore({
         reducer: rootReducer,
         middleware: (getDefaultMiddleware) =>

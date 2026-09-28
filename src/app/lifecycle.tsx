@@ -12,7 +12,7 @@ import { installableChanged, noticeRaised, systemMotionChanged, visibilityChange
 import { createSavePort } from './savePort';
 import { createAppStore, type AppStore } from './store';
 import { createThemeController } from './themeController';
-import { defaultThunkExtra, lazyDealService, type ThunkExtra } from './thunkExtra';
+import { assembleThunkExtra, type ThunkExtra } from './thunkExtra';
 
 /** The media query behind the device's reduced-motion request. */
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
@@ -68,16 +68,9 @@ export function startApp(root: HTMLElement, deps: StartAppDeps = {}): RunningApp
                       promptInstall: () => gateways.install.prompt(),
                   },
               };
-    const merged: ThunkExtra = { ...defaultThunkExtra(), saver, ...pwaPort, ...deps.extra };
-    // Same rebuild as `createAppStore` (D8), unless `deps.extra` already injected its own `dealService`: reads the
-    // final, merged `extra.today` only once a deal happens, so an injected `deps.extra.today` reaches the default
-    // deal service instead of being shadowed by this module's own `defaultThunkExtra()` call.
-    const extra: ThunkExtra =
-        deps.extra?.dealService === undefined
-            ? { ...merged, dealService: lazyDealService(() => extra.today()) }
-            : merged;
+    const extra = assembleThunkExtra({ saver, ...pwaPort, ...deps.extra });
 
-    const loaded = loadInitialState(extra.gateway, navigator.languages);
+    const loaded = loadInitialState(extra.gateway, extra.languages());
     const store = createAppStore({ preloadedState: loaded.preloadedState, deps: extra });
 
     const reducedMotion = typeof window.matchMedia === 'function' ? window.matchMedia(REDUCED_MOTION_QUERY) : undefined;
