@@ -14,14 +14,14 @@ flowchart LR
     S --> R["archive"]
 ```
 
-| Step    | Skill / command                                   | Result                                                                    |
-| ------- | ------------------------------------------------- | ------------------------------------------------------------------------- |
-| Explore | `openspec-explore` / `/opsx:explore`              | Thinking and investigation; no artifacts required.                        |
-| Propose | `openspec-propose` / `/opsx:propose`              | `openspec/changes/<name>/` with proposal, delta specs, design (when needed) and `tasks.md`. |
-| Update  | `openspec-update-change` / `/opsx:update`         | Revises planning artifacts and keeps them consistent. Never edits code.   |
-| Apply   | `openspec-apply-change` / `/opsx:apply`           | Implements tasks, checking each off in `tasks.md`.                        |
-| Sync    | `openspec-sync-specs` / `/opsx:sync`              | Merges the change's delta specs into `openspec/specs/`.                   |
-| Archive | `openspec-archive-change` / `/opsx:archive`       | Moves the change to `openspec/changes/archive/<date>-<name>/`.            |
+| Step    | Skill / command                             | Result                                                                                      |
+| ------- | ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Explore | `openspec-explore` / `/opsx:explore`        | Thinking and investigation; no artifacts required.                                          |
+| Propose | `openspec-propose` / `/opsx:propose`        | `openspec/changes/<name>/` with proposal, delta specs, design (when needed) and `tasks.md`. |
+| Update  | `openspec-update-change` / `/opsx:update`   | Revises planning artifacts and keeps them consistent. Never edits code.                     |
+| Apply   | `openspec-apply-change` / `/opsx:apply`     | Implements tasks, checking each off in `tasks.md`.                                          |
+| Sync    | `openspec-sync-specs` / `/opsx:sync`        | Merges the change's delta specs into `openspec/specs/`.                                     |
+| Archive | `openspec-archive-change` / `/opsx:archive` | Moves the change to `openspec/changes/archive/<date>-<name>/`.                              |
 
 The skills live in `.claude/skills/` and `.agents/skills/`; the slash commands in `.claude/commands/opsx/`. Project-specific
 rules for artifacts (capability naming, requirement traceability to `KS-*` ids, task sizing, apply/archive guidance) are in
@@ -77,14 +77,14 @@ Installed by husky (`prepare` script):
 When a change alters behaviour, scripts, configuration, CI, storage shape, source layout or user-facing controls, update the
 matching page in the same change:
 
-| Fact                                 | Page                                                         |
-| ------------------------------------ | ------------------------------------------------------------ |
-| npm scripts                          | [reference/scripts.md](../reference/scripts.md)              |
-| Stored record                        | [reference/storage-format.md](../reference/storage-format.md) |
-| Shortcuts and input                  | [reference/keyboard-and-controls.md](../reference/keyboard-and-controls.md) |
-| Rules, modes, scoring                | [reference/game-rules.md](../reference/game-rules.md)        |
-| Layers and dependency rules          | [architecture/overview.md](../architecture/overview.md), [code-standards.md](code-standards.md) |
-| Tests and guards                     | [testing.md](testing.md)                                     |
-| CI, deployment, validation           | [ci-and-deployment.md](ci-and-deployment.md)                 |
-| Module internals                     | the module's own `README.md` under `src/`                    |
-| Overall status and layout            | `README.md`, `AGENTS.md`                                     |
+| Fact                        | Page                                                                                            |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| npm scripts                 | [reference/scripts.md](../reference/scripts.md)                                                 |
+| Stored record               | [reference/storage-format.md](../reference/storage-format.md)                                   |
+| Shortcuts and input         | [reference/keyboard-and-controls.md](../reference/keyboard-and-controls.md)                     |
+| Rules, modes, scoring       | [reference/game-rules.md](../reference/game-rules.md)                                           |
+| Layers and dependency rules | [architecture/overview.md](../architecture/overview.md), [code-standards.md](code-standards.md) |
+| Tests and guards            | [testing.md](testing.md)                                                                        |
+| CI, deployment, validation  | [ci-and-deployment.md](ci-and-deployment.md)                                                    |
+| Module internals            | the module's own `README.md` under `src/`                                                       |
+| Overall status and layout   | `README.md`, `AGENTS.md`                                                                        |

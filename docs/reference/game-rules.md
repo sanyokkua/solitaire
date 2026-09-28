@@ -31,12 +31,12 @@ Source: `src/domain/rules.ts`, `src/domain/engine.ts`.
 
 Source: `src/domain/deal.ts#modeConfig`, `src/domain/rules.ts#passLimit`.
 
-| Mode | Draw | Scoring | Passes through the stock | Deal selection |
-| --- | --- | --- | --- | --- |
-| Draw 1 | 1 | Standard | unlimited | random, or proven winnable when "Winnable deals only" is on |
-| Draw 3 | 3 | Standard | unlimited | random |
-| Vegas | 3 | Vegas | 3 | random |
-| Daily | 1 | Standard | unlimited | one deal per UTC day, solver-selected |
+| Mode   | Draw | Scoring  | Passes through the stock | Deal selection                                              |
+| ------ | ---- | -------- | ------------------------ | ----------------------------------------------------------- |
+| Draw 1 | 1    | Standard | unlimited                | random, or proven winnable when "Winnable deals only" is on |
+| Draw 3 | 3    | Standard | unlimited                | random                                                      |
+| Vegas  | 3    | Vegas    | 3                        | random                                                      |
+| Daily  | 1    | Standard | unlimited                | one deal per UTC day, solver-selected                       |
 
 The Vegas bank is per game; there is no cumulative bankroll.
 
@@ -63,29 +63,29 @@ when displaying (`displayedScore`).
 
 ### Standard (Draw 1, Draw 3, Daily)
 
-| Event | Points |
-| --- | --- |
-| Waste to foundation | +10 |
-| Tableau to foundation | +10 |
-| Waste to tableau | +5 |
-| Foundation to tableau | -15 |
-| Turning up a face-down card | +5 |
-| Recycle in Draw 1 (and Daily) | -100 |
-| Recycle in Draw 3 that begins the 4th or a later pass | -20 (the first three passes are free) |
-| Time | -2 for every full 10 seconds of counted play |
-| Each undo | -2, and it stays charged (redo does not refund it) |
-| Win bonus | `floor(700000 / whole seconds)`, only when the game took more than 30 seconds |
+| Event                                                 | Points                                                                        |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Waste to foundation                                   | +10                                                                           |
+| Tableau to foundation                                 | +10                                                                           |
+| Waste to tableau                                      | +5                                                                            |
+| Foundation to tableau                                 | -15                                                                           |
+| Turning up a face-down card                           | +5                                                                            |
+| Recycle in Draw 1 (and Daily)                         | -100                                                                          |
+| Recycle in Draw 3 that begins the 4th or a later pass | -20 (the first three passes are free)                                         |
+| Time                                                  | -2 for every full 10 seconds of counted play                                  |
+| Each undo                                             | -2, and it stays charged (redo does not refund it)                            |
+| Win bonus                                             | `floor(700000 / whole seconds)`, only when the game took more than 30 seconds |
 
 The stored move score cannot go below 0, and the displayed score is floored at 0 before the win bonus is added.
 
 ### Vegas
 
-| Event | Points |
-| --- | --- |
-| Start | -52 |
-| Each card moved to a foundation | +5 |
-| Each card moved off a foundation | -5 |
-| Everything else (turning cards, recycles, time, undo, win) | 0 |
+| Event                                                      | Points |
+| ---------------------------------------------------------- | ------ |
+| Start                                                      | -52    |
+| Each card moved to a foundation                            | +5     |
+| Each card moved off a foundation                           | -5     |
+| Everything else (turning cards, recycles, time, undo, win) | 0      |
 
 The score is shown as money and is not floored. The third pass is the last; a recycle beyond it is refused with a
 "No redeals left" notice.

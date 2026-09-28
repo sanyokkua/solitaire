@@ -4,7 +4,7 @@ coverage/
 playwright-report/
 test-results/
 package-lock.json
-docs/
+docs/spec/
 openspec/
 .agents/
 .claude/

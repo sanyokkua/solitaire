@@ -15,14 +15,14 @@ none exists; it never falls back to `Math.random`.
 
 All in `src/domain/types.ts`.
 
-| Type | Meaning |
-| --- | --- |
-| `src/domain/types.ts#GameState` | One immutable position: `seed`, `mode`, `draw` (1 or 3), `scoring`, `verdict` (`win` or `random`), `attempts`, `tableau` (7 columns of `{ id, up }`, index 0 is the bottom), `stock`, `waste`, `foundations` (indexed by suit), `score` (stored move score), `moves`, `passes`, `elapsedMs`, `undos`, `started`, `status` (`playing` or `won`). |
-| `src/domain/types.ts#Command` | `draw`, `move { from, index, to }`, or `autoFoundation { from }` (system-initiated). |
-| `src/domain/types.ts#PileRef` | `stock`, `waste`, `foundation { suit }` or `tableau { col }`. |
-| `src/domain/types.ts#GameEvent` | `moved`, `flipped`, `drew`, `recycled`, `won`, `rejected { reason }`. |
-| `src/domain/types.ts#RejectReason` | `game-over`, `not-movable`, `illegal-target`, `pass-limit`, `nothing-to-draw`. |
-| `src/domain/types.ts#Mode` | `draw1`, `draw3`, `vegas`, `daily`. |
+| Type                               | Meaning                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/domain/types.ts#GameState`    | One immutable position: `seed`, `mode`, `draw` (1 or 3), `scoring`, `verdict` (`win` or `random`), `attempts`, `tableau` (7 columns of `{ id, up }`, index 0 is the bottom), `stock`, `waste`, `foundations` (indexed by suit), `score` (stored move score), `moves`, `passes`, `elapsedMs`, `undos`, `started`, `status` (`playing` or `won`). |
+| `src/domain/types.ts#Command`      | `draw`, `move { from, index, to }`, or `autoFoundation { from }` (system-initiated).                                                                                                                                                                                                                                                            |
+| `src/domain/types.ts#PileRef`      | `stock`, `waste`, `foundation { suit }` or `tableau { col }`.                                                                                                                                                                                                                                                                                   |
+| `src/domain/types.ts#GameEvent`    | `moved`, `flipped`, `drew`, `recycled`, `won`, `rejected { reason }`.                                                                                                                                                                                                                                                                           |
+| `src/domain/types.ts#RejectReason` | `game-over`, `not-movable`, `illegal-target`, `pass-limit`, `nothing-to-draw`.                                                                                                                                                                                                                                                                  |
+| `src/domain/types.ts#Mode`         | `draw1`, `draw3`, `vegas`, `daily`.                                                                                                                                                                                                                                                                                                             |
 
 Cards are integers `0..51` (`src/domain/cards.ts#isCardId`); suits are encoded 0 hearts, 1 diamonds, 2 clubs,
 3 spades (`src/domain/cards.ts#SUIT_KEYS`).
@@ -52,12 +52,12 @@ Cards are integers `0..51` (`src/domain/cards.ts#isCardId`); suits are encoded 0
   the canonical unsigned value, so a deal code can always be encoded. `verdict` and `attempts` default to `random` and 1.
 - `src/domain/deal.ts#modeConfig` maps a mode to draw count and scoring:
 
-| Mode | Draw | Scoring |
-| --- | --- | --- |
-| `draw1` | 1 | standard |
-| `draw3` | 3 | standard |
-| `vegas` | 3 | vegas |
-| `daily` | 1 | standard |
+| Mode    | Draw | Scoring  |
+| ------- | ---- | -------- |
+| `draw1` | 1    | standard |
+| `draw3` | 3    | standard |
+| `vegas` | 3    | vegas    |
+| `daily` | 1    | standard |
 
 ### Deal codes
 
@@ -80,11 +80,11 @@ them for display. Numbers are listed in [game-rules.md](../reference/game-rules.
 
 - `src/domain/hint.ts#findMove` picks the first productive board move in five priorities, each scanned in canonical
   order (columns 0 to 6, then waste; destinations foundations then columns 0 to 6):
-  1. a tableau top or the waste top to its foundation;
-  2. a whole face-up run sitting on a face-down card, to a non-empty column;
-  3. the waste top to any column;
-  4. a partial run to a column, exposing a card its foundation is ready for;
-  5. a run sitting on a face-down card, to an empty column.
+    1. a tableau top or the waste top to its foundation;
+    2. a whole face-up run sitting on a face-down card, to a non-empty column;
+    3. the waste top to any column;
+    4. a partial run to a column, exposing a card its foundation is ready for;
+    5. a run sitting on a face-down card, to an empty column.
 - `src/domain/hint.ts#hint` falls back to `draw` (stock not empty) or `recycle`, else `undefined`.
 - `src/domain/deadEnd.ts#isDeadEnd`: not won, no productive move, and the talon either has no playable card or cannot
   be turned over. `src/domain/deadEnd.ts#advise` returns `dead-end` or the hint.
@@ -120,13 +120,13 @@ them for display. Numbers are listed in [game-rules.md](../reference/game-rules.
 `src/solver/protocol.ts` defines the messages; `src/solver/solver.worker.ts` is a three-line binding to
 `src/solver/protocol.ts#handleRequest`. Every message carries the request `id`.
 
-| Direction | Message | Fields |
-| --- | --- | --- |
-| request | `findWinnable` | `id`, `seeds`, `budget` |
-| request | `hint` | `id`, `state`, `budget` |
-| response | `progress` | `id`, `attempt` (posted as each attempt starts) |
-| response | `findWinnable` | `id`, `seed`, `verdict`, `attempts` |
-| response | `hint` | `id`, `hint` (key always present, may be `undefined`) |
+| Direction | Message        | Fields                                                |
+| --------- | -------------- | ----------------------------------------------------- |
+| request   | `findWinnable` | `id`, `seeds`, `budget`                               |
+| request   | `hint`         | `id`, `state`, `budget`                               |
+| response  | `progress`     | `id`, `attempt` (posted as each attempt starts)       |
+| response  | `findWinnable` | `id`, `seed`, `verdict`, `attempts`                   |
+| response  | `hint`         | `id`, `hint` (key always present, may be `undefined`) |
 
 `src/features` reaches the worker only by URL and type-only imports; value imports of solver code from
 `src/features` are lint errors.
@@ -140,11 +140,11 @@ The worker is started lazily by `src/features/deal/solverClient.ts#createSolverC
 
 Each `deal` first cancels every pending deal and hint (a busy worker is terminated).
 
-| Request | Where | Seeds and budget |
-| --- | --- | --- |
-| `draw1` with `winnableOnly` | worker | 40 fresh `cryptoSeed` values (`MAX_ATTEMPTS`), 5,000 nodes each (`WINNABLE_BUDGET`) |
-| `daily` (any `winnableOnly`) | worker | the 40 v1 candidate seeds of the UTC day, 20,000 nodes each (`DAILY_V1`) |
-| everything else | calling thread | one fresh seed, `random`, 1 attempt |
+| Request                      | Where          | Seeds and budget                                                                    |
+| ---------------------------- | -------------- | ----------------------------------------------------------------------------------- |
+| `draw1` with `winnableOnly`  | worker         | 40 fresh `cryptoSeed` values (`MAX_ATTEMPTS`), 5,000 nodes each (`WINNABLE_BUDGET`) |
+| `daily` (any `winnableOnly`) | worker         | the 40 v1 candidate seeds of the UTC day, 20,000 nodes each (`DAILY_V1`)            |
+| everything else              | calling thread | one fresh seed, `random`, 1 attempt                                                 |
 
 - Progress: `onProgress({ overlay, attempt })` for worker deals only; `overlay` turns true after 160 ms pending.
 - Fallback: if the worker fails or cannot start, the first candidate seed is dealt as `random`, 1 attempt (for Daily,

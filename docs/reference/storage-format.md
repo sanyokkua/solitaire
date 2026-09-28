@@ -8,10 +8,10 @@ Source: `src/features/persistence/recordCodec.ts` (record, preferences, stats) a
 
 ## Keys
 
-| Key | Constant | Purpose |
-| --- | --- | --- |
-| `solitaire.local-state` | `src/features/persistence/recordCodec.ts#STORAGE_KEY` | the record |
-| `solitaire.local-state.unreadable` | `src/features/persistence/recordCodec.ts#BACKUP_KEY` | verbatim copy of a record that could not be decoded |
+| Key                                | Constant                                              | Purpose                                             |
+| ---------------------------------- | ----------------------------------------------------- | --------------------------------------------------- |
+| `solitaire.local-state`            | `src/features/persistence/recordCodec.ts#STORAGE_KEY` | the record                                          |
+| `solitaire.local-state.unreadable` | `src/features/persistence/recordCodec.ts#BACKUP_KEY`  | verbatim copy of a record that could not be decoded |
 
 ## Record
 
@@ -21,7 +21,7 @@ state always gives the identical string.
 Top-level key order: `version`, `preferences`, `stats`, then `session` only while a game is resumable.
 
 ```json
-{ "version": 1, "preferences": { }, "stats": { }, "session": { } }
+{ "version": 1, "preferences": {}, "stats": {}, "session": {} }
 ```
 
 ### `preferences`
@@ -29,20 +29,20 @@ Top-level key order: `version`, `preferences`, `stats`, then `session` only whil
 Exactly these twelve keys, in this order (`PREFERENCE_KEYS`). Defaults are from
 `src/features/preferences/preferencesSlice.ts#defaultPreferences`.
 
-| Key | Allowed values | Default |
-| --- | --- | --- |
-| `theme` | `light`, `dark`, `system` | `system` |
-| `nightCards` | boolean | `false` |
-| `fourColor` | boolean | `false` |
-| `cardBack` | `harbour`, `navy`, `sky`, `coral` | `harbour` |
-| `tapMode` | `smart`, `select` | `smart` |
-| `highlight` | boolean | `true` |
-| `autoSafe` | boolean | `false` |
-| `stockRight` | boolean | `false` |
-| `animations` | boolean | `true` |
-| `locale` | a supported locale (`en`, `uk`; from `src/i18n/catalog.ts#CATALOGS`) | first language from `navigator.languages` that is supported (primary subtag), else `en` |
-| `winnableOnly` | boolean | `true` |
-| `selectedMode` | `draw1`, `draw3`, `vegas`, `daily` | `draw1` |
+| Key            | Allowed values                                                       | Default                                                                                 |
+| -------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `theme`        | `light`, `dark`, `system`                                            | `system`                                                                                |
+| `nightCards`   | boolean                                                              | `false`                                                                                 |
+| `fourColor`    | boolean                                                              | `false`                                                                                 |
+| `cardBack`     | `harbour`, `navy`, `sky`, `coral`                                    | `harbour`                                                                               |
+| `tapMode`      | `smart`, `select`                                                    | `smart`                                                                                 |
+| `highlight`    | boolean                                                              | `true`                                                                                  |
+| `autoSafe`     | boolean                                                              | `false`                                                                                 |
+| `stockRight`   | boolean                                                              | `false`                                                                                 |
+| `animations`   | boolean                                                              | `true`                                                                                  |
+| `locale`       | a supported locale (`en`, `uk`; from `src/i18n/catalog.ts#CATALOGS`) | first language from `navigator.languages` that is supported (primary subtag), else `en` |
+| `winnableOnly` | boolean                                                              | `true`                                                                                  |
+| `selectedMode` | `draw1`, `draw3`, `vegas`, `daily`                                   | `draw1`                                                                                 |
 
 ### `stats`
 
@@ -62,13 +62,13 @@ a won or unstarted game is not stored.
 
 Exactly the keys `current`, `history`, `future`, `dailyKey`, `counted`.
 
-| Key | Content |
-| --- | --- |
-| `current` | the full `GameState` (all 17 fields, see `src/domain/types.ts#GameState`), started and `playing` |
-| `history` | undo steps, oldest first; at most the newest 200 |
-| `future` | redo steps; at most the nearest 200 (the next redo is the last element) |
-| `dailyKey` | `YYYY-MM-DD` or `null`; non-null only for a `daily` game |
-| `counted` | boolean: the game is already in the statistics |
+| Key        | Content                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| `current`  | the full `GameState` (all 17 fields, see `src/domain/types.ts#GameState`), started and `playing` |
+| `history`  | undo steps, oldest first; at most the newest 200                                                 |
+| `future`   | redo steps; at most the nearest 200 (the next redo is the last element)                          |
+| `dailyKey` | `YYYY-MM-DD` or `null`; non-null only for a `daily` game                                         |
+| `counted`  | boolean: the game is already in the statistics                                                   |
 
 A step is compact: only `tableau`, `stock`, `waste`, `foundations`, `score`, `moves`, `passes`, `elapsedMs`,
 `undos`, `started`. The constant fields (`seed`, `mode`, `draw`, `scoring`, `verdict`, `attempts`) are copied from
@@ -82,13 +82,13 @@ Runtime-only values (`busy`, `epoch`, the clock anchor, interaction state, notic
 `src/features/persistence/recordCodec.ts#decodeRecord` is total and never throws. The record is accepted whole or not
 at all; a valid part of a bad record is never salvaged.
 
-| Outcome | Condition |
-| --- | --- |
-| ok | valid v1 record; `session` decoded or `null` |
-| `empty` | the key is absent (`null` input) |
-| `malformed` | the text is not JSON |
-| `future` | `version` is a number greater than 1; never interpreted |
-| `invalid` | anything else that is not exactly a valid v1 record: wrong version, unknown or missing keys, bad values, an invalid session |
+| Outcome     | Condition                                                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| ok          | valid v1 record; `session` decoded or `null`                                                                                |
+| `empty`     | the key is absent (`null` input)                                                                                            |
+| `malformed` | the text is not JSON                                                                                                        |
+| `future`    | `version` is a number greater than 1; never interpreted                                                                     |
+| `invalid`   | anything else that is not exactly a valid v1 record: wrong version, unknown or missing keys, bad values, an invalid session |
 
 Unknown keys anywhere in the record, preferences, stats, session or a card fail validation.
 
@@ -105,13 +105,13 @@ What the app does with each outcome (from `src/features/persistence/persistenceL
 
 ## Limits
 
-| Limit | Value | Source |
-| --- | --- | --- |
-| stored undo steps | 200 newest | `src/features/persistence/sessionCodec.ts#MAX_STORED_STEPS` |
-| stored redo steps | 200 nearest | same |
-| completed Daily dates kept | 400 | `src/features/stats/statsSlice.ts#MAX_DAILY_COMPLETED`, also enforced by the decoder in `recordCodec.ts` |
-| save debounce | 250 ms after the last change | `src/features/persistence/persistenceWriter.ts` (`DEBOUNCE_MS`) |
-| clock-only save interval | at most every 5 s | same (`CLOCK_INTERVAL_MS`) |
-| record version | 1 (`RECORD_VERSION`) | `src/features/persistence/recordCodec.ts` |
+| Limit                      | Value                        | Source                                                                                                   |
+| -------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| stored undo steps          | 200 newest                   | `src/features/persistence/sessionCodec.ts#MAX_STORED_STEPS`                                              |
+| stored redo steps          | 200 nearest                  | same                                                                                                     |
+| completed Daily dates kept | 400                          | `src/features/stats/statsSlice.ts#MAX_DAILY_COMPLETED`, also enforced by the decoder in `recordCodec.ts` |
+| save debounce              | 250 ms after the last change | `src/features/persistence/persistenceWriter.ts` (`DEBOUNCE_MS`)                                          |
+| clock-only save interval   | at most every 5 s            | same (`CLOCK_INTERVAL_MS`)                                                                               |
+| record version             | 1 (`RECORD_VERSION`)         | `src/features/persistence/recordCodec.ts`                                                                |
 
 The browser's own `localStorage` quota is not checked; a failed write raises the `storage-write` notice.

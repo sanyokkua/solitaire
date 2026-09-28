@@ -8,14 +8,14 @@ this page is the map.
 
 `src/app/store.ts#createAppStore` combines six slices:
 
-| Slice | File | Holds | Persisted |
-| --- | --- | --- | --- |
-| `app` | `src/app/appSlice.ts` | route (`home`/`game`), open sheet (one of eight), notices, document visibility, system reduced-motion, dealing progress, `installable`, `updateDeferred` | no |
-| `preferences` | `src/features/preferences/preferencesSlice.ts` | the twelve settings | yes |
-| `stats` | `src/features/stats/statsSlice.ts` | per-mode stats and Daily record | yes |
-| `game` | `src/features/game/gameSlice.ts` | `current`, `history`, `future`, `dailyKey`, `counted`; runtime `busy`, `epoch`, `clock.anchorMs` | `current`, `history`, `future`, `dailyKey`, `counted` (only a started, unfinished game) |
-| `interaction` | `src/features/interaction/interactionSlice.ts` | selection, hint, pending hint, announcement log, reported dead ends, win summary | no |
-| `persistence` | `src/features/persistence/persistenceSlice.ts` | `readOnly`, `lastError` (`read`/`write`/`null`) | no |
+| Slice         | File                                           | Holds                                                                                                                                                    | Persisted                                                                               |
+| ------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `app`         | `src/app/appSlice.ts`                          | route (`home`/`game`), open sheet (one of eight), notices, document visibility, system reduced-motion, dealing progress, `installable`, `updateDeferred` | no                                                                                      |
+| `preferences` | `src/features/preferences/preferencesSlice.ts` | the twelve settings                                                                                                                                      | yes                                                                                     |
+| `stats`       | `src/features/stats/statsSlice.ts`             | per-mode stats and Daily record                                                                                                                          | yes                                                                                     |
+| `game`        | `src/features/game/gameSlice.ts`               | `current`, `history`, `future`, `dailyKey`, `counted`; runtime `busy`, `epoch`, `clock.anchorMs`                                                         | `current`, `history`, `future`, `dailyKey`, `counted` (only a started, unfinished game) |
+| `interaction` | `src/features/interaction/interactionSlice.ts` | selection, hint, pending hint, announcement log, reported dead ends, win summary                                                                         | no                                                                                      |
+| `persistence` | `src/features/persistence/persistenceSlice.ts` | `readOnly`, `lastError` (`read`/`write`/`null`)                                                                                                          | no                                                                                      |
 
 The store's development-only immutability and serializability checks skip `game.history` and `game.future` because
 they are large.
@@ -25,16 +25,16 @@ they are large.
 `src/app/thunkExtra.ts#ThunkExtra` is the `extraArgument` every thunk receives. `AppThunk`
 (`src/app/appThunk.ts#AppThunk`) is the shared thunk type, importing store types type-only to avoid a runtime cycle.
 
-| Field | Default | Purpose |
-| --- | --- | --- |
-| `dealService` | a lazy `createDealService` wrapper built in `assembleThunkExtra` | deal and hint; the solver worker starts on first use |
-| `now` | `performance.now` | monotonic clock for play time |
-| `delay` | `setTimeout` promise | spacing of chains, finish and hint display |
-| `today` | `() => new Date()` | source of the UTC Daily key |
-| `gateway` | `src/features/persistence/storageGateway.ts#createStorageGateway` | the only door to `localStorage` |
-| `saver` | `src/app/savePort.ts#createSavePort` | flush or cancel the pending save without reaching the writer |
-| `pwa` | `src/app/thunkExtra.ts#inertPwaPort` | apply update, prompt install; inert unless `main.tsx` supplies real gateways |
-| `languages` | `navigator.languages` | first-run language (`resolveLocale`) |
+| Field         | Default                                                           | Purpose                                                                      |
+| ------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `dealService` | a lazy `createDealService` wrapper built in `assembleThunkExtra`  | deal and hint; the solver worker starts on first use                         |
+| `now`         | `performance.now`                                                 | monotonic clock for play time                                                |
+| `delay`       | `setTimeout` promise                                              | spacing of chains, finish and hint display                                   |
+| `today`       | `() => new Date()`                                                | source of the UTC Daily key                                                  |
+| `gateway`     | `src/features/persistence/storageGateway.ts#createStorageGateway` | the only door to `localStorage`                                              |
+| `saver`       | `src/app/savePort.ts#createSavePort`                              | flush or cancel the pending save without reaching the writer                 |
+| `pwa`         | `src/app/thunkExtra.ts#inertPwaPort`                              | apply update, prompt install; inert unless `main.tsx` supplies real gateways |
+| `languages`   | `navigator.languages`                                             | first-run language (`resolveLocale`)                                         |
 
 `src/app/thunkExtra.ts#assembleThunkExtra(overrides)` is the one place these are assembled; `createAppStore({
 preloadedState, deps })` and `startApp` both call it. Every override wins over its default. Unless the caller injected
@@ -43,15 +43,15 @@ pass `createDealService` to observe or replace how the default service is built.
 
 ## Thunks by file
 
-| File | Thunks |
-| --- | --- |
-| `src/features/game/gameThunks.ts` | `commitCommand`, `play`, `finish`, `undo`, `redo` |
-| `src/features/game/sessionThunks.ts` | `startGame`, `restart`, `continueGame`, `playDealCode`, `breakStreakOf` |
-| `src/features/game/navigationThunks.ts` | `dealNewGame`, `requestNewDeal`, `restartDeal`, `goHome`, `openSheet`, `closeSheet`, `pause`, `resume` |
-| `src/features/interaction/interactionThunks.ts` | `selectCard`, `requestHint`, `checkDeadEnd`, `dealCodeCopied` |
-| `src/features/stats/statsThunks.ts` | `todayKey` |
-| `src/features/persistence/resetThunks.ts` | `resetStatistics`, `resetAllLocalData` |
-| `src/app/pwaThunks.ts` | `applyUpdate`, `installApp` |
+| File                                            | Thunks                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `src/features/game/gameThunks.ts`               | `commitCommand`, `play`, `finish`, `undo`, `redo`                                                      |
+| `src/features/game/sessionThunks.ts`            | `startGame`, `restart`, `continueGame`, `playDealCode`, `breakStreakOf`                                |
+| `src/features/game/navigationThunks.ts`         | `dealNewGame`, `requestNewDeal`, `restartDeal`, `goHome`, `openSheet`, `closeSheet`, `pause`, `resume` |
+| `src/features/interaction/interactionThunks.ts` | `selectCard`, `requestHint`, `checkDeadEnd`, `dealCodeCopied`                                          |
+| `src/features/stats/statsThunks.ts`             | `todayKey`                                                                                             |
+| `src/features/persistence/resetThunks.ts`       | `resetStatistics`, `resetAllLocalData`                                                                 |
+| `src/app/pwaThunks.ts`                          | `applyUpdate`, `installApp`                                                                            |
 
 - `commitCommand` is the one path every command takes, player or system. It settles the clock, runs
   `src/domain/engine.ts#applyCommand`, records a new undo step (`entry: 'new'`) or updates the current one
@@ -116,12 +116,12 @@ flowchart TD
 - Loader: `src/features/persistence/persistenceLoader.ts#loadInitialState` reads before the store exists and returns
   `preloadedState` plus notices to raise. It never throws and never touches the main record. Its only write is one
   copy of an unreadable record to the backup key.
-  - No record: defaults, no notice.
-  - Valid record: preferences, stats and the resumable game; `app` is not preloaded so the route stays `home`.
-  - `malformed`, `invalid` or `future`: defaults; the raw string is kept in the backup key first. If the backup key is
-    empty or already holds the identical string, notice `storage-read`; if it holds different data or cannot be
-    read or written, the store starts `readOnly` with notice `storage-read-only`.
-  - Storage cannot be read at all: defaults, `readOnly`, `storage-read-only`.
+    - No record: defaults, no notice.
+    - Valid record: preferences, stats and the resumable game; `app` is not preloaded so the route stays `home`.
+    - `malformed`, `invalid` or `future`: defaults; the raw string is kept in the backup key first. If the backup key is
+      empty or already holds the identical string, notice `storage-read`; if it holds different data or cannot be
+      read or written, the store starts `readOnly` with notice `storage-read-only`.
+    - Storage cannot be read at all: defaults, `readOnly`, `storage-read-only`.
 - Writer: `src/features/persistence/persistenceWriter.ts#createPersistenceWriter` subscribes to the store and compares
   the saved parts by reference. A change is written 250 ms after the last one; a change that is only `elapsedMs` is
   written at most every 5 s and never replaces a waiting save. Nothing is written while `persistence.readOnly` is

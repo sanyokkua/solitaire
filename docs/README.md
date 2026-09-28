@@ -11,34 +11,34 @@ Documentation for Klondike Solitaire. Start with the [README](../README.md) for 
 
 ## Architecture
 
-| Page                                                           | Contents                                                            |
-| -------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [overview](architecture/overview.md)                           | Layers, principles, runtime shape                                   |
-| [domain-and-solver](architecture/domain-and-solver.md)         | Engine, commands, deals, scoring, hints, solver, worker protocol    |
-| [state-and-persistence](architecture/state-and-persistence.md) | Store, thunks, lifecycle, timer, persistence                        |
-| [ui](architecture/ui.md)                                       | Board, input, screens, sheets, themes, motion                       |
-| [i18n-and-pwa](architecture/i18n-and-pwa.md)                   | Localisation, service worker, update and install                    |
-| [data-flows](architecture/data-flows.md)                       | Sequence diagrams for the main runtime paths                        |
+| Page                                                           | Contents                                                         |
+| -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [overview](architecture/overview.md)                           | Layers, principles, runtime shape                                |
+| [domain-and-solver](architecture/domain-and-solver.md)         | Engine, commands, deals, scoring, hints, solver, worker protocol |
+| [state-and-persistence](architecture/state-and-persistence.md) | Store, thunks, lifecycle, timer, persistence                     |
+| [ui](architecture/ui.md)                                       | Board, input, screens, sheets, themes, motion                    |
+| [i18n-and-pwa](architecture/i18n-and-pwa.md)                   | Localisation, service worker, update and install                 |
+| [data-flows](architecture/data-flows.md)                       | Sequence diagrams for the main runtime paths                     |
 
 ## Development
 
-| Page                                                       | Contents                                          |
-| ---------------------------------------------------------- | ------------------------------------------------- |
-| [getting-started](development/getting-started.md)         | Prerequisites and commands                        |
-| [project-structure](development/project-structure.md)     | Directory guide and "where do I change...?"       |
-| [workflow](development/workflow.md)                        | OpenSpec workflow, branching, commits, hooks      |
-| [code-standards](development/code-standards.md)            | Formatting, lint, types, layer rules, principles  |
-| [testing](development/testing.md)                          | Test layers, guards, Playwright projects          |
-| [ci-and-deployment](development/ci-and-deployment.md)      | Workflows, validation, GitHub Pages               |
+| Page                                                  | Contents                                         |
+| ----------------------------------------------------- | ------------------------------------------------ |
+| [getting-started](development/getting-started.md)     | Prerequisites and commands                       |
+| [project-structure](development/project-structure.md) | Directory guide and "where do I change...?"      |
+| [workflow](development/workflow.md)                   | OpenSpec workflow, branching, commits, hooks     |
+| [code-standards](development/code-standards.md)       | Formatting, lint, types, layer rules, principles |
+| [testing](development/testing.md)                     | Test layers, guards, Playwright projects         |
+| [ci-and-deployment](development/ci-and-deployment.md) | Workflows, validation, GitHub Pages              |
 
 ## Reference
 
-| Page                                                        | Contents                                  |
-| ----------------------------------------------------------- | ----------------------------------------- |
-| [scripts](reference/scripts.md)                             | All npm scripts                           |
-| [keyboard-and-controls](reference/keyboard-and-controls.md) | Shortcuts and input behaviour             |
-| [game-rules](reference/game-rules.md)                       | Implemented rules, modes, scoring         |
-| [storage-format](reference/storage-format.md)               | The `solitaire.local-state` record        |
+| Page                                                        | Contents                           |
+| ----------------------------------------------------------- | ---------------------------------- |
+| [scripts](reference/scripts.md)                             | All npm scripts                    |
+| [keyboard-and-controls](reference/keyboard-and-controls.md) | Shortcuts and input behaviour      |
+| [game-rules](reference/game-rules.md)                       | Implemented rules, modes, scoring  |
+| [storage-format](reference/storage-format.md)               | The `solitaire.local-state` record |
 
 ## Module READMEs
 

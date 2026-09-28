@@ -40,15 +40,15 @@ format:check && lint && typecheck && validate:lifecycle-storage && test:unit && 
 
 `tests/unit/repo/configContract.test.ts` asserts this exact order.
 
-| Step                         | Command                        | What it checks                                                                                                     |
-| ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `format:check`               | `prettier --check .`           | Formatting: 4-space indent, 120 columns, semicolons, single quotes, trailing commas.                               |
-| `lint`                       | `eslint .`                     | `typescript-eslint` strict and stylistic type-checked rules, react-hooks, and the import restrictions in `eslint.config.js` (layer purity, no solver value imports in features, no direct route or sheet changes from the UI). |
-| `typecheck`                  | `tsc -b --pretty false`        | TypeScript strict, no unused locals or parameters; includes the type-level catalog completeness test.              |
-| `validate:lifecycle-storage` | `node scripts/validate-lifecycle-storage.mjs` | Lifecycle tests reach storage only through an injected gateway (details in [testing](testing.md)).    |
-| `test:unit`                  | `vitest run tests/unit tests/component` | All unit, component and repo guard tests.                                                                |
-| `build`                      | `tsc -b && vite build`         | Type-check, then build into `dist/` with the `/solitaire/` base, the service worker and the solver worker chunk.   |
-| `validate:artifact`          | `node scripts/validate-artifact.mjs` | Checks the built `dist/` (below).                                                                            |
+| Step                         | Command                                       | What it checks                                                                                                                                                                                                                 |
+| ---------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `format:check`               | `prettier --check .`                          | Formatting: 4-space indent, 120 columns, semicolons, single quotes, trailing commas.                                                                                                                                           |
+| `lint`                       | `eslint .`                                    | `typescript-eslint` strict and stylistic type-checked rules, react-hooks, and the import restrictions in `eslint.config.js` (layer purity, no solver value imports in features, no direct route or sheet changes from the UI). |
+| `typecheck`                  | `tsc -b --pretty false`                       | TypeScript strict, no unused locals or parameters; includes the type-level catalog completeness test.                                                                                                                          |
+| `validate:lifecycle-storage` | `node scripts/validate-lifecycle-storage.mjs` | Lifecycle tests reach storage only through an injected gateway (details in [testing](testing.md)).                                                                                                                             |
+| `test:unit`                  | `vitest run tests/unit tests/component`       | All unit, component and repo guard tests.                                                                                                                                                                                      |
+| `build`                      | `tsc -b && vite build`                        | Type-check, then build into `dist/` with the `/solitaire/` base, the service worker and the solver worker chunk.                                                                                                               |
+| `validate:artifact`          | `node scripts/validate-artifact.mjs`          | Checks the built `dist/` (below).                                                                                                                                                                                              |
 
 ### `scripts/validate-artifact.mjs`
 
@@ -80,10 +80,10 @@ Other scripts: `scripts/generate-icons.mjs` regenerates the icons in `public/ico
 
 Installed by the `prepare` script (`husky`). Hooks live in `.husky/`.
 
-| Hook                | Runs                                                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Hook                | Runs                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.husky/pre-commit` | `npx lint-staged` (Prettier and ESLint `--fix` on staged `*.{ts,tsx}`; Prettier on staged `*.{json,css,html,md,yml,yaml}`), then `npm run typecheck`, then `npm run test:unit`. |
-| `.husky/pre-push`   | `npm run e2e` (all Playwright projects).                                                                                        |
+| `.husky/pre-push`   | `npm run e2e` (all Playwright projects).                                                                                                                                        |
 
 The pre-commit hook lints only staged files, so it does not replace `validate`. The project rule is to run the full
 `rtk npm run validate` before every commit (see [workflow](workflow.md)).
@@ -140,10 +140,10 @@ Dev server: `npm run dev` serves at <http://localhost:5173/solitaire/>.
 
 `vite.config.ts` defines two compile-time constants:
 
-| Constant                    | Value                                                                              |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| `__APP_BUILD_TIMESTAMP__`   | `process.env.BUILD_TIMESTAMP`, else the string `dev version`.                      |
-| `__APP_VERSION__`           | `version` from `package.json` (read with `readFileSync`, not hard-coded).          |
+| Constant                  | Value                                                                     |
+| ------------------------- | ------------------------------------------------------------------------- |
+| `__APP_BUILD_TIMESTAMP__` | `process.env.BUILD_TIMESTAMP`, else the string `dev version`.             |
+| `__APP_VERSION__`         | `version` from `package.json` (read with `readFileSync`, not hard-coded). |
 
 Both CI workflows set `BUILD_TIMESTAMP` to `github.run_started_at`. The build stamp component
 (`src/ui/components/BuildStamp.tsx#BuildStamp`) shows the timestamp, or a localised "dev" text when Vite did not define it

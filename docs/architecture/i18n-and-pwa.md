@@ -9,15 +9,15 @@ and an ESLint override covers `src/i18n`. Module-level notes: [`src/i18n/README.
 
 ### Parts
 
-| Module                                     | Job                                                                                                                       |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `src/i18n/locales/en.ts#en`                | English catalog, `as const satisfies Catalog`. `MessageKey = keyof typeof en` is the typed source of every key.           |
-| `src/i18n/locales/uk.ts#uk`                | Ukrainian catalog, typed `Record<MessageKey, Message>`, so a missing key fails `typecheck`.                               |
-| `src/i18n/catalog.ts#CATALOGS`             | The language registry: one entry per language, `{ name, catalog }`. Order is the order Settings lists them.               |
-| `src/i18n/catalog.ts#SUPPORTED_LOCALES`    | Registry keys. `Locale` is `keyof typeof CATALOGS`.                                                                       |
-| `src/i18n/translate.ts#createTranslator`   | `createTranslator(locale, catalog, fallback)` returns `t(key, params?)`.                                                  |
-| `src/i18n/translate.ts#formatDate`         | Formats a UTC calendar date in the locale's words, independent of the machine time zone.                                  |
-| `src/i18n/useTranslate.ts#useTranslate`    | React hook: reads `state.preferences.locale`, returns `t` memoised on the locale. The only React-aware i18n module.       |
+| Module                                                | Job                                                                                                                                                                              |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/i18n/locales/en.ts#en`                           | English catalog, `as const satisfies Catalog`. `MessageKey = keyof typeof en` is the typed source of every key.                                                                  |
+| `src/i18n/locales/uk.ts#uk`                           | Ukrainian catalog, typed `Record<MessageKey, Message>`, so a missing key fails `typecheck`.                                                                                      |
+| `src/i18n/catalog.ts#CATALOGS`                        | The language registry: one entry per language, `{ name, catalog }`. Order is the order Settings lists them.                                                                      |
+| `src/i18n/catalog.ts#SUPPORTED_LOCALES`               | Registry keys. `Locale` is `keyof typeof CATALOGS`.                                                                                                                              |
+| `src/i18n/translate.ts#createTranslator`              | `createTranslator(locale, catalog, fallback)` returns `t(key, params?)`.                                                                                                         |
+| `src/i18n/translate.ts#formatDate`                    | Formats a UTC calendar date in the locale's words, independent of the machine time zone.                                                                                         |
+| `src/i18n/useTranslate.ts#useTranslate`               | React hook: reads `state.preferences.locale`, returns `t` memoised on the locale. The only React-aware i18n module.                                                              |
 | `src/i18n/localeController.ts#createLocaleController` | Sets `<html lang>` and `document.title` (the `app.title` message) on start and on each locale change. `src/app/lifecycle.tsx` creates and disposes it with the theme controller. |
 
 ### How the translator behaves

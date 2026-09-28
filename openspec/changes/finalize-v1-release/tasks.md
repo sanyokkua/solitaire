@@ -204,7 +204,7 @@
     - **Tests:** the guard passes on today's code (appSlice, appThunk, `app/selectors` and type-only `app/store` imports), and a fixture import of `app/store` as a value or of `app/lifecycle` from features is reported. Use the existing `tests/unit/repo/purityScanner.ts` helpers.
     - **Verify:** `rtk npx vitest run tests/unit/repo` and `rtk npm run lint` pass.
 
-- [ ] 2.12 Format the maintained docs
+- [x] 2.12 Format the maintained docs
     - **Implements:** RF "Deterministic source formatting" ("Maintained docs are checked"); D15 (docs formatting), D18 (formatting).
     - **Files:**
       - `.prettierignore`: `docs/` becomes `docs/spec/`, so only the spec pack stays excluded until 13.3 deletes it; `openspec/`, the lockfile and build output stay excluded;

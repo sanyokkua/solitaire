@@ -6,15 +6,15 @@ The UI layer (`src/ui`) renders application state and issues typed commands. It 
 
 ## Layout of `src/ui`
 
-| Folder / file                       | Holds                                                                                                                       |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `src/ui/board/`                     | The table: pure geometry and input controllers, plus the React card, slot and `Board` components and their hooks.           |
-| `src/ui/components/`                | Small shared components: HUD, toolbar, announcer, notices, chips, switches, segmented controls, deal code, build stamp.     |
-| `src/ui/screens/`                   | `HomeScreen.tsx`, `GameScreen.tsx`, Home's parts in `screens/home/`, and `profiles.ts`.                                     |
-| `src/ui/sheets/`                    | `ModalSheet.tsx` (generic dialog), `SheetHost.tsx` and the eight concrete sheets.                                           |
-| `src/ui/styles/`                    | Plain CSS: `tokens.css`, `cards.css`, `board.css`, `hud.css`, `layout.css`, `controls.css`, `sheets.css`, `home.css`, `global.css`. |
-| `src/ui/announce.ts`, `format.ts`   | Localised announcement wording; pure HUD text formatters.                                                                   |
-| `src/ui/useMediaQuery.ts`, `useToday.ts` | Small hooks: live media query, current UTC day key.                                                                    |
+| Folder / file                            | Holds                                                                                                                               |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/ui/board/`                          | The table: pure geometry and input controllers, plus the React card, slot and `Board` components and their hooks.                   |
+| `src/ui/components/`                     | Small shared components: HUD, toolbar, announcer, notices, chips, switches, segmented controls, deal code, build stamp.             |
+| `src/ui/screens/`                        | `HomeScreen.tsx`, `GameScreen.tsx`, Home's parts in `screens/home/`, and `profiles.ts`.                                             |
+| `src/ui/sheets/`                         | `ModalSheet.tsx` (generic dialog), `SheetHost.tsx` and the eight concrete sheets.                                                   |
+| `src/ui/styles/`                         | Plain CSS: `tokens.css`, `cards.css`, `board.css`, `hud.css`, `layout.css`, `controls.css`, `sheets.css`, `home.css`, `global.css`. |
+| `src/ui/announce.ts`, `format.ts`        | Localised announcement wording; pure HUD text formatters.                                                                           |
+| `src/ui/useMediaQuery.ts`, `useToday.ts` | Small hooks: live media query, current UTC day key.                                                                                 |
 
 `src/App.tsx` mounts the screen for the current route (`selectRoute`), then `SheetHost`, `Notices` and `Announcer` as
 siblings of the screen, so they work while a sheet makes the screen behind them `inert`.
@@ -31,16 +31,16 @@ The board is split so that all geometry and input logic can be unit-tested witho
 import the translator type from `../../i18n/translate` (type-only). No React, Redux, DOM, storage, `crypto` or
 `Math.random`.
 
-| Module                                    | Job                                                                                                    |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `src/ui/board/metrics.ts#measure`         | Board size + pointer type to card size, spacing, wide-or-stacked table choice, compact flag.           |
-| `src/ui/board/layout.ts#positions`        | Piles + metrics to a placement for every card, the slots, the stock badge and the deal order.          |
-| `src/ui/board/names.ts#cardName`          | Localised accessible names of cards and piles (`pileName`, `pileLabel`).                               |
-| `src/ui/board/locate.ts#cardIndex`        | Card id to `{ from, index, faceUp, movable }`.                                                         |
-| `src/ui/board/landing.ts#pickLargestOverlap` | Landing rectangles for drag/hint; drop target by largest overlap; `pileAt` reverse lookup.          |
-| `src/ui/board/pointerController.ts#step`  | Pointer state machine (idle, pressed, dragging), plain-data inputs and effects.                        |
-| `src/ui/board/keyboardController.ts#keyToAction` | Key event to action; `moveFocus`, `pileOrder`, `defaultStop` for roving focus.                  |
-| `src/ui/board/cascadeFrames.ts#cascadeFrames` | Paths for the win cascade.                                                                        |
+| Module                                           | Job                                                                                           |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `src/ui/board/metrics.ts#measure`                | Board size + pointer type to card size, spacing, wide-or-stacked table choice, compact flag.  |
+| `src/ui/board/layout.ts#positions`               | Piles + metrics to a placement for every card, the slots, the stock badge and the deal order. |
+| `src/ui/board/names.ts#cardName`                 | Localised accessible names of cards and piles (`pileName`, `pileLabel`).                      |
+| `src/ui/board/locate.ts#cardIndex`               | Card id to `{ from, index, faceUp, movable }`.                                                |
+| `src/ui/board/landing.ts#pickLargestOverlap`     | Landing rectangles for drag/hint; drop target by largest overlap; `pileAt` reverse lookup.    |
+| `src/ui/board/pointerController.ts#step`         | Pointer state machine (idle, pressed, dragging), plain-data inputs and effects.               |
+| `src/ui/board/keyboardController.ts#keyToAction` | Key event to action; `moveFocus`, `pileOrder`, `defaultStop` for roving focus.                |
+| `src/ui/board/cascadeFrames.ts#cascadeFrames`    | Paths for the win cascade.                                                                    |
 
 Enforcement: an ESLint override on exactly these eight files (`eslint.config.js`) and
 `tests/unit/repo/boardPurity.test.ts`. See [testing](../development/testing.md).
@@ -153,16 +153,16 @@ Device-fit coverage of these (52 configurations, plus a padded-text pass) is des
 `ModalSheet.tsx` (scrim, `role="dialog"`, focus trap, Escape and backdrop dismissal unless `dismissable={false}`, focus
 return to the opener). While a sheet is open, `App` marks the screen behind it `inert`.
 
-| Sheet id   | Component                                 | Notes                                                                       |
-| ---------- | ----------------------------------------- | --------------------------------------------------------------------------- |
-| `settings` | `src/ui/sheets/SettingsSheet.tsx`         | Appearance, Play, Language, Data groups; every control writes `preferenceSet` at once. |
-| `help`     | `src/ui/sheets/HelpSheet.tsx`             | Rules, controls table, scoring.                                             |
-| `stats`    | `src/ui/sheets/StatsSheet.tsx`            | Per-mode table, Daily streak, Reset.                                        |
-| `newDeal`  | `src/ui/sheets/NewDealSheet.tsx`          | Shown for a started, unwon game; Restart, New deal, Cancel (initial focus). |
-| `paused`   | `src/ui/sheets/PausedSheet.tsx`           | Frozen time, deal code, Resume; `GameScreen` hides the board while open.    |
-| `win`      | `src/ui/sheets/WinSheet.tsx`              | Not dismissable; only Menu or Deal again leave it.                          |
-| `dealCode` | `src/ui/sheets/DealCodeSheet.tsx`         | A form; `playDealCode` thunk validates.                                     |
-| `about`    | `src/ui/sheets/AboutSheet.tsx`            | Version (`__APP_VERSION__`), build stamp, links, privacy line.              |
+| Sheet id   | Component                         | Notes                                                                                  |
+| ---------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| `settings` | `src/ui/sheets/SettingsSheet.tsx` | Appearance, Play, Language, Data groups; every control writes `preferenceSet` at once. |
+| `help`     | `src/ui/sheets/HelpSheet.tsx`     | Rules, controls table, scoring.                                                        |
+| `stats`    | `src/ui/sheets/StatsSheet.tsx`    | Per-mode table, Daily streak, Reset.                                                   |
+| `newDeal`  | `src/ui/sheets/NewDealSheet.tsx`  | Shown for a started, unwon game; Restart, New deal, Cancel (initial focus).            |
+| `paused`   | `src/ui/sheets/PausedSheet.tsx`   | Frozen time, deal code, Resume; `GameScreen` hides the board while open.               |
+| `win`      | `src/ui/sheets/WinSheet.tsx`      | Not dismissable; only Menu or Deal again leave it.                                     |
+| `dealCode` | `src/ui/sheets/DealCodeSheet.tsx` | A form; `playDealCode` thunk validates.                                                |
+| `about`    | `src/ui/sheets/AboutSheet.tsx`    | Version (`__APP_VERSION__`), build stamp, links, privacy line.                         |
 
 ## Announcer and notices
 
@@ -182,13 +182,13 @@ tokens only (checked by `tests/unit/ui/tokens.test.ts`; contrast by `tests/unit/
 The theme controller (`src/app/themeController.ts#createThemeController`) applies preferences to `<html>` as attributes,
 and the stylesheets select on them:
 
-| Preference (`src/features/preferences/preferencesSlice.ts`) | Attribute on `<html>`           | Values                              |
-| ----------------------------------------------------------- | ------------------------------- | ----------------------------------- |
-| `theme` (`light`, `dark`, `system`)                         | `data-theme`                    | `light` or `dark` (System is resolved from `prefers-color-scheme`) |
-| `nightCards`                                                | `data-night-cards`              | `true` / `false`                    |
-| `fourColor`                                                 | `data-four-color`               | `true` / `false`                    |
-| `cardBack` (`harbour`, `navy`, `sky`, `coral`)              | `data-back`                     | the chosen back                     |
-| `animations` + device reduced-motion                        | `data-motion`                   | `on` / `off`                        |
+| Preference (`src/features/preferences/preferencesSlice.ts`) | Attribute on `<html>` | Values                                                             |
+| ----------------------------------------------------------- | --------------------- | ------------------------------------------------------------------ |
+| `theme` (`light`, `dark`, `system`)                         | `data-theme`          | `light` or `dark` (System is resolved from `prefers-color-scheme`) |
+| `nightCards`                                                | `data-night-cards`    | `true` / `false`                                                   |
+| `fourColor`                                                 | `data-four-color`     | `true` / `false`                                                   |
+| `cardBack` (`harbour`, `navy`, `sky`, `coral`)              | `data-back`           | the chosen back                                                    |
+| `animations` + device reduced-motion                        | `data-motion`         | `on` / `off`                                                       |
 
 Other preferences (`tapMode`, `highlight`, `autoSafe`, `stockRight`, `locale`, `winnableOnly`, `selectedMode`) are read
 by components and thunks, not applied as attributes. `locale` is applied to `<html lang>` and the document title by

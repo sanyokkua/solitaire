@@ -24,15 +24,15 @@ flowchart TD
     pwa["pwa: service worker gateways"]
 ```
 
-| Layer      | Role                                                                                     | Details                                                         |
-| ---------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `domain`   | Pure rules engine: `applyCommand(state, command)` returns `{ state, events }`.           | [domain and solver](domain-and-solver.md)                       |
-| `solver`   | Pure bounded depth-first search, run in a Web Worker to find winnable deals and hints.   | [domain and solver](domain-and-solver.md)                       |
+| Layer      | Role                                                                                                                                                                                                                        | Details                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `domain`   | Pure rules engine: `applyCommand(state, command)` returns `{ state, events }`.                                                                                                                                              | [domain and solver](domain-and-solver.md)         |
+| `solver`   | Pure bounded depth-first search, run in a Web Worker to find winnable deals and hints.                                                                                                                                      | [domain and solver](domain-and-solver.md)         |
 | `features` | Redux slices and thunks: game session and history, deal service, stats, preferences, persistence, interaction state. Reaches `app` only through its slice, `app/selectors`, the thunk type and the store types; never `ui`. | [state and persistence](state-and-persistence.md) |
-| `app`      | Store composition, injected thunk dependencies, startup (`startApp`), theme controller.  | [state and persistence](state-and-persistence.md)               |
-| `ui`       | React components: board, Home and Game screens, sheets, CSS tokens; input handling.      | [ui](ui.md)                                                     |
-| `i18n`     | English and Ukrainian catalogs behind a registry and translator.                         | [i18n and pwa](i18n-and-pwa.md)                                 |
-| `pwa`      | Service-worker registration, update and install gateways.                                | [i18n and pwa](i18n-and-pwa.md)                                 |
+| `app`      | Store composition, injected thunk dependencies, startup (`startApp`), theme controller.                                                                                                                                     | [state and persistence](state-and-persistence.md) |
+| `ui`       | React components: board, Home and Game screens, sheets, CSS tokens; input handling.                                                                                                                                         | [ui](ui.md)                                       |
+| `i18n`     | English and Ukrainian catalogs behind a registry and translator.                                                                                                                                                            | [i18n and pwa](i18n-and-pwa.md)                   |
+| `pwa`      | Service-worker registration, update and install gateways.                                                                                                                                                                   | [i18n and pwa](i18n-and-pwa.md)                   |
 
 ## Principles that shape the design
 

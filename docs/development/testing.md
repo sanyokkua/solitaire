@@ -7,15 +7,15 @@ Naming: `*.test.ts(x)` is Vitest (in-process); `*.spec.ts` is Playwright (real b
 
 ## Layout of `tests/`
 
-| Folder                | Runner     | Holds                                                                                                                            |
-| --------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/unit/`         | Vitest     | Logic without React: `domain/`, `solver/`, `features/`, `app/`, `i18n/`, `pwa/`, `ui/` (pure board, CSS suites, contrast, formatting), `repo/` (guards), `support/`, `fixtures/`, `e2e-support/`. |
-| `tests/component/`    | Vitest + React Testing Library | Components and the app lifecycle (`appLifecycle*.test.tsx`), sheets (`sheets/`), Home (`home/`).            |
-| `tests/e2e/`          | Playwright | End-to-end specs against the built app, plus `support/` helpers (`seed.ts`, `play.ts`, `distServer.ts`, ...).                    |
-| `tests/bench/`        | Vitest bench | The informational winnable-search latency benchmark (`winnable.bench.ts`).                                                     |
-| `tests/fixtures/`     | none       | Shared non-test builders: seeded deals, game states, board positions, solver corpus, storage doubles, worker doubles, the viewport matrix, and mini `dist/` trees. |
-| `tests/support/`      | none       | Doubles shared by component tests: `testStore.ts`, `renderWithStore.tsx`, `fakeResizeObserver.ts`, `matchMedia.ts`, `pointer.ts`, `pseudoLocale.ts`, `boardHarness.tsx`, and others. |
-| `tests/setup.ts`      | Vitest     | Shared setup: jest-dom matchers, a query-aware `matchMedia` stub, an inert `ResizeObserver` (skipped when there is no `window`). |
+| Folder             | Runner                         | Holds                                                                                                                                                                                             |
+| ------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/`      | Vitest                         | Logic without React: `domain/`, `solver/`, `features/`, `app/`, `i18n/`, `pwa/`, `ui/` (pure board, CSS suites, contrast, formatting), `repo/` (guards), `support/`, `fixtures/`, `e2e-support/`. |
+| `tests/component/` | Vitest + React Testing Library | Components and the app lifecycle (`appLifecycle*.test.tsx`), sheets (`sheets/`), Home (`home/`).                                                                                                  |
+| `tests/e2e/`       | Playwright                     | End-to-end specs against the built app, plus `support/` helpers (`seed.ts`, `play.ts`, `distServer.ts`, ...).                                                                                     |
+| `tests/bench/`     | Vitest bench                   | The informational winnable-search latency benchmark (`winnable.bench.ts`).                                                                                                                        |
+| `tests/fixtures/`  | none                           | Shared non-test builders: seeded deals, game states, board positions, solver corpus, storage doubles, worker doubles, the viewport matrix, and mini `dist/` trees.                                |
+| `tests/support/`   | none                           | Doubles shared by component tests: `testStore.ts`, `renderWithStore.tsx`, `fakeResizeObserver.ts`, `matchMedia.ts`, `pointer.ts`, `pseudoLocale.ts`, `boardHarness.tsx`, and others.              |
+| `tests/setup.ts`   | Vitest                         | Shared setup: jest-dom matchers, a query-aware `matchMedia` stub, an inert `ResizeObserver` (skipped when there is no `window`).                                                                  |
 
 Preference order (from the project's engineering rules): existing tests, real unit or component behaviour, integration
 with real local files, then the real application end to end. Mocks are used only where the real boundary is impractical.
@@ -65,21 +65,21 @@ not part of `test:unit`, `validate`, the git hooks or CI.
 
 These fail when architectural or configuration rules are broken.
 
-| File                                            | Enforces                                                                                                                                         |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `tests/unit/repo/domainPurity.test.ts`          | `src/domain` imports nothing from React, Redux, DOM or storage; `crypto` only in `prng.ts`; no `Math.random`.                                     |
-| `tests/unit/repo/solverPurity.test.ts`          | `src/solver` imports only siblings and `../domain/name`; no `crypto`; `self` only in the worker entry.                                            |
-| `tests/unit/repo/featuresSolverImport.test.ts`  | Lints virtual `src/features/deal` files with the real ESLint config: a value import of solver code fails, a type import passes.                   |
-| `tests/unit/repo/boardPurity.test.ts`           | The pure board modules (see [UI architecture](../architecture/ui.md)) import only siblings and domain, and use no React, DOM globals, storage, `crypto` or `Math.random`. |
-| `tests/unit/repo/layerBoundaries.test.ts`       | `src/i18n` and `src/pwa` import nothing from `app`, `features` or `ui`; only `useTranslate.ts` may import React or react-redux.                   |
-| `tests/unit/repo/storageBoundary.test.ts`       | Only `src/features/persistence/storageGateway.ts` may name `localStorage` or `sessionStorage`.                                                    |
-| `tests/unit/repo/eslintRules.test.ts`           | The ESLint import restrictions are really in force (for example a pure board module importing `app/appSlice` is reported).                        |
+| File                                            | Enforces                                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/repo/domainPurity.test.ts`          | `src/domain` imports nothing from React, Redux, DOM or storage; `crypto` only in `prng.ts`; no `Math.random`.                                                                                                                                                                                                                                                                     |
+| `tests/unit/repo/solverPurity.test.ts`          | `src/solver` imports only siblings and `../domain/name`; no `crypto`; `self` only in the worker entry.                                                                                                                                                                                                                                                                            |
+| `tests/unit/repo/featuresSolverImport.test.ts`  | Lints virtual `src/features/deal` files with the real ESLint config: a value import of solver code fails, a type import passes.                                                                                                                                                                                                                                                   |
+| `tests/unit/repo/boardPurity.test.ts`           | The pure board modules (see [UI architecture](../architecture/ui.md)) import only siblings and domain, and use no React, DOM globals, storage, `crypto` or `Math.random`.                                                                                                                                                                                                         |
+| `tests/unit/repo/layerBoundaries.test.ts`       | `src/i18n` and `src/pwa` import nothing from `app`, `features` or `ui`; only `useTranslate.ts` may import React or react-redux.                                                                                                                                                                                                                                                   |
+| `tests/unit/repo/storageBoundary.test.ts`       | Only `src/features/persistence/storageGateway.ts` may name `localStorage` or `sessionStorage`.                                                                                                                                                                                                                                                                                    |
+| `tests/unit/repo/eslintRules.test.ts`           | The ESLint import restrictions are really in force (for example a pure board module importing `app/appSlice` is reported).                                                                                                                                                                                                                                                        |
 | `tests/unit/repo/configContract.test.ts`        | `/solitaire/` base in Vite, Vitest and Playwright configs; `__APP_VERSION__` define; the `validate` chain order, including its coverage step, and the 80% coverage thresholds; `ci.yml` and `pages.yml` shape (permissions, triggers, concurrency, build-once, deploy job); PWA plugin settings and pinned versions; pinned action versions; no third-party host in `index.html`. |
-| `tests/unit/repo/manifest.test.ts`              | Manifest start URL and scope, standalone display, palette colours, icons present on disk.                                                        |
-| `tests/unit/repo/icons.test.ts`                 | Generated icons; the maskable mark stays inside the safe zone.                                                                                   |
-| `tests/unit/repo/validateArtifact.test.ts`      | The four checks of `scripts/validate-artifact.mjs`, run against the mini trees in `tests/fixtures/dist/` (a `good` tree and broken variants).    |
-| `tests/unit/repo/lifecycleStorageGuard.test.ts` | `scripts/validate-lifecycle-storage.mjs`, one rule at a time, against scratch repositories.                                                     |
-| `tests/unit/repo/playwrightProjects.test.ts`    | The `device-fit` project owns `deviceFit.spec.ts` and `pseudoLocale.spec.ts`; every other project ignores them; each Chromium-only spec carries its `test.skip(testInfo.project.name !== 'chromium'` guard. |
+| `tests/unit/repo/manifest.test.ts`              | Manifest start URL and scope, standalone display, palette colours, icons present on disk.                                                                                                                                                                                                                                                                                         |
+| `tests/unit/repo/icons.test.ts`                 | Generated icons; the maskable mark stays inside the safe zone.                                                                                                                                                                                                                                                                                                                    |
+| `tests/unit/repo/validateArtifact.test.ts`      | The four checks of `scripts/validate-artifact.mjs`, run against the mini trees in `tests/fixtures/dist/` (a `good` tree and broken variants).                                                                                                                                                                                                                                     |
+| `tests/unit/repo/lifecycleStorageGuard.test.ts` | `scripts/validate-lifecycle-storage.mjs`, one rule at a time, against scratch repositories.                                                                                                                                                                                                                                                                                       |
+| `tests/unit/repo/playwrightProjects.test.ts`    | The `device-fit` project owns `deviceFit.spec.ts` and `pseudoLocale.spec.ts`; every other project ignores them; each Chromium-only spec carries its `test.skip(testInfo.project.name !== 'chromium'` guard.                                                                                                                                                                       |
 
 `tests/unit/repo/purityScanner.ts` is the shared scanner (strips comments, finds imports and identifiers).
 
@@ -121,15 +121,15 @@ Configured in `playwright.config.ts`:
 
 ### Projects
 
-| Project              | Device / browser                                | Runs                                                       |
-| -------------------- | ----------------------------------------------- | ---------------------------------------------------------- |
-| `chromium`           | Desktop Chrome                                  | All specs except the two device-fit specs.                 |
-| `firefox`            | Desktop Firefox                                 | Same set.                                                  |
-| `webkit`             | Desktop Safari                                  | Same set.                                                  |
-| `iphone-17-pro`      | iPhone 17 Pro, viewport 402x874                 | Same set.                                                  |
-| `iphone-14-pro-max`  | iPhone 14 Pro Max, viewport 430x932             | Same set.                                                  |
-| `galaxy-s25`         | Galaxy S24 descriptor, viewport 360x780         | Same set.                                                  |
-| `device-fit`         | Desktop Chrome                                  | Only `deviceFit.spec.ts` and `pseudoLocale.spec.ts`.       |
+| Project             | Device / browser                        | Runs                                                 |
+| ------------------- | --------------------------------------- | ---------------------------------------------------- |
+| `chromium`          | Desktop Chrome                          | All specs except the two device-fit specs.           |
+| `firefox`           | Desktop Firefox                         | Same set.                                            |
+| `webkit`            | Desktop Safari                          | Same set.                                            |
+| `iphone-17-pro`     | iPhone 17 Pro, viewport 402x874         | Same set.                                            |
+| `iphone-14-pro-max` | iPhone 14 Pro Max, viewport 430x932     | Same set.                                            |
+| `galaxy-s25`        | Galaxy S24 descriptor, viewport 360x780 | Same set.                                            |
+| `device-fit`        | Desktop Chrome                          | Only `deviceFit.spec.ts` and `pseudoLocale.spec.ts`. |
 
 Chromium-only specs skip themselves in other projects: `visualParity`, `dealLatency`, `playByTap`, `playByDrag`,
 `playByKeyboard`, `pwa`, `a11y` (list in `tests/unit/repo/playwrightProjects.test.ts`).
@@ -163,12 +163,12 @@ Prefix with `rtk` as usual. Browsers must be installed once: `npx playwright ins
 
 ## What runs where
 
-| Check                          | Locally                                   | CI (`ci.yml`)           |
-| ------------------------------ | ----------------------------------------- | ----------------------- |
-| Vitest unit and component      | pre-commit hook, `validate` (with coverage) | inside `validate`     |
-| Repo guard tests               | inside `test:unit`                        | inside `validate`       |
-| Playwright, all projects       | pre-push hook, `npm run e2e`              | after `validate`        |
-| Coverage                       | `validate` (unit and component suites)    | inside `validate`       |
-| Bench                          | on demand                                 | not run                 |
+| Check                     | Locally                                     | CI (`ci.yml`)     |
+| ------------------------- | ------------------------------------------- | ----------------- |
+| Vitest unit and component | pre-commit hook, `validate` (with coverage) | inside `validate` |
+| Repo guard tests          | inside `test:unit`                          | inside `validate` |
+| Playwright, all projects  | pre-push hook, `npm run e2e`                | after `validate`  |
+| Coverage                  | `validate` (unit and component suites)      | inside `validate` |
+| Bench                     | on demand                                   | not run           |
 
 See [CI and deployment](ci-and-deployment.md) and [workflow](workflow.md).

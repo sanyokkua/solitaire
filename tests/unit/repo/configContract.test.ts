@@ -12,6 +12,7 @@ const playwrightConfig = readRepoFile('playwright.config.ts');
 const ciWorkflow = readRepoFile('.github/workflows/ci.yml');
 const pagesWorkflow = readRepoFile('.github/workflows/pages.yml');
 const indexHtml = readRepoFile('index.html');
+const prettierIgnore = readRepoFile('.prettierignore');
 const packageJson = JSON.parse(readRepoFile('package.json')) as { scripts: Record<string, string> };
 
 const PINNED_ACTION_VERSION = /^v\d+\.\d+\.\d+$/;
@@ -72,6 +73,23 @@ describe('package.json scripts', () => {
         expect(vitestConfig).toMatch(
             /thresholds:\s*\{\s*lines:\s*80,\s*functions:\s*80,\s*branches:\s*80,\s*statements:\s*80\s*\}/,
         );
+    });
+});
+
+describe('.prettierignore', () => {
+    const entries = prettierIgnore
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line !== '' && !line.startsWith('#'));
+
+    it('leaves the spec pack and the OpenSpec planning tree out of formatting', () => {
+        expect(entries).toContain('docs/spec/');
+        expect(entries).toContain('openspec/');
+    });
+
+    it('does not exclude the maintained docs', () => {
+        expect(entries).not.toContain('docs/');
+        expect(entries).not.toContain('docs');
     });
 });
 
