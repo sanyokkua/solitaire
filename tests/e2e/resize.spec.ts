@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { drawThreeFanState } from '../fixtures/boardPositions';
 import { continueToGame, near } from './support/cards';
-import { readGame } from './support/game';
+import { expectClockCarriedOn, readGame } from './support/game';
 import { seedRecord } from './support/seed';
 
 interface Sample {
@@ -89,10 +89,6 @@ test.describe('Re-layout on viewport change', () => {
         expect(after.cards).not.toEqual(before.cards);
         expect(await places(page)).toEqual(placesBefore);
         expect(after.moves).toBe(before.moves);
-        expect(after.seconds).toBeGreaterThanOrEqual(before.seconds);
-        expect(after.seconds - before.seconds).toBeLessThanOrEqual(1);
-        // One time-penalty step (2 points per 10 seconds) is the most the score can lose in that second.
-        expect(before.score - after.score).toBeGreaterThanOrEqual(0);
-        expect(before.score - after.score).toBeLessThanOrEqual(2);
+        expectClockCarriedOn(before, after);
     });
 });

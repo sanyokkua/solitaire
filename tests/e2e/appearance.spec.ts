@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { drawThreeFanState } from '../fixtures/boardPositions';
 import type { Preferences } from '../../src/features/preferences/preferencesSlice';
-import { readGame } from './support/game';
+import { expectClockCarriedOn, readGame } from './support/game';
 import { seedRecord } from './support/seed';
 
 /** A `#rrggbb` token value as the browser reports a computed colour. */
@@ -60,11 +60,7 @@ test.describe('Theme', () => {
             await expect(body(page)).toHaveCSS('background-color', rgb('#0b2545'));
             expect(after.moves).toBe(before.moves);
             expect(after.cards).toEqual(before.cards);
-            expect(after.seconds).toBeGreaterThanOrEqual(before.seconds);
-            expect(after.seconds - before.seconds).toBeLessThanOrEqual(1);
-            // One time-penalty step (2 points per 10 seconds) is the most the score can lose in that second.
-            expect(before.score - after.score).toBeGreaterThanOrEqual(0);
-            expect(before.score - after.score).toBeLessThanOrEqual(2);
+            expectClockCarriedOn(before, after);
         });
     });
 });
