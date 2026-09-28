@@ -4,6 +4,7 @@ import { dealFromSeed } from '../../../../src/domain/deal';
 import type { GameState, Mode } from '../../../../src/domain/types';
 import { busySet, installed } from '../../../../src/features/game/gameSlice';
 import {
+    canPause,
     closeSheet,
     dealNewGame,
     goHome,
@@ -220,6 +221,36 @@ describe('pause', () => {
         expect(store.getState().app.sheet).not.toBe('paused');
         dealService.resolve(0, dealFromSeed(2, 'draw1'));
         await requested;
+    });
+});
+
+describe('canPause', () => {
+    it('holds for a started, unwon game on the Game route', () => {
+        const { store } = setup(startedGame(1, 'draw1'));
+        store.dispatch(setRoute('game'));
+
+        expect(canPause(store.getState())).toBe(true);
+    });
+
+    it('fails off the Game route, without a game and for a won game', () => {
+        const home = setup(startedGame(1, 'draw1'));
+        expect(canPause(home.store.getState())).toBe(false);
+
+        const none = setup();
+        none.store.dispatch(setRoute('game'));
+        expect(canPause(none.store.getState())).toBe(false);
+
+        const won = setup({ ...startedGame(1, 'draw1'), status: 'won' });
+        won.store.dispatch(setRoute('game'));
+        expect(canPause(won.store.getState())).toBe(false);
+    });
+
+    it('fails while a safe-card chain or finish is running', () => {
+        const { store } = setup(startedGame(1, 'draw1'));
+        store.dispatch(setRoute('game'));
+        store.dispatch(busySet(true));
+
+        expect(canPause(store.getState())).toBe(false);
     });
 });
 

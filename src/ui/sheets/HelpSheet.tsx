@@ -44,12 +44,7 @@ export function HelpSheet() {
     }
 
     return (
-        <ModalSheet
-            heading={t('help.heading')}
-            initialFocusRef={gotItRef}
-            onDismiss={dismiss}
-            returnFocusFallback={dismiss}
-        >
+        <ModalSheet heading={t('help.heading')} initialFocusRef={gotItRef} onDismiss={dismiss}>
             {RULES.map((rule) => (
                 <div className="help-rule" key={rule.titleKey}>
                     <div className="help-rule__icon" aria-hidden="true">

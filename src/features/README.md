@@ -102,8 +102,9 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   when there is no game; it does nothing while `game.busy` or `app.dealing !== null`. `restartDeal()` closes the sheet
   and calls `restart()`. `goHome()` closes any open sheet (Win included) and shows Home. `openSheet(id)` and
   `closeSheet()` wrap `sheetOpened`/`sheetClosed` for the UI; `closeSheet()` refuses to close `win` (the other way it
-  closes is `dealNewGame`'s Deal again), so Escape can never dismiss it. `pause()` opens the `paused` sheet, but only
-  on the Game route, with a game that is not won, and not while `game.busy` or `app.dealing !== null`. `resume()` is
+  closes is `dealNewGame`'s Deal again), so Escape can never dismiss it. `pause()` opens the `paused` sheet when the exported `canPause(state)`
+  holds: on the Game route, with a game that is not won, and not while `game.busy` or `app.dealing !== null` (the P
+  shortcut checks the same predicate). `resume()` is
   `closeSheet()`. `playDealCode(code)` (D5) trims and case-folds the code through `domain/dealCode.ts`'s
   `decodeDealCode`; an invalid code changes nothing and reports `{ ok: false }`, a valid one breaks the replaced
   game's streak (`breakStreakOf`, exported from `sessionThunks.ts` for this), installs `dealFromSeed(seed, mode, {

@@ -151,7 +151,7 @@
     - **Stop condition:** if the hard-coded `movable: true` turns out to be observable behaviour, stop and surface it.
     - **Verify:** `rtk npx vitest run tests/unit/ui tests/component/boardKeyboard.test.tsx` and `rtk npx playwright test playByKeyboard --project=chromium` pass.
 
-- [ ] 2.7 Sheet, settings and shortcut tidy-ups
+- [x] 2.7 Sheet, settings and shortcut tidy-ups
     - **Implements:** D15 (sheets and shortcuts).
     - **Files:**
       - `src/ui/sheets/ModalSheet.tsx`: `returnFocusFallback` becomes optional and defaults to `onDismiss`. About, Help, NewDeal and Stats pass `dismiss` today and drop the prop; Settings (an inline `closeSheet`), Win, Paused and DealCode (which focus a screen heading) keep theirs. `data-testid="modal-backdrop"` (`:118`) is removed;

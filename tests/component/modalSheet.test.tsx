@@ -1,9 +1,9 @@
 import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useRef, useState } from 'react';
+import { createRef, useRef, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { sheetOpened } from '../../src/app/appSlice';
-import { selectionCleared } from '../../src/features/interaction/interactionSlice';
+import { selectionSet } from '../../src/features/interaction/interactionSlice';
 import { useGameShortcuts } from '../../src/ui/board/useGameShortcuts';
 import { ModalSheet, type ModalSheetProps } from '../../src/ui/sheets/ModalSheet';
 import { playedGame } from '../fixtures/games';
@@ -78,6 +78,12 @@ const first = () => screen.getByRole('button', { name: 'First' });
 const second = () => screen.getByRole('button', { name: 'Second' });
 const closeButton = () => screen.queryByRole('button', { name: 'Close' });
 const screenBox = () => screen.getByTestId('screen');
+/** The dimmed layer around the panel: the dialog's parent. */
+const backdrop = (): HTMLElement => {
+    const layer = dialog().parentElement;
+    if (layer === null) throw new Error('The dialog has no backdrop.');
+    return layer;
+};
 
 describe('ModalSheet', () => {
     it('is a modal dialog named from its heading', () => {
@@ -134,6 +140,23 @@ describe('ModalSheet', () => {
         expect(screen.getByRole('heading', { name: 'Screen heading' })).toHaveFocus();
     });
 
+    it('defaults the fallback to onDismiss when the opener is unreachable at close', () => {
+        const onDismiss = vi.fn();
+        const initialFocusRef = createRef<HTMLButtonElement>();
+        const { unmount } = renderWithStore(
+            <ModalSheet heading="Test sheet" initialFocusRef={initialFocusRef} onDismiss={onDismiss}>
+                <button ref={initialFocusRef} type="button">
+                    First
+                </button>
+            </ModalSheet>,
+        );
+        expect(onDismiss).not.toHaveBeenCalled();
+
+        unmount();
+
+        expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+
     it('dismisses on Escape', async () => {
         const user = userEvent.setup();
         const onDismiss = vi.fn();
@@ -151,7 +174,7 @@ describe('ModalSheet', () => {
         await user.click(first());
         expect(onDismiss).not.toHaveBeenCalled();
 
-        await user.click(screen.getByTestId('modal-backdrop'));
+        await user.click(backdrop());
         expect(onDismiss).toHaveBeenCalledTimes(1);
     });
 
@@ -163,7 +186,7 @@ describe('ModalSheet', () => {
         expect(closeButton()).not.toBeInTheDocument();
 
         await user.keyboard('{Escape}');
-        await user.click(screen.getByTestId('modal-backdrop'));
+        await user.click(backdrop());
         expect(onDismiss).not.toHaveBeenCalled();
     });
 
@@ -199,13 +222,14 @@ describe('ModalSheet', () => {
 
         const { store } = renderWithStore(<GameHarness />, { preloadedState: { game: playedGame() } });
         act(() => {
+            store.dispatch(selectionSet({ from: { pile: 'tableau', col: 1 }, index: 0 }));
             store.dispatch(sheetOpened('settings'));
         });
-        const dispatch = vi.spyOn(store, 'dispatch');
 
         await user.keyboard('{Escape}');
 
-        expect(dispatch).not.toHaveBeenCalledWith(selectionCleared());
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(store.getState().interaction.selection).toEqual({ from: { pile: 'tableau', col: 1 }, index: 0 });
     });
 
     it('leaves a global game shortcut (H) inert while open', async () => {

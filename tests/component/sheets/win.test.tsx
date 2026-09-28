@@ -266,7 +266,7 @@ describe('WinSheet content', () => {
     it('the backdrop (scrim) does nothing: the sheet stays open', () => {
         const { store } = mountWon(STANDARD_SUMMARY);
 
-        fireEvent.click(screen.getByTestId('modal-backdrop'));
+        fireEvent.click(screen.getByRole('dialog').parentElement ?? document.body);
 
         expect(store.getState().app.sheet).toBe('win');
     });

@@ -14,15 +14,15 @@ snapshots; they never apply game rules.
   (`HomeTopbar.tsx`, `HomeHero.tsx`, `ModeTiles.tsx`, `WinnableToggle.tsx`, `HomeActions.tsx`, `RecordStrip.tsx`, `HomeLinks.tsx`) and `profiles.ts`, described below.
 - `sheets/` — the sheet host (D2): `ModalSheet.tsx`, the one generic dialog every sheet wraps its content in (a
   scrim, a centred panel with `role="dialog"`, a focus trap, Escape/backdrop dismissal unless `dismissable={false}`,
-  and focus return to the opener or, when it is gone, to `returnFocusFallback`; the opener is captured on mount as
-  `document.activeElement` and excludes `document.body`/`document.documentElement` from "still reachable", 5.7, so a
-  sheet opened with nothing focused always falls back to `returnFocusFallback` instead of a no-op `body.focus()`),
-  `SheetHost.tsx`, mounted once by `App` (a `SheetId → component` map; `settings`, `help`, `stats`, `newDeal`,
-  `paused`, `win`, `dealCode` and `about` are registered), and
+  and focus return to the opener or, when it is gone, to `returnFocusFallback` (optional, defaulting to `onDismiss`);
+  the opener is captured on mount as `document.activeElement` and excludes `document.body`/`document.documentElement`
+  from "still reachable", 5.7, so a sheet opened with nothing focused always falls back to `returnFocusFallback`
+  instead of a no-op `body.focus()`),
+  `SheetHost.tsx`, mounted once by `App` (an exhaustive `Record<SheetId, component>` covering all eight sheets), and
   `SettingsSheet.tsx`/`HelpSheet.tsx`/`StatsSheet.tsx`/`NewDealSheet.tsx`/`PausedSheet.tsx`/`WinSheet.tsx`/`DealCodeSheet.tsx`/**`AboutSheet.tsx`**,
   described below. Both
-  `ModalSheet` and `SheetHost` are Redux-agnostic: the caller (each concrete sheet) supplies `onDismiss` and
-  `returnFocusFallback`.
+  `ModalSheet` and `SheetHost` are Redux-agnostic: the caller (each concrete sheet) supplies `onDismiss` and, only
+  when focus should go somewhere other than a dismissal (Settings, Win, Paused, Deal code), `returnFocusFallback`.
 - `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), the board panel, pile slots
   and the stock badge (`board.css`), the HUD stat-display colours (`hud.css`), the Game frame layout (`layout.css`),
   the shared sheet/HUD controls — settings row, switch, segmented, swatch, action buttons (including the pixel
@@ -162,10 +162,11 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   which leaves no trigger to return to. Reused by `SettingsSheet`'s Data group (5.2) and Statistics' own Reset
   control (5.4).
 - `sheets/SettingsSheet.tsx` — `SettingsSheet`, registered in `SheetHost` as `settings` (D2, D13). Wraps its rows in
-  `ModalSheet`, heading `t('settings.heading')`, `onDismiss`/`returnFocusFallback` both `closeSheet()`. Renders the
+  `ModalSheet`, heading `t('settings.heading')`, `onDismiss` and `returnFocusFallback` both `closeSheet()`. Renders the
   Appearance group (`.sub-label` "Appearance": Theme `Segmented`, Night cards and Four-colour deck `Switch`, Card back
   `Swatches`), the Play group (`.sub-label` "Play": Tap a card to… `Segmented`, Highlight legal moves / Auto-move safe
-  cards / Stock on the right / Animations `Switch`), the Language group (`.sub-label` "Language": one `Segmented`
+  cards / Stock on the right / Animations `Switch`; the six switch rows are built from two key lists, `APPEARANCE_SWITCHES` and
+  `PLAY_SWITCHES`, typed to boolean preferences), the Language group (`.sub-label` "Language": one `Segmented`
   radiogroup built straight from `i18n/catalog.ts`'s `CATALOGS`/`SUPPORTED_LOCALES` registry, each option labelled by
   that language's own name — adding a language needs no change here), and the Data group (`.sub-label` "Data": Reset
   statistics and Reset all local data, each a `ConfirmAction` dispatching `resetStatistics()`/`resetAllLocalData()`
@@ -176,7 +177,7 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   focus lands on the Theme control's first option (`Segmented`'s `firstOptionRef`, wired to `ModalSheet.initialFocusRef`)
   regardless of which theme is active (I5).
 - `sheets/HelpSheet.tsx` — `HelpSheet`, registered in `SheetHost` as `help` (D2, D13, 5.3). Wraps a static reference
-  in `ModalSheet`, heading `t('help.heading')`, `onDismiss`/`returnFocusFallback` both `closeSheet()`: four
+  in `ModalSheet`, heading `t('help.heading')`, `onDismiss` `closeSheet()` (also the default focus fallback): four
   `.help-rule` cards (SH "How to play sheet") covering the foundations win condition, the alternating-colour build
   rule, the empty-column Kings-only rule, and Draw 1 vs Draw 3; a `.sub-label` "Controls" `.keys-table` listing every
   documented shortcut (KS-INP-08) — Tap/Click, Drag, Double-click, Space, Ctrl+Z/Ctrl+Y, H, A, N, P and Esc — each key
@@ -186,7 +187,7 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   gains `.help-rule`/`.help-rule__icon` and `.keys-table` for this sheet; no other sheet uses them yet.
 - `sheets/StatsSheet.tsx` — `StatsSheet`, registered in `SheetHost` as `stats` (D2, D8, D13, 5.4). Wraps a
   `.scroll-x`-wrapped `table.stats-table` (mirroring the mockup's `#sheet-stats`) in a wide `ModalSheet`, heading
-  `t('stats.heading')`, `onDismiss`/`returnFocusFallback` both `closeSheet()`: one column per mode (Draw 1, Draw 3,
+  `t('stats.heading')`, `onDismiss` `closeSheet()` (also the default focus fallback): one column per mode (Draw 1, Draw 3,
   Vegas, Daily, each a `<th scope="col">`) and one `<th scope="row">` per row — Played, Won, Win rate, Best time, Best
   score (Vegas shown as money through `format.ts`'s `formatBank`) and Best streak — reading `state.stats.modes`
   directly; a missing record (never won, so `bestTimeMs`/`bestScore` are `null` or `bestStreak` is 0) shows "—". Below
@@ -201,7 +202,7 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
 - `sheets/NewDealSheet.tsx` — `NewDealSheet`, registered in `SheetHost` as `newDeal` (D2, D3, 5.5, SH "New deal
   options sheet"). Shown by `requestNewDeal()` for a started, unwon game; an unstarted or won game deals at once
   without this sheet. Wraps a streak-loss warning line in `ModalSheet`, heading `t('newDeal.heading')`,
-  `onDismiss`/`returnFocusFallback` both `closeSheet()`, with three `.modal-sheet__actions` buttons: Restart this
+  `onDismiss` `closeSheet()` (also the default focus fallback), with three `.modal-sheet__actions` buttons: Restart this
   deal (`action-button--outline`) dispatches `restartDeal()`; New deal (`action-button--outline`) dispatches
   `dealNewGame(mode)` for the game's own mode; Cancel (`action-button--filled`) dismisses. Both destructive thunks
   already close the sheet and break the replaced game's streak through `breakStreakOf` (`features/game/
@@ -538,8 +539,8 @@ is part of the purity rule below.
   `requestNewDeal()` (`features/game/navigationThunks.ts`) whenever no sheet is open and `selectGameControlsIdle`
   (`features/game/gameSlice.ts`) holds, so it still deals at once during the win cascade, before the Win sheet opens;
   a non-repeated P dispatches `resume()` when the Paused sheet is already open, else `pause()` when no sheet is open,
-  `selectGameControlsIdle` holds and the game is not won (checked here too, so the key does nothing rather than
-  dispatching a thunk that no-ops), and does nothing while any other sheet is open. Past that, with a sheet open only
+  `canPause` holds (`features/game/navigationThunks.ts`, the same predicate `pause()` checks, so the key does nothing
+  rather than dispatching a thunk that no-ops), and does nothing while any other sheet is open. Past that, with a sheet open only
   Escape acts, dispatching `closeSheet()` (this never closes the Win sheet). Otherwise, only while `selectInputEnabled` holds: Ctrl or Command with Z is `undo`, with Y or Shift+Z `redo`, H `requestHint`, A `finish` (which does nothing unless Finish is available), Space with nothing focused `play({ type: 'draw' })`, Escape `selectionCleared` when a selection exists. The acting keys are prevented. Typing in a text field never triggers a shortcut (`keyToAction`). It is a hook, so it is not in the purity list below.
 - **`useDealAnimation`** (`board/useDealAnimation.ts`) — `useDealAnimation({ boardRef, ready, dealOrder })` plays the
   deal once per game epoch through `DealtEpochContext` and `playDeal`, and gives the epoch back when a deal is cancelled

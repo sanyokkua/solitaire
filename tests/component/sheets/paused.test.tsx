@@ -213,7 +213,7 @@ describe('While the Paused sheet is open', () => {
         const { store } = mountApp();
         press('p');
 
-        fireEvent.click(screen.getByTestId('modal-backdrop'));
+        fireEvent.click(screen.getByRole('dialog').parentElement ?? document.body);
 
         expect(store.getState().app.sheet).toBeNull();
     });

@@ -78,13 +78,7 @@ export function StatsSheet() {
     }
 
     return (
-        <ModalSheet
-            heading={t('stats.heading')}
-            initialFocusRef={closeRef}
-            onDismiss={dismiss}
-            returnFocusFallback={dismiss}
-            wide
-        >
+        <ModalSheet heading={t('stats.heading')} initialFocusRef={closeRef} onDismiss={dismiss} wide>
             <div className="scroll-x">
                 <table className="stats-table">
                     <thead>

@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useAppDispatch, useAppStore } from '../../app/hooks';
-import { selectCurrentGame, selectGameControlsIdle } from '../../features/game/gameSlice';
+import { selectGameControlsIdle } from '../../features/game/gameSlice';
 import { finish, play, redo, undo } from '../../features/game/gameThunks';
-import { closeSheet, pause, requestNewDeal, resume } from '../../features/game/navigationThunks';
+import { canPause, closeSheet, pause, requestNewDeal, resume } from '../../features/game/navigationThunks';
 import { selectionCleared } from '../../features/interaction/interactionSlice';
 import { requestHint } from '../../features/interaction/interactionThunks';
 import { selectInputEnabled } from '../../features/interaction/selectors';
@@ -55,12 +55,13 @@ export function useGameShortcuts(): void {
             );
             if (action === undefined || action === 'activate' || action === 'pickUp') return;
 
+            if (event.repeat && (action === 'newDeal' || action === 'pause' || store.getState().app.sheet === null)) {
+                // A held key acts once: the auto-repeat is swallowed (and Space does not scroll the page).
+                event.preventDefault();
+                return;
+            }
+
             if (action === 'newDeal' || action === 'pause') {
-                if (event.repeat) {
-                    // A held key acts once: the auto-repeat is swallowed (and Space does not scroll the page).
-                    event.preventDefault();
-                    return;
-                }
                 const state = store.getState();
                 if (action === 'newDeal') {
                     if (state.app.sheet === null && selectGameControlsIdle(state)) {
@@ -70,12 +71,9 @@ export function useGameShortcuts(): void {
                 } else if (state.app.sheet === 'paused') {
                     event.preventDefault();
                     dispatch(resume());
-                } else if (state.app.sheet === null && selectGameControlsIdle(state)) {
-                    const current = selectCurrentGame(state);
-                    if (current !== null && current.status !== 'won') {
-                        event.preventDefault();
-                        dispatch(pause());
-                    }
+                } else if (state.app.sheet === null && canPause(state)) {
+                    event.preventDefault();
+                    dispatch(pause());
                 }
                 return;
             }
@@ -86,11 +84,6 @@ export function useGameShortcuts(): void {
                     event.preventDefault();
                     dispatch(closeSheet());
                 }
-                return;
-            }
-            if (event.repeat) {
-                // A held key acts once: the auto-repeat is swallowed (and Space does not scroll the page).
-                event.preventDefault();
                 return;
             }
             if (!selectInputEnabled(state)) return;

@@ -31,12 +31,7 @@ export function AboutSheet() {
     const version = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : t('about.versionDev');
 
     return (
-        <ModalSheet
-            heading={t('about.heading')}
-            initialFocusRef={closeRef}
-            onDismiss={dismiss}
-            returnFocusFallback={dismiss}
-        >
+        <ModalSheet heading={t('about.heading')} initialFocusRef={closeRef} onDismiss={dismiss}>
             <p>{t('app.title')}</p>
             <p>{t('about.version', { value: version })}</p>
             <BuildStamp />

@@ -1,5 +1,6 @@
 import { dealingEnded, setRoute, sheetClosed, sheetOpened, type SheetId } from '../../app/appSlice';
 import type { AppThunk } from '../../app/appThunk';
+import type { RootState } from '../../app/store';
 import { decodeDealCode } from '../../domain/dealCode';
 import { dealFromSeed } from '../../domain/deal';
 import type { Mode } from '../../domain/types';
@@ -72,19 +73,22 @@ export function closeSheet(): AppThunk {
 }
 
 /**
- * Pauses the game (D3, D6): only on the Game route, with a game that is not won, and not while a safe-card chain or
- * finish is running or a deal is being prepared (B1, B2). Opens the Paused sheet; the clock stops through the
- * existing eligibility check.
+ * Whether the game can be paused (D3, D6): only on the Game route, with a game that is not won, and not while a
+ * safe-card chain or finish is running or a deal is being prepared (B1, B2). `pause()` and the P shortcut share it.
+ */
+export function canPause({ app, game }: Pick<RootState, 'app' | 'game'>): boolean {
+    if (app.route !== 'game') return false;
+    if (game.busy || app.dealing !== null) return false;
+    return game.current !== null && game.current.status !== 'won';
+}
+
+/**
+ * Pauses the game when `canPause` allows it: opens the Paused sheet; the clock stops through the existing
+ * eligibility check.
  */
 export function pause(): AppThunk {
     return (dispatch, getState) => {
-        const state = getState();
-        if (state.app.route !== 'game') return;
-        if (state.game.busy || state.app.dealing !== null) return;
-
-        const { current } = state.game;
-        if (current === null || current.status === 'won') return;
-        dispatch(sheetOpened('paused'));
+        if (canPause(getState())) dispatch(sheetOpened('paused'));
     };
 }
 
