@@ -185,7 +185,7 @@
     - **Tests:** the listed suites, with the same behaviour covered. The only module mocks left are the three justified ones: `hint.defensive.test.ts` (the solver entry), `pseudoLocale.test.tsx` and `tests/component/sheets/settings.test.tsx:190` (`vi.doMock`), which both register an extra language in the static catalog registry.
     - **Verify:** `rtk npm run test:unit` passes, and `rg "vi\.(do)?[mM]ock\(" tests` lists only the three justified files.
 
-- [ ] 2.10 A `DealService` contract suite for the real service and the fake
+- [x] 2.10 A `DealService` contract suite for the real service and the fake
     - **Implements:** D15 (contract suite).
     - **Files:**
       - new `tests/unit/features/deal/dealServiceContract.ts` (shared cases: deal per mode, cancellation by a newer deal, hint outcomes, dispose);
