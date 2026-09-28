@@ -6,8 +6,9 @@ context: |
   Project: Klondike Solitaire - a calm, retro-styled, offline-capable static SPA/PWA
   (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under /solitaire/.
   No backend/API/database/accounts; all state lives in a versioned `solitaire.local-state`
-  localStorage record. Phases 1-5 are implemented - trust what's actually
-  implemented (src/, package.json, CI) over this text.
+  localStorage record. Phases 1-8 are merged to master and live; the active change
+  `finalize-v1-release` carries Phases 9-11. Trust what's actually implemented (src/,
+  package.json, CI) over this text.
 
   Source of truth, in order: (1) current source/config/tests/CI, (2) docs/spec/specification.md
   (KS-* EARS requirements), (3) docs/spec/research.md (R§n game-rules/UX/a11y facts),

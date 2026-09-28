@@ -61,7 +61,7 @@
 
 ## 1. Branches and stale agent instructions
 
-- [ ] 1.1 Remove the stale branch and phase instructions
+- [x] 1.1 Remove the stale branch and phase instructions
     - **Implements:** D1. No requirement change.
     - **Branches:** the work happens on `feature/finalize-v1-release`, which is already on `origin` with the change artifacts committed. It was cut from the integration branch `feature/app-v1-release`, which exists locally only and equals `master`. Any further push, including the integration branch's first one, needs the author's explicit request.
     - **Files:**

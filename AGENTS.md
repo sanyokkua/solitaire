@@ -6,7 +6,7 @@ Guidance for AI coding agents (Claude Code, Codex, etc.) working in this reposit
 
 This repository is **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
 
-**Repository state: Phases 1–8 complete** (engine, solver, deal service, state and persistence, board rendering and input, assistance, screens and sheets, i18n, PWA). Phases 9–11 (full verification and edge cases, documentation and release, optional Draw 3 winnable deals) remain. Per-layer detail lives in `docs/architecture/` and the module READMEs under `src/`; start at `docs/README.md`. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
+**Repository state: Phases 1–8 are merged to `master` and live** (engine, solver, deal service, state and persistence, board rendering and input, assistance, screens and sheets, i18n, PWA). The active change `finalize-v1-release` carries Phases 9–11 (full verification and edge cases, documentation and release, winnable deals including Draw 3). Per-layer detail lives in `docs/architecture/` and the module READMEs under `src/`; start at `docs/README.md`. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
 
 OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
 
@@ -141,11 +141,6 @@ Don't commit or push unless explicitly requested — with one standing exception
 
 Before every commit — each OpenSpec task commit, review-fix commit and doc-only commit included — run the full, unmodified `rtk npm run validate` (no exclusions, no `--ignore-pattern`) and fix everything it reports; commit only when it exits 0. The pre-commit hook lints only staged files, so it does not replace `validate`. Sub-agents that commit must be told to do the same.
 
-No work should happen on the master branch. You need to create feature branches if current branch is master.
+`master` is the release branch; no work happens on it. Create a feature branch if the current branch is `master`.
 
-Till the App will be implemented and fully working, branch - "feature/app-v1-implementation" is the main integration branch.
-
-For each change should be created separate branch from "feature/app-v1-implementation", using the pattern "feature/change-short-name".
-
-Till the change is archived - all the work happens in the "feature/change-short-name".
-When change is archived - "feature/change-short-name" is squash-merged back to the "feature/app-v1-implementation".
+Each change runs on `feature/<change-name>`, cut from the active integration branch (named in the change's proposal; `feature/app-v1-release` for `finalize-v1-release`) or from `master` when there is none. Until the change is archived, all its work happens on that branch. At archive it is squash-merged back into the integration branch, and the integration branch reaches `master` by pull request.
