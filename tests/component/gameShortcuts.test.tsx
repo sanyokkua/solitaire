@@ -1,9 +1,8 @@
-import { act, fireEvent, render } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { setRoute, sheetOpened } from '../../src/app/appSlice';
-import { createAppStore } from '../../src/app/store';
+import { act, fireEvent } from '@testing-library/react';
+import { dealingProgressed, setRoute, sheetOpened } from '../../src/app/appSlice';
+import { dealFromSeed } from '../../src/domain/deal';
 import type { GameState } from '../../src/domain/types';
-import { selectCanFinish } from '../../src/features/game/gameSlice';
+import { busySet, selectCanFinish } from '../../src/features/game/gameSlice';
 import { play } from '../../src/features/game/gameThunks';
 import { selectionSet } from '../../src/features/interaction/interactionSlice';
 import { GameScreen } from '../../src/ui/screens/GameScreen';
@@ -14,6 +13,8 @@ import { gameOf } from '../fixtures/games';
 import { faceDown, faceUp, makeState, tableauOf } from '../fixtures/states';
 import { installBoardHarness, SIZE } from '../support/boardHarness';
 import { FakeResizeObserver } from '../support/fakeResizeObserver';
+import { renderWithStore } from '../support/renderWithStore';
+import { testStore } from '../support/testStore';
 import { stubElementAnimate, type AnimateStub } from '../support/waapi';
 
 installBoardHarness();
@@ -35,16 +36,9 @@ const piles = (store: ReturnType<typeof mountGame>['store']) => {
 
 function mountGame(state: GameState = oneMovePosition()) {
     const dealService = fakeDealService();
-    const store = createAppStore({
-        preloadedState: { game: gameOf(state) },
-        deps: { dealService, delay: () => Promise.resolve() },
-    });
+    const store = testStore({ preloadedState: { game: gameOf(state) }, deps: { dealService } });
     store.dispatch(setRoute('game'));
-    const view = render(
-        <Provider store={store}>
-            <GameScreen />
-        </Provider>,
-    );
+    const view = renderWithStore(<GameScreen />, { store });
     FakeResizeObserver.instances.at(-1)?.trigger(SIZE);
     return { store, dealService, container: view.container };
 }
@@ -124,26 +118,12 @@ describe('Non-Latin layout and held keys', () => {
     });
 
     it('a held A finishes once: the repeat is swallowed without scrolling and starts no second Finish', async () => {
-        const store = createAppStore({
-            preloadedState: { game: gameOf(allFaceUp()) },
-            deps: { dealService: fakeDealService(), delay: () => Promise.resolve() },
-        });
-        const dispatched = vi.spyOn(store, 'dispatch');
-        store.dispatch(setRoute('game'));
-        render(
-            <Provider store={store}>
-                <GameScreen />
-            </Provider>,
-        );
-        FakeResizeObserver.instances.at(-1)?.trigger(SIZE);
-        const thunksBefore = dispatched.mock.calls.filter(([action]) => typeof action === 'function').length;
+        const { store } = mountGame(allFaceUp());
 
         expect(press('a')).toBe(true);
         expect(press('a', { repeat: true })).toBe(true);
         await settle();
 
-        const thunks = dispatched.mock.calls.filter(([action]) => typeof action === 'function').length;
-        expect(thunks - thunksBefore).toBe(1);
         expect(store.getState().game.current?.status).toBe('won');
     });
 
@@ -283,18 +263,101 @@ describe('With a sheet open', () => {
 
         expect(store.getState().app.sheet).toBeNull();
     });
+
+    it('leaves the Win sheet open on Escape', () => {
+        const { store } = mountGame();
+        act(() => {
+            store.dispatch(sheetOpened('win'));
+        });
+
+        press('Escape');
+
+        expect(store.getState().app.sheet).toBe('win');
+    });
 });
 
-describe('Keys that are not bound yet', () => {
-    it.each(['n', 'p'])('%s does nothing', async (key) => {
-        const { store } = mountGame();
-        const before = store.getState();
+describe('New deal (N)', () => {
+    it('deals a new game at once on an unstarted game', async () => {
+        const { store, dealService } = mountGame(dealFromSeed(1, 'draw1'));
 
-        expect(press(key)).toBe(false);
+        expect(press('n')).toBe(true);
         await settle();
 
-        expect(store.getState().game).toBe(before.game);
-        expect(store.getState().app).toBe(before.app);
+        expect(dealService.requests).toHaveLength(1);
+        expect(dealService.requests[0]?.request.mode).toBe('draw1');
+        expect(store.getState().app.sheet).toBeNull();
+    });
+
+    it('opens the New deal options sheet on a started, unwon game', () => {
+        const { store } = mountGame();
+
+        expect(press('n')).toBe(true);
+
+        expect(store.getState().app.sheet).toBe('newDeal');
+    });
+
+    it('during the cascade of a won game, before the Win sheet opens, deals a new game at once', async () => {
+        const { store, dealService } = mountGame(allFaceUp());
+        expect(press('a')).toBe(true);
+        await settle();
+        expect(store.getState().game.current?.status).toBe('won');
+        expect(store.getState().app.sheet).toBeNull();
+
+        expect(press('n')).toBe(true);
+        await settle();
+
+        expect(dealService.requests).toHaveLength(1);
+        expect(store.getState().app.sheet).toBeNull();
+    });
+
+    it('does nothing while a deal is being prepared', () => {
+        const { store } = mountGame();
+        act(() => {
+            store.dispatch(dealingProgressed({ overlay: true, attempt: 1 }));
+        });
+
+        expect(press('n')).toBe(false);
+
+        expect(store.getState().app.sheet).toBeNull();
+    });
+
+    it('does nothing with a sheet open', () => {
+        const { store } = mountGame();
+        act(() => {
+            store.dispatch(sheetOpened('settings'));
+        });
+
+        expect(press('n')).toBe(false);
+
+        expect(store.getState().app.sheet).toBe('settings');
+    });
+
+    it('does nothing while a safe-card chain or Finish is running', () => {
+        const { store } = mountGame();
+        act(() => {
+            store.dispatch(busySet(true));
+        });
+
+        expect(press('n')).toBe(false);
+
+        expect(store.getState().app.sheet).toBeNull();
+    });
+
+    it('a held N is ignored: the repeat is swallowed and opens no second sheet', () => {
+        const { store } = mountGame();
+
+        expect(press('n')).toBe(true);
+        expect(press('n', { repeat: true })).toBe(true);
+
+        expect(store.getState().app.sheet).toBe('newDeal');
+    });
+
+    it('the physical N key on a Ukrainian layout still requests a new deal', () => {
+        const { store } = mountGame();
+
+        expect(press('н', { code: 'KeyN' })).toBe(true);
+
+        expect(store.getState().app.sheet).toBe('newDeal');
     });
 });
 

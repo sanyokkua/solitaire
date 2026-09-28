@@ -72,7 +72,7 @@ flowchart TD
 ### 3.1 Repository layout
 ```text
 docs/spec/                     ← this spec pack (copied by the author in Phase 0)
-public/                        manifest.webmanifest, icons (192, 512, maskable), favicon
+public/                        manifest.webmanifest, icons (192, 512, maskable, Apple touch), favicon
 src/
   domain/                      pure game engine
     cards.ts                   Card id 0..51, suit/rank/colour helpers, labels
@@ -110,20 +110,25 @@ src/
   app/{store,appSlice,appThunk,themeController,hooks,selectors,thunkExtra}.ts, lifecycle.tsx
   i18n/{catalog,translate,useTranslate,localeController}.ts   catalog = registry of locales/
   i18n/locales/{en,uk}.ts      one file per language; en.ts defines the key type
-  pwa/{registerPwa,installGateway,pwaGateway}.ts
+                               dependency direction: features/preferences/locale.ts re-exports Locale from i18n/catalog and app/lifecycle
+                               starts the locale controller; i18n imports nothing from app, features or ui
+                               (tests/unit/repo/layerBoundaries.test.ts); only useTranslate.ts may import React/react-redux
+  pwa/{registerPwa,deferredGateway,installGateway,pwaGateway}.ts
   ui/
     screens/{HomeScreen,GameScreen,profiles}.ts(x)
+    screens/home/{HomeTopbar,HomeHero,ModeTiles,WinnableToggle,HomeActions,RecordStrip,HomeLinks}.tsx
     board/{Board,CardView,PileSlot,StockBadge,DealtEpochContext,Ghosts,metrics,layout,names,locate,
     landing,constants,pointerController,keyboardController,cascadeFrames,selectors,useBoardSize,
     useResizeSettle,useDealAnimation,useBoardPointer,useBoardActions,useBoardKeyboard,
     useGameShortcuts,useCascade,cascade,animations}.ts(x)   (metrics through animations built in
     Phase 5; Ghosts, locate, landing, constants, pointerController, keyboardController,
     cascadeFrames and the board hooks built in Phase 6)
-    format.ts, useMediaQuery.ts
-    components/{Hud,StatDisplay,Toolbar,ModeCard,DealChip,ModalSheet,Switch,Segmented,Notices,BuildStamp,…}.tsx
-    sheets/{Settings,Help,Stats,NewDeal,Paused,Win,DealCodeEntry,About}.tsx
-    styles/{tokens,global,layout,board,cards,hud}.css
-  assets/fonts/                Inter-Variable.woff2, PressStart2P-Regular.ttf (+ README with licences)
+    announce.ts, format.ts, useMediaQuery.ts, useToday.ts
+    components/{Hud,Toolbar,ModeChip,DealChip,DealCode,DealingOverlay,HintLine,NewDealButton,SettingsButton,ThemeToggle,
+    Switch,Segmented,SettingRow,Swatches,ConfirmAction,Notices,Announcer,Icon,BuildStamp}.tsx
+    sheets/{ModalSheet,SheetHost,SettingsSheet,HelpSheet,StatsSheet,NewDealSheet,PausedSheet,WinSheet,DealCodeSheet,AboutSheet}.tsx
+    styles/{tokens,global,layout,board,cards,hud,controls,sheets,home}.css
+  assets/fonts/                Inter-Variable-subset.woff2, PressStart2P-Regular.woff2 (+ README with licences and how they were generated)
 tests/{unit,component,e2e,bench}/    + tests/fixtures/ (deals.ts known seeds and solutions, board positions, viewports)
 scripts/validate-artifact.mjs  base path, manifest, SW, no external URLs
 .github/workflows/{ci,pages}.yml
@@ -168,9 +173,9 @@ type GameEvent =
 ### 3.3 Redux slices
 | Slice         | Holds                                                                                                                                            | Notes                                                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `app`         | route (`home`/`game`), open sheet, notices, document visibility, dealing overlay                                                                 | As in Minesweeper.                                                                                                       |
+| `app`         | route (`home`/`game`), open sheet (`settings`, `help`, `stats`, `newDeal`, `paused`, `win`, `dealCode`, `about`), notices (ids `storage-read`, `storage-read-only`, `storage-write`, `dead-end`, `no-redeals`, `code-copied`, `update-ready`), document visibility, dealing overlay                                                                 | As in Minesweeper.                                                                                                       |
 | `game`        | `current: GameState \| null`, `history: GameState[]` and `future: GameState[]` (both unlimited in memory; 200 + 200 stored), `dailyKey`, `counted`, `busy` (finish/cascade)                                                    | Thunks: `startGame(mode, seed?)`, `play(cmd)` (snapshot → apply → auto-safe chain), `undo`, `redo`, `finish`, `restart`. |
-| `interaction` | `selection`, `hint`, pending hint, announcement log, reported dead ends (runtime-only, never persisted)                                          | Thunks: `selectCard(from, index)`, `requestHint()`, `checkDeadEnd()`; reset by the game actions that change the position (change `add-board-interaction`, D1). |
+| `interaction` | `selection`, `hint`, pending hint, announcement log, reported dead ends, the `win` summary `{ mode, score, elapsedMs, moves, timeBonus, newBestTime }` of a just-won game (runtime-only, never persisted)                                          | Thunks: `selectCard(from, index)`, `requestHint()`, `checkDeadEnd()`; reset by the game actions that change the position (change `add-board-interaction`, D1). |
 | `preferences` | theme, nightCards, fourColor, cardBack, tapMode, highlight, autoSafe, stockRight, animations, locale, winnableOnly, selectedMode                 |                                                                                                                          |
 | `stats`       | per-mode `{ played, won, streak, bestStreak, bestTimeMs, bestScore }`, `daily: { completed: string[] (last 400 UTC dates), streak, bestStreak }` |                                                                                                                          |
 | `persistence` | hydration status, errors                                                                                                                         | Writes are debounced (250 ms) and flushed on `pagehide`/`visibilitychange`.                                              |
@@ -246,7 +251,7 @@ Decode defensively and whole: validate the exact key set of every object, the en
 ---
 
 ## 6. CI/CD (as in Minesweeper)
-- `ci.yml` (push/PR): `npm ci` → `validate` (`format:check`, `lint`, `typecheck`, `validate:lifecycle-storage`, `test:unit`, `build`; `validate:artifact` joins it in Phase 8) → `playwright install` → `e2e` (all projects, including `device-fit`), uploading the report on failure and the visual-parity screenshots (`test-results/visual-parity/`, artifact `visual-parity`) on every run.
+- `ci.yml` (push/PR): `npm ci` → `validate` (`format:check`, `lint`, `typecheck`, `validate:lifecycle-storage`, `test:unit`, `build`, `validate:artifact`) → `playwright install` → `e2e` (all projects, including `device-fit`), uploading the report on failure and the visual-parity screenshots (`test-results/visual-parity/`, artifact `visual-parity`) on every run.
 - `pages.yml` (push to `master` + manual dispatch): `validate` → build with `BUILD_TIMESTAMP` → `upload-pages-artifact` → `deploy-pages` (permissions `pages: write`, `id-token: write` on the deploy job only).
 - `vite.config.ts`:
   - `base: '/solitaire/'`
@@ -260,13 +265,13 @@ Decode defensively and whole: validate the exact key set of every object, the en
 
 > **Phase 0 (author, out of scope):** create the repository, copy this pack to `docs/spec/`, initialise Speckit.
 
-> **Status legend:** each phase heading is followed by a status line — *Implemented* (its OpenSpec change is archived under `openspec/changes/archive/`) or *Not started*. Phases 1–6 are implemented; Phase 6 is implemented via the open `add-board-interaction` change, not yet archived.
+> **Status legend:** each phase heading is followed by a status line — *Implemented* (its OpenSpec change is archived under `openspec/changes/archive/`) or *Not started*. Phases 1–6 are implemented (Phase 6 via `add-board-interaction`, archived 2026-09-27); Phases 7 and 8 are implemented via `add-screens-sheets-pwa` (archived 2026-09-28).
 
 Each phase is one OpenSpec change (`openspec/changes/<name>/`; the pack was written for Speckit feature folders `specs/00N-<name>/`). The **seed prompt** is a starting text for the change proposal (`/opsx:propose`); add "Context: docs/spec/*.md" so the agent reads the pack.
 
 ### Phase 1 — Repository foundation & tooling
 
-> **Status:** Implemented — OpenSpec change `setup-repository-foundation`, archived 2026-09-22. Deferred to Phase 8: `validate-artifact.mjs` / `validate:artifact` and the Pages deploy check (design decision D6).
+> **Status:** Implemented — OpenSpec change `setup-repository-foundation`, archived 2026-09-22. `validate-artifact.mjs` / `validate:artifact` was deferred to Phase 8 (design decision D6) and now exists.
 - **Goal:** an empty but production-shaped app that builds, lints, tests and deploys.
 - **Scope:**
   - Vite + React + TypeScript scaffold.
@@ -349,7 +354,7 @@ Each phase is one OpenSpec change (`openspec/changes/<name>/`; the pack was writ
 
 ### Phase 6 — Interaction & assistance UI
 
-> **Status:** Implemented — OpenSpec change `add-board-interaction` (not yet archived).
+> **Status:** Implemented — OpenSpec change `add-board-interaction`, archived 2026-09-27.
 - **Goal:** every way of playing works.
 - **Scope:**
   - Pointer controller: smart tap, select & place, double-tap, drag with threshold, overlap hit-testing, glide-back, no click after a drag.
@@ -371,7 +376,7 @@ Each phase is one OpenSpec change (`openspec/changes/<name>/`; the pack was writ
 
 ### Phase 7 — Screens, sheets & localisation
 
-> **Status:** Not started.
+> **Status:** Implemented via the OpenSpec change `add-screens-sheets-pwa`, archived 2026-09-28 (groups 2–7: Home, Game chrome, the eight sheets, English/Ukrainian catalogs, pseudo-locale and Ukrainian device-fit checks). The change's PWA part (group 8) is Phase 8.
 - **Goal:** the complete product surface.
 - **Scope:**
   - Home (hero with fan and dither, mode cards, winnable switch, Deal cards / Continue / How to play, LCD record strip, links, install action).
@@ -389,7 +394,7 @@ Each phase is one OpenSpec change (`openspec/changes/<name>/`; the pack was writ
 
 ### Phase 8 — PWA, offline & delivery hardening
 
-> **Status:** Not started.
+> **Status:** Implemented via the OpenSpec change `add-screens-sheets-pwa`, archived 2026-09-28 (groups 8–9: manifest and icons, prompt-mode service worker, update and install gateways, `validate:artifact`, offline and update e2e, axe scan). Service workers are blocked in e2e by default; the update case uses a test-owned `dist/` server (design decision D12). Lighthouse is a manual check.
 - **Goal:** installable, offline, safe updates, correct Pages artifact.
 - **Scope:** manifest and icons (including maskable); the service worker via vite-plugin-pwa; the update-ready flow that saves before activating; install gateway; artifact validation for the base path, precache and absence of external URLs; offline cold-start e2e.
 - **Requirements:** KS-PWA-01…04, KS-PERF-03.

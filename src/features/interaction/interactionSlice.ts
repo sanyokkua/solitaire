@@ -1,8 +1,22 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { CardId, PileRef } from '../../domain/types';
+import type { CardId, Mode, PileRef } from '../../domain/types';
 import { preferenceSet, preferencesReset } from '../preferences/preferencesSlice';
 import { cleared, committed, installed, redone, replaced, undone } from '../game/gameSlice';
 import type { Announcement } from './announcements';
+
+/**
+ * The outcome of a just-won game (D4): the mode, the final score (Vegas: the bank) already including `timeBonus`,
+ * the elapsed time, the move count, the Standard time bonus (0 under Vegas), and whether it is a new best time for
+ * the mode (its first win, or strictly faster than the previous best).
+ */
+export interface WinSummary {
+    readonly mode: Mode;
+    readonly score: number;
+    readonly elapsedMs: number;
+    readonly moves: number;
+    readonly timeBonus: number;
+    readonly newBestTime: boolean;
+}
 
 /** The card the player has picked up: the pile it is in and its index there (the run starts at that card). */
 export interface Selection {
@@ -41,6 +55,8 @@ export interface InteractionState {
     /** The position keys whose dead end was already reported in this game; emptied when a game is installed or cleared. */
     readonly deadEndSeen: readonly string[];
     readonly announcement: AnnouncementLog;
+    /** The just-won game's outcome, or `null`. Runtime-only, and cleared when a game is installed or cleared. */
+    readonly win: WinSummary | null;
 }
 
 /** One announcement with its running number `n`, so a listener can tell which ones it has already spoken. */
@@ -68,6 +84,7 @@ export const initialInteractionState: InteractionState = {
     pendingHint: null,
     deadEndSeen: [],
     announcement: { seq: 0, items: [] },
+    win: null,
 };
 
 const interactionSlice = createSlice({
@@ -112,6 +129,8 @@ const interactionSlice = createSlice({
                 announcement: { seq: seq + 1, items: [...items, ...added].slice(-ANNOUNCEMENT_LOG_LIMIT) },
             };
         },
+        /** Records a just-won game's outcome (D4); dispatched from `commitCommand` right after `won`. */
+        winRecorded: (state, action: PayloadAction<WinSummary>) => ({ ...state, win: action.payload }),
     },
     extraReducers: (builder) => {
         // Any change of the position, or a new or missing game, ends the pick-up and drops the hint and its request.
@@ -123,10 +142,11 @@ const interactionSlice = createSlice({
                     ? state
                     : { ...state, selection: null, hint: null, pendingHint: null },
         );
-        // A new or missing game also forgets which dead ends were reported.
+        // A new or missing game also forgets which dead ends were reported, and clears the win summary.
         builder.addMatcher(
             (action) => installed.match(action) || cleared.match(action),
-            (state) => (state.deadEndSeen.length === 0 ? state : { ...state, deadEndSeen: [] }),
+            (state) =>
+                state.deadEndSeen.length === 0 && state.win === null ? state : { ...state, deadEndSeen: [], win: null },
         );
         // A changed setting (language, motion, ...) ends the hint on show; its request may still land.
         builder.addMatcher(
@@ -136,6 +156,14 @@ const interactionSlice = createSlice({
     },
 });
 
-export const { selectionSet, selectionCleared, hintSet, hintCleared, pendingHintSet, deadEndRecorded, announced } =
-    interactionSlice.actions;
+export const {
+    selectionSet,
+    selectionCleared,
+    hintSet,
+    hintCleared,
+    pendingHintSet,
+    deadEndRecorded,
+    announced,
+    winRecorded,
+} = interactionSlice.actions;
 export const interactionReducer = interactionSlice.reducer;

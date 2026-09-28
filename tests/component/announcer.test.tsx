@@ -1,23 +1,19 @@
-import { act, render, screen } from '@testing-library/react';
-import { Provider } from 'react-redux';
+import { act, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { createAppStore } from '../../src/app/store';
+import { setRoute } from '../../src/app/appSlice';
+import { App } from '../../src/App';
 import { accrued } from '../../src/features/game/gameSlice';
 import type { Announcement } from '../../src/features/interaction/announcements';
 import { announced } from '../../src/features/interaction/interactionSlice';
 import { Announcer } from '../../src/ui/components/Announcer';
 import { cardId } from '../../src/domain/cards';
-import { fakeDealService } from '../fixtures/dealService';
 import { playedGame } from '../fixtures/games';
+import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
+import { renderWithStore } from '../support/renderWithStore';
 
 function setup() {
-    const store = createAppStore({ preloadedState: { game: playedGame() }, deps: { dealService: fakeDealService() } });
-    const view = render(
-        <Provider store={store}>
-            <Announcer />
-        </Provider>,
-    );
-    return { store, view };
+    const view = renderWithStore(<Announcer />, { preloadedState: { game: playedGame() } });
+    return { store: view.store, view };
 }
 
 function say(store: ReturnType<typeof setup>['store'], ...items: Announcement[]) {
@@ -89,14 +85,56 @@ describe('Announcer', () => {
         say(store, DRAW);
         view.unmount();
 
-        render(
-            <Provider store={store}>
-                <Announcer />
-            </Provider>,
-        );
+        renderWithStore(<Announcer />, { store });
         expect(region()).toBeEmptyDOMElement();
 
         say(store, { type: 'undone' });
         expect(visible()).toBe('Undid the last move');
+    });
+});
+
+/** The Announcer's own live region, among possibly several `role="status"` elements (the Game screen has its own). */
+const politeRegion = () => screen.getAllByRole('status').filter((el) => el.getAttribute('aria-live') === 'polite');
+
+describe('Announcer mounted by App', () => {
+    it('is mounted once, and is present on both Home and Game', () => {
+        stubMatchMedia([]);
+        const { store, unmount } = renderWithStore(<App />, { preloadedState: { game: playedGame() } });
+        try {
+            expect(politeRegion()).toHaveLength(1);
+
+            act(() => {
+                store.dispatch(setRoute('game'));
+            });
+            expect(politeRegion()).toHaveLength(1);
+        } finally {
+            unmount();
+            restoreMatchMedia();
+        }
+    });
+
+    it('a return to the Game screen does not replay earlier announcements', () => {
+        stubMatchMedia([]);
+        const { store, unmount } = renderWithStore(<App />, { preloadedState: { game: playedGame() } });
+        const politeVisible = () => (politeRegion()[0]?.textContent ?? '').replaceAll('​', '');
+        try {
+            act(() => {
+                store.dispatch(setRoute('game'));
+            });
+            say(store, DRAW);
+            expect(politeVisible()).toBe('Drew 3 cards');
+
+            act(() => {
+                store.dispatch(setRoute('home'));
+            });
+            act(() => {
+                store.dispatch(setRoute('game'));
+            });
+
+            expect(politeVisible()).toBe('Drew 3 cards');
+        } finally {
+            unmount();
+            restoreMatchMedia();
+        }
     });
 });

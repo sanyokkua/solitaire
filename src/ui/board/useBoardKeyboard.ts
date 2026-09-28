@@ -1,8 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { FocusEvent, KeyboardEvent, RefObject } from 'react';
 import { useAppSelector } from '../../app/hooks';
-import { selectEpoch } from '../../app/selectors';
 import type { CardId, PileRef } from '../../domain/types';
+import { selectEpoch } from '../../features/game/gameSlice';
 import { pileKey } from './landing';
 import type { BoardPiles } from './layout';
 import { defaultStop, keyToAction, moveFocus, pileOrder, type FocusTarget } from './keyboardController';

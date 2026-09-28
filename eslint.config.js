@@ -5,7 +5,17 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-    { ignores: ['dist', 'coverage', 'playwright-report', 'test-results', 'node_modules', '.claude/worktrees'] },
+    {
+        ignores: [
+            'dist',
+            'tests/fixtures/dist',
+            'coverage',
+            'playwright-report',
+            'test-results',
+            'node_modules',
+            '.claude/worktrees',
+        ],
+    },
     eslint.configs.recommended,
     {
         files: ['**/*.{ts,tsx}'],
@@ -73,9 +83,27 @@ export default tseslint.config(
                 {
                     patterns: [
                         {
-                            regex: '^(?!\\./[A-Za-z]+(\\.js)?$|\\.\\./\\.\\./domain/[A-Za-z]+(\\.js)?$)',
+                            regex: '^(?!\\./[A-Za-z]+(\\.js)?$|\\.\\./\\.\\./domain/[A-Za-z]+(\\.js)?$|\\.\\./\\.\\./i18n/translate$)',
                             message:
-                                'The pure board modules may import only their own siblings (./name) and ../../domain/name.',
+                                'The pure board modules may import only their own siblings (./name), ../../domain/name and, type-only, ../../i18n/translate.',
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+    {
+        files: ['src/i18n/**/*.{ts,tsx}'],
+        ignores: ['src/i18n/useTranslate.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            regex: '^(?!\\./[A-Za-z]+(\\.js)?$|\\./locales/[A-Za-z]+(\\.js)?$|\\.\\./[A-Za-z]+(\\.js)?$)',
+                            message:
+                                'src/i18n may import only its own sibling modules (./name, ./locales/name or, from locales/, ../name).',
                         },
                     ],
                 },
@@ -95,6 +123,24 @@ export default tseslint.config(
                             allowTypeImports: true,
                             message:
                                 'src/features must not value-import solver code: the solver runs in a Web Worker. Use a type-only import or the worker URL.',
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+    {
+        files: ['src/ui/**/*.{ts,tsx}'],
+        rules: {
+            '@typescript-eslint/no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            regex: '(^|/)app/appSlice$',
+                            importNames: ['setRoute', 'sheetOpened', 'sheetClosed'],
+                            message:
+                                'The UI never changes the route or a sheet directly: dispatch an intent from src/features/game/navigationThunks.ts instead.',
                         },
                     ],
                 },

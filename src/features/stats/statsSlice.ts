@@ -1,4 +1,4 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSelector, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Mode } from '../../domain/types';
 import { previousDayKey, runContaining, runLengthEndingAt } from './dayKeys';
 
@@ -99,3 +99,34 @@ export const selectDailyStreak = (state: { readonly stats: StatsState }, todayKe
     const today = completed.indexOf(todayKey);
     return runLengthEndingAt(completed, today === -1 ? completed.indexOf(previousDayKey(todayKey)) : today);
 };
+
+/** The overall record across the four modes; see {@link selectOverallStats}. */
+export interface OverallStats {
+    readonly played: number;
+    readonly won: number;
+    /** A whole percent rounded to the nearest integer; `null` while `played` is 0. */
+    readonly winRate: number | null;
+    readonly streak: number;
+    readonly bestStreak: number;
+}
+
+/**
+ * The overall record across Draw 1, Draw 3, Vegas and Daily (D8): summed played/won, a rounded whole-percent win
+ * rate (`null` before any game is played), and the largest current and best streaks among the four modes. The
+ * Daily date-streak (`state.stats.daily`) is a separate concept and is not folded in here.
+ */
+export const selectOverallStats = createSelector(
+    [(state: { readonly stats: StatsState }) => state.stats.modes],
+    (modeRecords): OverallStats => {
+        const modes = Object.values(modeRecords);
+        const played = modes.reduce((sum, mode) => sum + mode.played, 0);
+        const won = modes.reduce((sum, mode) => sum + mode.won, 0);
+        return {
+            played,
+            won,
+            winRate: played === 0 ? null : Math.round((won / played) * 100),
+            streak: Math.max(...modes.map((mode) => mode.streak)),
+            bestStreak: Math.max(...modes.map((mode) => mode.bestStreak)),
+        };
+    },
+);

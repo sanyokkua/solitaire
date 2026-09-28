@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createAppStore } from '../../../src/app/store';
 import { defaultThunkExtra } from '../../../src/app/thunkExtra';
 import { createDealService } from '../../../src/features/deal/dealService';
 import { fakeDealService, type FakeDealService } from '../../fixtures/dealService';
@@ -65,5 +66,61 @@ describe('defaultThunkExtra', () => {
         expect(typeof extra.now()).toBe('number');
         expect(extra.today()).toBeInstanceOf(Date);
         await expect(extra.delay(0)).resolves.toBeUndefined();
+    });
+
+    it('supplies an unconnected save port and the browser languages', () => {
+        const extra = defaultThunkExtra();
+
+        expect(() => {
+            extra.saver.flush();
+            extra.saver.flushQuietly();
+            extra.saver.cancel();
+        }).not.toThrow();
+        expect(extra.languages()).toBe(navigator.languages);
+    });
+});
+
+describe('the default deal service clock (D8)', () => {
+    let real: FakeDealService;
+
+    beforeEach(() => {
+        real = fakeDealService();
+        vi.mocked(createDealService).mockReset().mockReturnValue(real);
+    });
+
+    it('defaultThunkExtra feeds its own today into its lazy deal service', () => {
+        const extra = defaultThunkExtra();
+
+        void extra.dealService.deal(REQUEST);
+
+        expect(createDealService).toHaveBeenCalledWith({ now: extra.today });
+    });
+
+    it('createAppStore feeds the default deal service an injected today, read at call time, not when the store was built', () => {
+        let current = new Date(Date.UTC(2026, 8, 20));
+        const store = createAppStore({ deps: { today: () => current } });
+        const extra = store.dispatch((_dispatch, _getState, injected) => injected);
+
+        void extra.dealService.deal(REQUEST);
+
+        const passedNow = vi.mocked(createDealService).mock.calls.at(-1)?.[0]?.now;
+        expect(passedNow).toBeTypeOf('function');
+        expect(passedNow?.()).toEqual(current);
+
+        // Changing what `today` resolves to after the store and the lazy service were built still reaches it.
+        current = new Date(Date.UTC(2026, 8, 21));
+        expect(passedNow?.()).toEqual(current);
+    });
+
+    it('createAppStore uses an injected deal service exactly as given, bypassing the default entirely', () => {
+        const dealService = fakeDealService();
+        const store = createAppStore({ deps: { dealService, today: () => new Date() } });
+        const extra = store.dispatch((_dispatch, _getState, injected) => injected);
+
+        expect(extra.dealService).toBe(dealService);
+
+        void extra.dealService.deal(REQUEST);
+
+        expect(createDealService).not.toHaveBeenCalled();
     });
 });

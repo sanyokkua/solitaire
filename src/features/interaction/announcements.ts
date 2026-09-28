@@ -19,7 +19,8 @@ export type Announcement =
     | { readonly type: 'refused'; readonly reason: RejectReason }
     | { readonly type: 'deadEnd' }
     | { readonly type: 'sentHome'; readonly count: number }
-    | { readonly type: 'won' };
+    | { readonly type: 'won' }
+    | { readonly type: 'codeCopied' };
 
 /**
  * The announcements for what the engine reported, in event order. A flip is the consequence of a move and is never

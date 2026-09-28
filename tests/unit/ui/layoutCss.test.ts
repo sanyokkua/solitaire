@@ -3,41 +3,14 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RAILS_QUERY } from '../../../src/ui/screens/profiles';
 import { RAILS_MAX_HEIGHT } from '../../fixtures/viewports';
+import { blockAfter, rulesFor, stripComments } from '../../support/css';
 
 const STYLES_DIR = resolve(import.meta.dirname, '../../../src/ui/styles');
 // Comments are stripped so a rule's selector never includes the comment above it.
-const layoutCss = readFileSync(resolve(STYLES_DIR, 'layout.css'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+const layoutCss = stripComments(readFileSync(resolve(STYLES_DIR, 'layout.css'), 'utf-8'));
 const globalCss = readFileSync(resolve(STYLES_DIR, 'global.css'), 'utf-8');
 
 const INSETS = ['top', 'right', 'bottom', 'left'] as const;
-
-/** The text between the braces that follow `header` in `css`, nested braces included; throws when absent. */
-function blockAfter(css: string, header: string): string {
-    const start = css.indexOf(header);
-    if (start === -1) throw new Error(`layout.css has no "${header}"`);
-    const open = css.indexOf('{', start);
-    let depth = 0;
-    for (let i = open; i < css.length; i += 1) {
-        if (css[i] === '{') depth += 1;
-        if (css[i] === '}') depth -= 1;
-        if (depth === 0) return css.slice(open + 1, i);
-    }
-    throw new Error(`layout.css has an unclosed block after "${header}"`);
-}
-
-/** The declaration bodies of every rule in `css` whose selector list contains exactly `selector`. */
-function rulesFor(css: string, selector: string): string[] {
-    return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap(([, selectors, body]) =>
-        selectors !== undefined &&
-        body !== undefined &&
-        selectors
-            .split(',')
-            .map((s) => s.trim())
-            .includes(selector)
-            ? [body]
-            : [],
-    );
-}
 
 const railsBlock = blockAfter(layoutCss, `@media ${RAILS_QUERY}`);
 
@@ -50,6 +23,12 @@ function expectsAllInsets(declaration: string): void {
 describe('layout.css', () => {
     it('is imported by global.css', () => {
         expect(globalCss).toMatch(/@import\s+['"]\.\/layout\.css['"]/);
+    });
+
+    it('gives every HUD stat display an explicit 44px minimum size', () => {
+        const body = rulesFor(layoutCss, '.stat-display').join(' ');
+        expect(body).toMatch(/min-height:\s*44px/);
+        expect(body).toMatch(/min-width:\s*max\(4\.8rem,\s*44px\)/);
     });
 
     it('pads the Game frame by all four safe-area insets, in every rule that sets its padding', () => {
@@ -115,6 +94,57 @@ describe('layout.css', () => {
         expect(dismiss).toMatch(/min-height:\s*2\.75rem/);
     });
 
+    it('keeps the .game-face reserved slot pinned at 2.9rem, 2.6rem at 460px and 2.5rem in the rails', () => {
+        expect(rulesFor(layoutCss, '.game-face').join(' ')).toMatch(/width:\s*2\.9rem/);
+        expect(rulesFor(layoutCss, '.game-face').join(' ')).toMatch(/height:\s*2\.9rem/);
+
+        const narrow = blockAfter(layoutCss, '@media (max-width: 460px)');
+        expect(rulesFor(narrow, '.game-face').join(' ')).toMatch(/width:\s*2\.6rem/);
+        expect(rulesFor(narrow, '.game-face').join(' ')).toMatch(/height:\s*2\.6rem/);
+
+        expect(rulesFor(railsBlock, '.game-face').join(' ')).toMatch(/width:\s*2\.5rem/);
+        expect(rulesFor(railsBlock, '.game-face').join(' ')).toMatch(/height:\s*2\.5rem/);
+    });
+
+    it('upper-cases the mode chip by CSS and truncates chips with an ellipsis, leaving the reserved slots unsized', () => {
+        const mode = rulesFor(layoutCss, '.mode-chip').join(' ');
+        expect(mode).toMatch(/text-transform:\s*uppercase/);
+        expect(mode).toMatch(/text-overflow:\s*ellipsis/);
+        expect(mode).toMatch(/white-space:\s*nowrap/);
+        expect(rulesFor(layoutCss, '.deal-chip__text').join(' ')).toMatch(/text-overflow:\s*ellipsis/);
+    });
+
+    it('keeps the .game-chips slot at 2.5rem (2.75rem coarse) and the .game-hint line pinned', () => {
+        expect(rulesFor(layoutCss, '.game-chips').join(' ')).toMatch(/height:\s*2\.5rem/);
+        const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
+        expect(rulesFor(coarse, '.game-chips').join(' ')).toMatch(/height:\s*2\.75rem/);
+        expect(rulesFor(layoutCss, '.game-hint').join(' ')).toMatch(/height:\s*calc\(0\.7rem \* 1\.4\)/);
+    });
+
+    it('hides the .hint-keys chips at 460px wide or narrower and on coarse pointers', () => {
+        const narrow = blockAfter(layoutCss, '@media (max-width: 460px)');
+        expect(rulesFor(narrow, '.hint-keys').join(' ')).toMatch(/display:\s*none/);
+        const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
+        expect(rulesFor(coarse, '.hint-keys').join(' ')).toMatch(/display:\s*none/);
+        expect(rulesFor(layoutCss, '.hint-text').join(' ')).toMatch(/text-overflow:\s*ellipsis/);
+    });
+
+    it('makes the top-bar Settings and theme buttons 2.75rem square, and the rail Settings 2.75rem tall, under a coarse pointer', () => {
+        const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
+        const buttons = rulesFor(coarse, '.game-topbar .icon-action').join(' ');
+        expect(buttons).toMatch(/min-width:\s*2\.75rem/);
+        expect(buttons).toMatch(/min-height:\s*2\.75rem/);
+        expect(rulesFor(coarse, '.rail-top .icon-action').join(' ')).toMatch(/min-height:\s*2\.75rem/);
+    });
+
+    it('widens the New deal button to 2.75rem square under a coarse pointer, without resizing .game-face', () => {
+        const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
+        const button = rulesFor(coarse, '.game-face__button').join(' ');
+        expect(button).toMatch(/width:\s*2\.75rem/);
+        expect(button).toMatch(/height:\s*2\.75rem/);
+        expect(rulesFor(coarse, '.game-face').join(' ')).not.toMatch(/width|height/);
+    });
+
     it('makes Back and the tools at least 2.75rem square under a coarse pointer, in both profiles', () => {
         const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
         const back = rulesFor(coarse, '.game-back').join(' ');
@@ -129,6 +159,12 @@ describe('layout.css', () => {
             );
             expect(Math.min(...heights)).toBeGreaterThanOrEqual(2.75);
         }
+    });
+
+    it('hides the table while paused (5.7, D6), with no animation either way', () => {
+        const rule = rulesFor(layoutCss, '.screen--game[data-paused] .board-panel').join(' ');
+        expect(rule).toMatch(/visibility:\s*hidden/);
+        expect(rule).not.toMatch(/animation|transition/);
     });
 
     it('defines the visually hidden class', () => {

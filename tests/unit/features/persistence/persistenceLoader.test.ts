@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { createAppStore } from '../../../../src/app/store';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import { applyCommand } from '../../../../src/domain/engine';
 import {
@@ -20,6 +19,7 @@ import { defaultPreferences, type Preferences } from '../../../../src/features/p
 import { statsReducer, type StatsState } from '../../../../src/features/stats/statsSlice';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
 import { memoryStorage, throwingStorage, type MemoryStorage } from '../../../fixtures/storage';
+import { testStore } from '../../../support/testStore';
 
 const NO_LANGUAGES: readonly string[] = [];
 
@@ -103,7 +103,7 @@ describe('loadInitialState', () => {
             expect(preloadedState.preferences).toEqual(defaultPreferences('uk'));
             expect(preloadedState.game).toBeUndefined();
             expect(writes).toEqual([]);
-            const store = createAppStore({ preloadedState });
+            const store = testStore({ preloadedState });
             expect(store.getState().persistence).toEqual(initialPersistenceState);
             expect(store.getState().stats).toEqual(statsReducer(undefined, { type: '@@init' }));
         });
@@ -121,7 +121,7 @@ describe('loadInitialState', () => {
             const storage = seeded({ [STORAGE_KEY]: validRaw(game) });
 
             const { preloadedState, notices } = loadInitialState(createStorageGateway(storage), ['en']);
-            const store = createAppStore({ preloadedState });
+            const store = testStore({ preloadedState });
 
             expect(notices).toEqual([]);
             const state = store.getState();
@@ -148,7 +148,7 @@ describe('loadInitialState', () => {
             const storage = seeded({ [STORAGE_KEY]: raw });
 
             const { preloadedState, notices } = loadInitialState(createStorageGateway(storage), NO_LANGUAGES);
-            const state = createAppStore({ preloadedState }).getState();
+            const state = testStore({ preloadedState }).getState();
 
             expect(notices).toEqual([]);
             expect(state.preferences).toEqual(preferences);
@@ -169,7 +169,7 @@ describe('loadInitialState', () => {
             const { gateway, writes, removals } = spied(storage);
 
             const { preloadedState, notices } = loadInitialState(gateway, ['uk']);
-            const state = createAppStore({ preloadedState }).getState();
+            const state = testStore({ preloadedState }).getState();
 
             expect(notices).toEqual(['storage-read']);
             expect(state.preferences).toEqual(defaultPreferences('uk'));

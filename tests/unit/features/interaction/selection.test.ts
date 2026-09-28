@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import type { Command, GameState, PileRef } from '../../../../src/domain/types';
 import { cleared, installed } from '../../../../src/features/game/gameSlice';
-import { play, redo, restart, undo } from '../../../../src/features/game/gameThunks';
+import { play, redo, undo } from '../../../../src/features/game/gameThunks';
+import { restart } from '../../../../src/features/game/sessionThunks';
 import { selectCard } from '../../../../src/features/interaction/interactionThunks';
 import {
     selectLegalTargets,
@@ -14,9 +15,9 @@ import {
 import { createPersistenceWriter } from '../../../../src/features/persistence/persistenceWriter';
 import { createStorageGateway, type StorageGateway } from '../../../../src/features/persistence/storageGateway';
 import { preferenceSet } from '../../../../src/features/preferences/preferencesSlice';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { memoryStorage } from '../../../fixtures/storage';
 import { faceDown, faceUp, makeState, tableauOf } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 const col = (index: 0 | 1 | 2 | 3 | 4 | 5 | 6): PileRef => ({ pile: 'tableau', col: index });
 const WASTE: PileRef = { pile: 'waste' };
@@ -51,14 +52,7 @@ function setup(store: AppStore = createStore()): AppStore {
 }
 
 function createStore(gateway?: StorageGateway): AppStore {
-    const store = createAppStore({
-        deps: {
-            now: () => Date.now(),
-            delay: () => Promise.resolve(),
-            dealService: fakeDealService(),
-            ...(gateway === undefined ? {} : { gateway }),
-        },
-    });
+    const store = testStore({ deps: gateway === undefined ? {} : { gateway } });
     store.dispatch(preferenceSet({ key: 'autoSafe', value: false }));
     return store;
 }

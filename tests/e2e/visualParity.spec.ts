@@ -166,6 +166,24 @@ test.describe('interaction states', () => {
         expectWritten(path);
     });
 
+    test('10-settings-sheet.png shows the Settings sheet over Home, opened from the top bar', async ({
+        page,
+    }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        // A fresh browser resolves System to light (the headless colour scheme).
+        await page.emulateMedia({ colorScheme: 'light' });
+        await page.goto('/');
+
+        await page.getByRole('banner').getByRole('button', { name: 'Settings' }).click();
+        await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
+        await page.evaluate(() => document.fonts.ready);
+        const path = `${OUTPUT_DIR}/10-settings-sheet.png`;
+
+        await page.screenshot({ path });
+
+        expectWritten(path);
+    });
+
     test('12-win-cascade.png shows the cards in flight after the last move', async ({ page }, testInfo) => {
         test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
         const commands = parseLine(WINNING_LINE.line);
@@ -189,6 +207,80 @@ test.describe('interaction states', () => {
 
         await page.screenshot({ path });
         await played;
+
+        expectWritten(path);
+    });
+
+    test('13-win-sheet.png shows the Win sheet over the cascade', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        const commands = parseLine(WINNING_LINE.line);
+        await seedRecord(page, {
+            current: nearlyWonState(),
+            preferences: { tapMode: 'select', autoSafe: false, theme: 'light' },
+        });
+        await continueToGame(page);
+        await settled(page);
+
+        await playLine(page, 'tap', { commands: commands.slice(-1), movesBefore: WINNING_LINE.moves - 1 });
+        await expect(page.getByRole('heading', { name: 'You win!' })).toBeVisible({ timeout: 4000 });
+        const path = `${OUTPUT_DIR}/13-win-sheet.png`;
+
+        await page.screenshot({ path });
+
+        expectWritten(path);
+    });
+});
+
+/** The Home screens and the How to play sheet (01, 02 and 11), which need no seeded game. */
+test.describe('home screens', () => {
+    test.use({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2 });
+
+    test('01-home-light-desktop.png shows Home in the light theme', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        await page.emulateMedia({ colorScheme: 'light' });
+        await page.goto('/');
+        await expect(page.getByRole('button', { name: 'Deal cards' })).toBeVisible();
+        await page.evaluate(() => document.fonts.ready);
+        const path = `${OUTPUT_DIR}/01-home-light-desktop.png`;
+
+        await page.screenshot({ path });
+
+        expectWritten(path);
+    });
+
+    test.describe('on a phone', () => {
+        test.use({
+            viewport: { width: 390, height: 844 },
+            hasTouch: true,
+            isMobile: true,
+            colorScheme: 'dark',
+        });
+
+        test('02-home-dark-phone.png shows Home in the dark theme', async ({ page }, testInfo) => {
+            test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+            await page.goto('/');
+            await expect(page.getByRole('button', { name: 'Deal cards' })).toBeVisible();
+            await page.evaluate(() => document.fonts.ready);
+            await page.waitForTimeout(400); // the body's 250 ms colour transition from light to dark
+            const path = `${OUTPUT_DIR}/02-home-dark-phone.png`;
+
+            await page.screenshot({ path });
+
+            expectWritten(path);
+        });
+    });
+
+    test('11-how-to-play-sheet.png shows the How to play sheet opened from Home', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        await page.emulateMedia({ colorScheme: 'light' });
+        await page.goto('/');
+
+        await page.getByRole('button', { name: 'How to play' }).click();
+        await expect(page.getByRole('dialog', { name: 'How to play' })).toBeVisible();
+        await page.evaluate(() => document.fonts.ready);
+        const path = `${OUTPUT_DIR}/11-how-to-play-sheet.png`;
+
+        await page.screenshot({ path });
 
         expectWritten(path);
     });

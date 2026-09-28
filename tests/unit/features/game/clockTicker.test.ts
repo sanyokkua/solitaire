@@ -7,6 +7,7 @@ import { createAppStore } from '../../../../src/app/store';
 import { createClockTicker } from '../../../../src/features/game/clockTicker';
 import { installed } from '../../../../src/features/game/gameSlice';
 import { makeState } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 /** The fresh deal with one accepted draw applied, so the game has started. */
 function startedState(): GameState {
@@ -15,7 +16,7 @@ function startedState(): GameState {
 
 /** A store with `state` installed, a ticker on fake timers, and helpers to advance the fake clock. */
 function setup(route: 'home' | 'game' = 'game') {
-    const store = createAppStore();
+    const store = testStore();
     store.dispatch(installed({ state: startedState(), dailyKey: null }));
     store.dispatch(setRoute(route));
 

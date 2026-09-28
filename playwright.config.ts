@@ -11,8 +11,8 @@ if (process.platform === 'darwin' && !process.env.CFFIXED_USER_HOME) {
     process.env.CFFIXED_USER_HOME = mkdtempSync(join(tmpdir(), 'playwright-firefox-home-'));
 }
 
-/** The device-fit matrix runs once, in its own Chromium project; no other project collects it. */
-const DEVICE_FIT_SPEC = '**/deviceFit.spec.ts';
+/** The device-fit specs (the device matrix, and the same matrix with padded text) run once, in their own Chromium project; no other project collects them. */
+const DEVICE_FIT_SPECS = ['**/deviceFit.spec.ts', '**/pseudoLocale.spec.ts'];
 
 export default defineConfig({
     testDir: './tests/e2e',
@@ -26,6 +26,8 @@ export default defineConfig({
         trace: 'retain-on-failure',
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
+        // No spec sees caching or an update prompt unless it opts in with `serviceWorkers: 'allow'` (D12).
+        serviceWorkers: 'block',
     },
     webServer: {
         command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 5173',
@@ -33,25 +35,25 @@ export default defineConfig({
         reuseExistingServer: !process.env.CI,
     },
     projects: [
-        { name: 'chromium', testIgnore: DEVICE_FIT_SPEC, use: { ...devices['Desktop Chrome'] } },
-        { name: 'firefox', testIgnore: DEVICE_FIT_SPEC, use: { ...devices['Desktop Firefox'] } },
-        { name: 'webkit', testIgnore: DEVICE_FIT_SPEC, use: { ...devices['Desktop Safari'] } },
+        { name: 'chromium', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Chrome'] } },
+        { name: 'firefox', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Firefox'] } },
+        { name: 'webkit', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Safari'] } },
         {
             name: 'iphone-17-pro',
-            testIgnore: DEVICE_FIT_SPEC,
+            testIgnore: DEVICE_FIT_SPECS,
             use: { ...devices['iPhone 17 Pro'], viewport: { width: 402, height: 874 } },
         },
         {
             name: 'iphone-14-pro-max',
-            testIgnore: DEVICE_FIT_SPEC,
+            testIgnore: DEVICE_FIT_SPECS,
             use: { ...devices['iPhone 14 Pro Max'], viewport: { width: 430, height: 932 } },
         },
         {
             name: 'galaxy-s25',
-            testIgnore: DEVICE_FIT_SPEC,
+            testIgnore: DEVICE_FIT_SPECS,
             use: { ...devices['Galaxy S24'], viewport: { width: 360, height: 780 } },
         },
         // Every case sets its own viewport and pointer; only Chromium runs it.
-        { name: 'device-fit', testMatch: DEVICE_FIT_SPEC, use: { ...devices['Desktop Chrome'] } },
+        { name: 'device-fit', testMatch: DEVICE_FIT_SPECS, use: { ...devices['Desktop Chrome'] } },
     ],
 });

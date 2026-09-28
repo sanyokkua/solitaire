@@ -1,0 +1,221 @@
+/*
+ * The modal sheet chrome (D2, D13, SH "One modal sheet at a time"): the backdrop, the centred panel
+ * and its header/body/actions regions. `ModalSheet.tsx` is the only place these classes are used.
+ */
+
+.modal-layer {
+    position: fixed;
+    z-index: 60;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: var(--color-scrim);
+}
+
+.modal-sheet {
+    width: min(100%, 28rem);
+    max-height: 88dvh;
+    overflow-y: auto;
+    padding: 1.3rem 1.2rem 1.1rem;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-lg);
+    animation: sheet-in 180ms var(--motion-ease);
+}
+
+.modal-sheet--wide {
+    width: min(100%, 34rem);
+}
+
+.modal-sheet__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.modal-sheet__header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+}
+
+.modal-sheet__close {
+    flex: 0 0 auto;
+}
+
+.modal-sheet__body {
+    padding: 0.6rem 0 1rem;
+    line-height: 1.55;
+    font-size: 0.8rem;
+}
+
+.modal-sheet__actions {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.modal-sheet__actions .action-button {
+    flex: 1;
+}
+
+:root[data-motion='off'] .modal-sheet {
+    animation: none;
+}
+
+/* ---------- How to play (5.3): rule cards and the keys table ---------- */
+
+.help-rule {
+    display: flex;
+    gap: 0.7rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--color-outline-soft);
+}
+
+.help-rule:last-of-type {
+    border-bottom: 0;
+}
+
+.help-rule__icon {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 0.6rem;
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    font-family: var(--font-pixel);
+    font-size: 0.6rem;
+}
+
+.help-rule strong {
+    font-size: 0.78rem;
+}
+
+.help-rule p {
+    margin: 0.15rem 0 0;
+    color: var(--color-on-surface-muted);
+    font-size: 0.72rem;
+}
+
+.keys-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.6rem;
+    font-size: 0.72rem;
+}
+
+.keys-table td {
+    padding: 0.42rem 0.2rem;
+    border-bottom: 1px solid var(--color-outline-soft);
+    vertical-align: top;
+}
+
+.keys-table td:first-child {
+    white-space: nowrap;
+    width: 1%;
+    padding-right: 0.8rem;
+}
+
+.keys-table tr:last-child td {
+    border-bottom: 0;
+}
+
+/* ---------- Statistics (5.4): the per-mode table ---------- */
+
+.scroll-x {
+    overflow-x: auto;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.stats-table th,
+.stats-table td {
+    padding: 0.5rem 0.4rem;
+    border-bottom: 1px solid var(--color-outline-soft);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.stats-table th:first-child,
+.stats-table td:first-child {
+    text-align: left;
+}
+
+.stats-table thead th {
+    color: var(--color-on-surface-muted);
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.stats-note {
+    margin: 0.8rem 0 0;
+    color: var(--color-on-surface-muted);
+    font-size: 0.7rem;
+}
+
+/* ---------- Win sheet (5.8): the outcome summary and its stat tiles ---------- */
+
+.outcome-sheet {
+    text-align: center;
+}
+
+.outcome-description {
+    margin: 0 auto 1.1rem;
+    color: var(--color-on-surface-muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.outcome-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 1.1rem;
+}
+
+.outcome-stat {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.7rem 0.4rem;
+    border: 1px solid var(--color-outline-soft);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-1);
+}
+
+.outcome-stat strong {
+    font-family: var(--font-pixel);
+    font-size: 0.85rem;
+    font-weight: 400;
+}
+
+.outcome-stat span {
+    color: var(--color-on-surface-muted);
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.best-badge {
+    display: inline-block;
+    margin-bottom: 0.9rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: var(--color-tertiary);
+    color: var(--color-on-tertiary);
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}

@@ -1,16 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { noticeDismissed } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import type { Command, GameState } from '../../../../src/domain/types';
 import { installed, replaced } from '../../../../src/features/game/gameSlice';
-import { finish, play, redo, restart, undo } from '../../../../src/features/game/gameThunks';
+import { finish, play, redo, undo } from '../../../../src/features/game/gameThunks';
+import { restart } from '../../../../src/features/game/sessionThunks';
 import type { Announcement } from '../../../../src/features/interaction/announcements';
 import { checkDeadEnd } from '../../../../src/features/interaction/interactionThunks';
 import { selectAnnouncement } from '../../../../src/features/interaction/selectors';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { allFaceUp } from '../../../fixtures/deals';
 import { faceUp, makeState, tableauOf, vegasAtLimit } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 const DRAW: Command = { type: 'draw' };
 const ACE_HOME: Command = {
@@ -30,10 +31,9 @@ const stuckStock = (): GameState => makeState({ stock: [cardId(2, 9)] });
 function setup(game: GameState | null, onFirstDelay?: (store: AppStore) => void): AppStore {
     let called = false;
     const holder: { store?: AppStore } = {};
-    const store = createAppStore({
+    const store = testStore({
         deps: {
             now: () => 1000,
-            dealService: fakeDealService(),
             delay: () => {
                 if (!called && holder.store !== undefined) {
                     called = true;

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { devices } from '@playwright/test';
 import config from '../../../playwright.config';
 
-const DEVICE_FIT_SPEC = '**/deviceFit.spec.ts';
+const DEVICE_FIT_SPECS = ['**/deviceFit.spec.ts', '**/pseudoLocale.spec.ts'];
 /** Specs that run in the `chromium` project only; tasks that add one append it here. */
 const CHROMIUM_ONLY_SPECS: string[] = [
     'tests/e2e/visualParity.spec.ts',
@@ -12,6 +12,8 @@ const CHROMIUM_ONLY_SPECS: string[] = [
     'tests/e2e/playByTap.spec.ts',
     'tests/e2e/playByDrag.spec.ts',
     'tests/e2e/playByKeyboard.spec.ts',
+    'tests/e2e/pwa.spec.ts',
+    'tests/e2e/a11y.spec.ts',
 ];
 
 /** Whether a spec's source skips itself outside the `chromium` project. */
@@ -22,21 +24,25 @@ function hasChromiumGuard(source: string): boolean {
 describe('Playwright projects', () => {
     const projects = config.projects ?? [];
 
-    it('runs the device-fit matrix in one dedicated Desktop Chrome project', () => {
+    it('runs both device-fit specs in one dedicated Desktop Chrome project', () => {
         const deviceFit = projects.find((project) => project.name === 'device-fit');
 
-        expect(deviceFit?.testMatch).toBe(DEVICE_FIT_SPEC);
+        expect(deviceFit?.testMatch).toEqual(DEVICE_FIT_SPECS);
         expect(deviceFit?.use?.userAgent).toBe(devices['Desktop Chrome'].userAgent);
         expect(deviceFit?.use?.defaultBrowserType).toBe('chromium');
     });
 
-    it('keeps every other project away from the device-fit spec', () => {
+    it('keeps every other project away from both device-fit specs', () => {
         const others = projects.filter((project) => project.name !== 'device-fit');
 
         expect(others).toHaveLength(6);
         for (const project of others) {
-            expect(project.testIgnore, project.name).toBe(DEVICE_FIT_SPEC);
+            expect(project.testIgnore, project.name).toEqual(DEVICE_FIT_SPECS);
         }
+    });
+
+    it('blocks service workers by default', () => {
+        expect(config.use?.serviceWorkers).toBe('block');
     });
 
     it('recognises a Chromium-only guard', () => {

@@ -1,17 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import { noticeRaised } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import type { Command, GameState } from '../../../../src/domain/types';
 import type { HintOutcome } from '../../../../src/features/deal/dealService';
 import { installed } from '../../../../src/features/game/gameSlice';
-import { play, redo, restart, undo } from '../../../../src/features/game/gameThunks';
+import { play, redo, undo } from '../../../../src/features/game/gameThunks';
+import { restart } from '../../../../src/features/game/sessionThunks';
 import type { Announcement } from '../../../../src/features/interaction/announcements';
 import { HINT_DURATION_MS, requestHint } from '../../../../src/features/interaction/interactionThunks';
 import { selectAnnouncement, selectHint, selectPendingHint } from '../../../../src/features/interaction/selectors';
 import { preferenceSet } from '../../../../src/features/preferences/preferencesSlice';
 import { fakeDealService, type FakeDealService } from '../../../fixtures/dealService';
 import { faceUp, makeState, tableauOf } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 const ACE_OF_SPADES = cardId(3, 1);
 const TO_FOUNDATION: Command = {
@@ -47,7 +49,7 @@ function setup(game: GameState | null = movable()): Setup {
     const service = fakeDealService();
     const delays: number[] = [];
     const timers: (() => void)[] = [];
-    const store = createAppStore({
+    const store = testStore({
         deps: {
             now: () => 1000,
             dealService: service,

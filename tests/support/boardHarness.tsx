@@ -1,20 +1,18 @@
-import { act, render } from '@testing-library/react';
-import { StrictMode } from 'react';
-import { Provider } from 'react-redux';
+import { act } from '@testing-library/react';
 import { setRoute } from '../../src/app/appSlice';
-import { createAppStore } from '../../src/app/store';
 import { cardId } from '../../src/domain/cards';
 import type { CardId, GameState, TableauCol } from '../../src/domain/types';
-import { defaultPreferences, type Preferences } from '../../src/features/preferences/preferencesSlice';
+import type { Preferences } from '../../src/features/preferences/preferencesSlice';
 import { Board } from '../../src/ui/board/Board';
 import { landingAreas, nextLanding } from '../../src/ui/board/landing';
 import { positions } from '../../src/ui/board/layout';
 import { measure, type BoardSize } from '../../src/ui/board/metrics';
-import { fakeDealService } from '../fixtures/dealService';
 import { gameOf } from '../fixtures/games';
 import { faceDown, faceUp, makeState, tableauOf } from '../fixtures/states';
 import { FakeResizeObserver } from './fakeResizeObserver';
 import { firePointer, stubPointerCapture, type PointerCaptureStub, type PointerInit } from './pointer';
+import { renderWithStore } from './renderWithStore';
+import { testStore } from './testStore';
 
 export const SIZE: BoardSize = { width: 900, height: 800 };
 export const METRICS = measure(SIZE, { coarse: false });
@@ -86,17 +84,9 @@ export interface MountOptions {
 }
 
 export function mount(state: GameState = POSITION, { strict = false, preferences = {} }: MountOptions = {}) {
-    const store = createAppStore({
-        preloadedState: { game: gameOf(state), preferences: { ...defaultPreferences('en'), ...preferences } },
-        deps: { dealService: fakeDealService() },
-    });
+    const store = testStore({ preloadedState: { game: gameOf(state), preferences } });
     store.dispatch(setRoute('game'));
-    const tree = (
-        <Provider store={store}>
-            <Board />
-        </Provider>
-    );
-    const view = render(strict ? <StrictMode>{tree}</StrictMode> : tree);
+    const view = renderWithStore(<Board />, { store, strict });
     const observer = FakeResizeObserver.instances.at(-1);
     if (!observer) throw new Error('no ResizeObserver was created');
     observer.trigger(SIZE);

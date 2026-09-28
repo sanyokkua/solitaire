@@ -21,3 +21,7 @@
 .stat-display--timer .stat-display__value {
     color: var(--color-lcd-time);
 }
+
+.stat-display--timer:disabled {
+    opacity: 0.6;
+}

@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAppStore } from '../../../../src/app/store';
 import { applyCommand } from '../../../../src/domain/engine';
 import * as finishModule from '../../../../src/domain/finish';
 import type { finishPlan as FinishPlanFn } from '../../../../src/domain/finish';
 import type { GameState } from '../../../../src/domain/types';
 import { accrued, committed, installed, selectCanFinish } from '../../../../src/features/game/gameSlice';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { allFaceUp } from '../../../fixtures/deals';
+import { testStore } from '../../../support/testStore';
 
 vi.mock('../../../../src/domain/finish', async (importActual) => {
     const actual = await importActual<{ finishPlan: typeof FinishPlanFn }>();
@@ -17,9 +16,7 @@ const finishPlan = vi.mocked(finishModule.finishPlan);
 
 /** A store holding `game`, with the finish plan spy cleared so only the calls the test causes are counted. */
 function storeWith(game: GameState) {
-    const store = createAppStore({
-        deps: { now: () => 1000, delay: () => Promise.resolve(), dealService: fakeDealService() },
-    });
+    const store = testStore({ deps: { now: () => 1000 } });
     store.dispatch(installed({ state: game, dailyKey: null }));
     finishPlan.mockClear();
     return store;

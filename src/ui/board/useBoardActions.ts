@@ -13,6 +13,7 @@ import { selectCard } from '../../features/interaction/interactionThunks';
 import { selectInputEnabled, selectLegalTargets, selectSelection } from '../../features/interaction/selectors';
 import { selectPreference } from '../../features/preferences/preferencesSlice';
 import { SHAKE_CLEAR_MS } from './constants';
+import { cardElement } from './dom';
 import { pileKey } from './landing';
 import type { CardHit, Hit } from './pointerController';
 
@@ -101,7 +102,7 @@ export function useBoardActions(boardRef: RefObject<HTMLDivElement | null>): Boa
             const board = boardRef.current;
             if (board === null) return;
             for (const id of ids) {
-                const el = board.querySelector<HTMLElement>(`[data-card-id='${String(id)}']`);
+                const el = cardElement(board, id);
                 if (el === null) continue;
                 window.clearTimeout(timers.current.get(el));
                 el.classList.remove(SHAKE_CLASS);

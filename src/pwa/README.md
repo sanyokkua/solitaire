@@ -1,9 +1,16 @@
 # PWA layer
 
-Progressive-web-app lifecycle. Lands in Phase 8 — PWA, offline & delivery hardening.
+Progressive-web-app lifecycle behind two small gateways. It holds no game logic and imports nothing from `app`,
+`features` or `ui`; the application reaches it only through injected gateways.
 
-- `registerPwa.ts` — service-worker registration
-- `installGateway.ts` — install-prompt capture and exposure
-- `pwaGateway.ts` — update lifecycle (waiting/activated states)
+- `registerPwa.ts` — registers the service worker and returns the update gateway. The only importer of
+  `virtual:pwa-register`, and only `main.tsx` imports it.
+- `pwaGateway.ts` — `createPwaGateway(register)` returns `{ onUpdateReady(cb), applyUpdate() }`; `applyUpdate` calls
+  `updateSW(true)`, which activates the waiting worker and reloads.
+- `deferredGateway.ts` — `createDeferredPwaGateway(win, doc, register)` returns an update gateway at once and calls
+  `register` only after `load` (immediately when the document is already `complete`).
+- `installGateway.ts` — `createInstallGateway(win)` captures `beforeinstallprompt` (calling `preventDefault`), clears
+  it on `appinstalled`, and exposes `onAvailabilityChange(cb)` and `prompt()` (`accepted`, `dismissed` or
+  `unavailable`).
 
-This layer wraps browser PWA APIs and is consumed by `App.tsx`. It holds no game logic.
+The boundaries are enforced by `tests/unit/repo/layerBoundaries.test.ts`.

@@ -1,30 +1,42 @@
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { setRoute } from '../../app/appSlice';
-import { selectDealing } from '../../app/selectors';
-import { selectHint } from '../../features/interaction/selectors';
-import { hintText } from '../announce';
+import { selectDealing, selectSheet } from '../../app/selectors';
+import { goHome } from '../../features/game/navigationThunks';
+import { useTranslate } from '../../i18n/useTranslate';
 import { Board } from '../board/Board';
 import { useGameShortcuts } from '../board/useGameShortcuts';
-import { Announcer } from '../components/Announcer';
 import { BuildStamp } from '../components/BuildStamp';
+import { DealChip } from '../components/DealChip';
+import { DealCode } from '../components/DealCode';
+import { HintLine } from '../components/HintLine';
 import { Hud } from '../components/Hud';
 import { Icon } from '../components/Icon';
-import { Notices } from '../components/Notices';
+import { ModeChip } from '../components/ModeChip';
+import { NewDealButton } from '../components/NewDealButton';
+import { SettingsButton } from '../components/SettingsButton';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Toolbar } from '../components/Toolbar';
 import { useMediaQuery } from '../useMediaQuery';
 import { RAILS_QUERY } from './profiles';
 
 /**
- * The Game screen frame: a visually hidden screen name, the dealing status, the announcer (the one polite live
- * region for what happens at the table), the notices host (fixed, so it never moves the layout), then either the stacked profile (top bar, HUD, hint line, table, toolbar, footer) or the side-rails profile (HUD rail with Back, table, toolbar rail). The
- * profile is chosen by CSS, and by `useMediaQuery(RAILS_QUERY)` only to decide where the one Back control lives, so the
- * DOM never holds two. The chip slot and the New-deal slot are reserved, empty regions at their final size; the hint line is empty until a
- * hint shows and then reads its text (hidden from assistive technology: the announcer speaks it); `layout.css` owns every size. It also mounts the global keyboard shortcuts (`useGameShortcuts`).
+ * The Game screen frame: a visually hidden screen name and the dealing status, then either the stacked profile (top
+ * bar, HUD, hint line, table, toolbar, footer) or the side-rails profile (HUD rail with Back, table, toolbar rail).
+ * The announcer and the notices host are mounted once by `App`, outside every screen (NT "Transient notices", "One
+ * polite announcer"). The profile is chosen by CSS, and by `useMediaQuery(RAILS_QUERY)` only to decide where the one
+ * Back control lives, so the DOM never holds two. The chip slot is a reserved region at its final size holding the
+ * mode and deal chips (7.1; they truncate inside it and never grow it); after it the stacked top bar has the theme
+ * toggle and Settings, and the rails put Settings beside Back in `div.rail-top` and show no theme toggle (D6a). The
+ * New-deal slot (`.game-face`) holds the `NewDealButton`, pinned at that same final size; the hint line (`HintLine`, 7.2)
+ * describes the tap setting until a hint shows and then reads its text (hidden from assistive technology); `layout.css`
+ * owns every size. It also mounts the global keyboard shortcuts (`useGameShortcuts`). The root carries `data-paused`
+ * while the Paused sheet is open (5.7, D6): `layout.css`'s `.screen--game[data-paused] .board-panel` rule hides the
+ * table with `visibility: hidden`, which also removes it from the accessibility tree, with no animation either way.
  */
 export function GameScreen() {
     const dispatch = useAppDispatch();
+    const t = useTranslate();
     const dealing = useAppSelector(selectDealing);
-    const hint = useAppSelector(selectHint);
+    const sheet = useAppSelector(selectSheet);
     const rails = useMediaQuery(RAILS_QUERY);
     useGameShortcuts();
 
@@ -32,9 +44,9 @@ export function GameScreen() {
         <button
             type="button"
             className="game-back"
-            aria-label="Back to Home"
+            aria-label={t('game.back')}
             onClick={() => {
-                dispatch(setRoute('home'));
+                dispatch(goHome());
             }}
         >
             <Icon path="m15 5-7 7 7 7" />
@@ -42,33 +54,42 @@ export function GameScreen() {
     );
 
     return (
-        <div className="screen screen--game">
-            <h1 className="sr-only">Klondike</h1>
+        <div className="screen screen--game" data-paused={sheet === 'paused' || undefined}>
+            <h1 className="sr-only" tabIndex={-1}>
+                {t('game.heading')}
+            </h1>
             {/* Always mounted, so screen readers announce the text when it appears. */}
             <p role="status" className="sr-only">
-                {dealing !== null && 'Dealing…'}
+                {dealing !== null && t('game.dealing')}
             </p>
-            <Announcer />
-            <Notices />
             {!rails && (
                 <header className="game-topbar">
                     {back}
-                    <div className="game-chips" aria-hidden="true" />
+                    <div className="game-chips">
+                        <ModeChip />
+                        <DealChip />
+                    </div>
+                    <ThemeToggle />
+                    <SettingsButton />
                 </header>
             )}
             <main className="game-body">
                 <div className="game-hud">
-                    {rails && back}
+                    {rails && (
+                        <div className="rail-top">
+                            {back}
+                            <SettingsButton />
+                        </div>
+                    )}
                     <Hud />
-                    <div className="game-face" aria-hidden="true" />
+                    <NewDealButton />
                 </div>
-                <p className="game-hint" aria-hidden="true">
-                    {hint !== null && hintText(hint)}
-                </p>
+                <HintLine />
                 <Board />
                 <Toolbar />
             </main>
             <div className="game-footer">
+                <DealCode />
                 <BuildStamp />
             </div>
         </div>

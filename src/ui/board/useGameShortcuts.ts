@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useAppDispatch, useAppStore } from '../../app/hooks';
-import { sheetClosed } from '../../app/appSlice';
+import { selectCurrentGame, selectGameControlsIdle } from '../../features/game/gameSlice';
 import { finish, play, redo, undo } from '../../features/game/gameThunks';
+import { closeSheet, pause, requestNewDeal, resume } from '../../features/game/navigationThunks';
 import { selectionCleared } from '../../features/interaction/interactionSlice';
 import { requestHint } from '../../features/interaction/interactionThunks';
 import { selectInputEnabled } from '../../features/interaction/selectors';
@@ -18,12 +19,20 @@ function focusOf(target: EventTarget | null): KeyContext['focus'] {
  * and dispatches the command it stands for. Ctrl or Command with Z undoes, with Y or Shift+Z redoes; H asks for a hint,
  * A finishes (the thunk does nothing when Finish is unavailable), Space with nothing focused draws and Esc clears the
  * selection. The letters go by the layout's Latin letter, else by the physical key (`code`), so they work on a Ukrainian
- * layout. A held key acts once: an auto-repeated shortcut is prevented and dropped. All of them go through the input
- * gate. With a sheet open only Esc acts, and closes the sheet. Enter, Space
- * and Shift on a focused board element belong to `useBoardKeyboard`, and an Escape that ends a drag to
- * `useBoardPointer`: an event either of them has handled is `defaultPrevented` and is skipped. The listener is on
- * `window`, which sees the event after every `document` listener, so that check holds whichever hook bound first. It
- * binds once and reads the store when a key arrives.
+ * layout. A held key acts once: an auto-repeated shortcut is prevented and dropped.
+ *
+ * N and P (5.7) both bypass the input gate (D3): each is handled before the sheet-open check and before
+ * `selectInputEnabled`. N dispatches `requestNewDeal()`, exactly what the HUD New deal control does, whenever no
+ * sheet is open and `selectGameControlsIdle` holds (no safe-card chain or Finish running, no deal being prepared), so
+ * it still deals at once during the win cascade, before the Win sheet opens. P dispatches `pause()` under the same
+ * `selectGameControlsIdle` gate, and only for a game that is not won (exactly `pause()`'s own refusal conditions,
+ * checked here too so the key does nothing rather than dispatching a thunk that no-ops); with the Paused sheet
+ * already open it dispatches `resume()` instead; with any other sheet open it does nothing. The board-move shortcuts
+ * (undo, redo, hint, finish, draw, Esc on a selection) keep the input gate below, unchanged. With a sheet open only
+ * Esc acts on the board-shortcut path, and closes the sheet. Enter, Space and Shift on a focused board element belong
+ * to `useBoardKeyboard`, and an Escape that ends a drag to `useBoardPointer`: an event either of them has handled is
+ * `defaultPrevented` and is skipped. The listener is on `window`, which sees the event after every `document`
+ * listener, so that check holds whichever hook bound first. It binds once and reads the store when a key arrives.
  */
 export function useGameShortcuts(): void {
     const store = useAppStore();
@@ -46,11 +55,36 @@ export function useGameShortcuts(): void {
             );
             if (action === undefined || action === 'activate' || action === 'pickUp') return;
 
+            if (action === 'newDeal' || action === 'pause') {
+                if (event.repeat) {
+                    // A held key acts once: the auto-repeat is swallowed (and Space does not scroll the page).
+                    event.preventDefault();
+                    return;
+                }
+                const state = store.getState();
+                if (action === 'newDeal') {
+                    if (state.app.sheet === null && selectGameControlsIdle(state)) {
+                        event.preventDefault();
+                        void dispatch(requestNewDeal());
+                    }
+                } else if (state.app.sheet === 'paused') {
+                    event.preventDefault();
+                    dispatch(resume());
+                } else if (state.app.sheet === null && selectGameControlsIdle(state)) {
+                    const current = selectCurrentGame(state);
+                    if (current !== null && current.status !== 'won') {
+                        event.preventDefault();
+                        dispatch(pause());
+                    }
+                }
+                return;
+            }
+
             const state = store.getState();
             if (state.app.sheet !== null) {
                 if (action === 'escape') {
                     event.preventDefault();
-                    dispatch(sheetClosed());
+                    dispatch(closeSheet());
                 }
                 return;
             }
@@ -81,10 +115,6 @@ export function useGameShortcuts(): void {
                     if (state.interaction.selection === null) return;
                     dispatch(selectionCleared());
                     break;
-                case 'newDeal':
-                case 'pause':
-                    // Bound when their sheets exist (Phase 7); until then the keys do nothing.
-                    return;
             }
             event.preventDefault();
         };

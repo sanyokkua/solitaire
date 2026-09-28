@@ -1,18 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ruleBody, stripComments } from '../../support/css';
 
 const STYLES_DIR = resolve(import.meta.dirname, '../../../src/ui/styles');
-const hudCss = readFileSync(resolve(STYLES_DIR, 'hud.css'), 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+const hudCss = stripComments(readFileSync(resolve(STYLES_DIR, 'hud.css'), 'utf-8'));
 const globalCss = readFileSync(resolve(STYLES_DIR, 'global.css'), 'utf-8');
-
-/** The declaration body of the rule whose selector list is exactly `selector`. */
-function ruleBody(css: string, selector: string): string {
-    for (const [, selectors, body] of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
-        if (selectors?.trim() === selector && body !== undefined) return body;
-    }
-    throw new Error(`no rule for ${selector}`);
-}
 
 describe('hud.css', () => {
     it('is imported by global.css', () => {

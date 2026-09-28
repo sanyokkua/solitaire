@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { Command, GameEvent, GameState } from '../../../../src/domain/types';
@@ -10,16 +10,14 @@ import { announcementsOf, type Announcement } from '../../../../src/features/int
 import { ANNOUNCEMENT_LOG_LIMIT, announced } from '../../../../src/features/interaction/interactionSlice';
 import { selectAnnouncement } from '../../../../src/features/interaction/selectors';
 import { preferenceSet } from '../../../../src/features/preferences/preferencesSlice';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { allFaceUp } from '../../../fixtures/deals';
 import { faceUp, foundationsOf, makeState, tableauOf, vegasAtLimit } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 const DRAW: Command = { type: 'draw' };
 
 function setup(game: GameState | null = dealFromSeed(1, 'draw1')): AppStore {
-    const store = createAppStore({
-        deps: { now: () => 1000, delay: () => Promise.resolve(), dealService: fakeDealService() },
-    });
+    const store = testStore({ deps: { now: () => 1000 } });
     if (game !== null) store.dispatch(installed({ state: game, dailyKey: null }));
     store.dispatch(setRoute('game'));
     return store;
@@ -266,7 +264,7 @@ describe('finish announces', () => {
     it('nothing when the game is replaced while it runs', async () => {
         let release: () => void = () => undefined;
         let calls = 0;
-        const store = createAppStore({
+        const store = testStore({
             deps: {
                 now: () => 1000,
                 delay: () => {
@@ -277,7 +275,6 @@ describe('finish announces', () => {
                           })
                         : Promise.resolve();
                 },
-                dealService: fakeDealService(),
             },
         });
         store.dispatch(installed({ state: allFaceUp(), dailyKey: null }));

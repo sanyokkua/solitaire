@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { setRoute, systemMotionChanged } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import { nextSafeMove } from '../../../../src/domain/safeMoves';
 import type { Command, GameState } from '../../../../src/domain/types';
 import { busySet, installed } from '../../../../src/features/game/gameSlice';
 import { play, redo, undo } from '../../../../src/features/game/gameThunks';
 import { preferenceSet } from '../../../../src/features/preferences/preferencesSlice';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { faceUp, foundationsOf, makeState, tableauOf } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 const DRAW: Command = { type: 'draw' };
 const ACE_HEARTS = cardId(0, 1);
@@ -48,7 +48,7 @@ function setup(game: GameState | null = twoSafeCards(), hooks: DelayHooks = {}) 
         foundedAtDelay.push(slice.current?.foundations.reduce((sum, pile) => sum + pile.length, 0) ?? 0);
         return hooks.onCall?.(ms, delays.length) ?? Promise.resolve();
     };
-    const store = createAppStore({ deps: { now: () => 1000, delay, dealService: fakeDealService() } });
+    const store = testStore({ deps: { now: () => 1000, delay } });
     ref.store = store;
     if (game !== null) store.dispatch(installed({ state: game, dailyKey: null }));
     store.dispatch(setRoute('game'));

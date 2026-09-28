@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { declaredTokens, valueOf } from '../../support/css';
 
 const STYLES_DIR = resolve(import.meta.dirname, '../../../src/ui/styles');
 const TOKENS_CSS_PATH = resolve(STYLES_DIR, 'tokens.css');
@@ -39,17 +40,6 @@ const blocks = {
     backCoral: getBlock('backCoral'),
 };
 
-/** The custom-property names declared in a block, as a sorted list. */
-function declaredTokens(block: string): string[] {
-    return [...block.matchAll(/(--[a-z0-9-]+)\s*:/g)].flatMap((match) => (match[1] ? [match[1]] : [])).sort();
-}
-
-/** Value of one custom property in a block, or undefined when the block does not declare it. */
-function valueOf(block: string, token: string): string | undefined {
-    const match = new RegExp(`${token}\\s*:\\s*([^;]+);`).exec(block);
-    return match?.[1]?.trim();
-}
-
 const BACK_TONES = [
     '--color-back-harbour-a',
     '--color-back-harbour-b',
@@ -72,6 +62,9 @@ const CARD_TOKENS = [
     '--color-suit-four-club',
     ...BACK_TONES,
     '--color-back-rim',
+    '--color-card-ink',
+    '--color-card-ink-muted',
+    '--color-card-accent',
 ];
 
 // The design D3 rows whose "Defined in" lists light and dark only: the page roles.
@@ -103,7 +96,29 @@ const PAGE_TOKENS = [
     '--shadow-sm',
 ];
 
-const LIGHT_DARK_TOKENS = [...PAGE_TOKENS, ...CARD_TOKENS];
+// D13: the sheet/control surface roles, light and dark only.
+const SHEET_TOKENS = [
+    '--color-surface-1',
+    '--color-surface-variant',
+    '--color-on-surface-muted',
+    '--color-outline',
+    '--color-scrim',
+    '--color-primary-container',
+    '--color-on-primary-container',
+    '--color-secondary',
+    '--color-tertiary',
+    '--color-on-tertiary',
+    '--color-success',
+    '--color-success-container',
+    '--color-on-success-container',
+    '--color-dither',
+    '--color-word-shadow-1',
+    '--color-word-shadow-2',
+    '--shadow-md',
+    '--shadow-lg',
+];
+
+const LIGHT_DARK_TOKENS = [...PAGE_TOKENS, ...CARD_TOKENS, ...SHEET_TOKENS];
 const NIGHT_TOKENS = [...CARD_TOKENS];
 
 // Defined on :root (design D3 rows "Defined in: :root").
@@ -310,7 +325,7 @@ describe('card and board transitions', () => {
 });
 
 describe('bundled font licences', () => {
-    it.each(['Inter-Variable.woff2', 'PressStart2P-Regular.ttf'])(
+    it.each(['Inter-Variable-subset.woff2', 'PressStart2P-Regular.woff2'])(
         'documents a licence for %s in src/assets/fonts/README.md',
         (fontFile) => {
             const lineWithFile = fontsReadme.split('\n').find((line) => line.includes(fontFile));

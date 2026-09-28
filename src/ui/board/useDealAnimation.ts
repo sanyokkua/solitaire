@@ -1,8 +1,9 @@
 import { useContext, useLayoutEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import { useAppSelector } from '../../app/hooks';
-import { selectEpoch, selectReducedMotion } from '../../app/selectors';
+import { selectReducedMotion } from '../../app/selectors';
 import type { CardId } from '../../domain/types';
+import { selectEpoch } from '../../features/game/gameSlice';
 import { playDeal } from './animations';
 import { DealtEpochContext } from './DealtEpochContext';
 

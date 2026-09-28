@@ -1,9 +1,10 @@
 import { memo } from 'react';
-import type { CSSProperties } from 'react';
 import { cardLabels, rankOf, suitOf } from '../../domain/cards';
 import type { CardId } from '../../domain/types';
+import { useTranslate } from '../../i18n/useTranslate';
 import { TEXT_PRESENTATION } from './constants';
 import { cardName } from './names';
+import { positionStyle } from './style';
 
 /** Ranks above this are court cards (J, Q, K): they show a boxed letter instead of a centre suit. */
 const LAST_NUMBER_RANK = 10;
@@ -83,10 +84,11 @@ function CardViewComponent({
     movable,
     tabIndex,
 }: CardViewProps) {
+    const t = useTranslate();
     const { rank, suitSymbol } = cardLabels(id);
     const glyph = `${suitSymbol}${TEXT_PRESENTATION}`;
     const isCourt = rankOf(id) > LAST_NUMBER_RANK;
-    const style = { '--x': `${String(x)}px`, '--y': `${String(y)}px`, zIndex: z } as CSSProperties;
+    const style = positionStyle(x, y, { zIndex: z });
 
     return (
         <div
@@ -98,7 +100,7 @@ function CardViewComponent({
             role={movable ? 'button' : 'img'}
             aria-pressed={movable ? selected : undefined}
             tabIndex={movable ? tabIndex : undefined}
-            aria-label={cardName(id, faceUp)}
+            aria-label={cardName(t, id, faceUp)}
             style={style}
         >
             <div className="card-inner">

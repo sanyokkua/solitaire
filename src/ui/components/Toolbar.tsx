@@ -3,6 +3,7 @@ import { selectCanFinish, selectCanRedo, selectCanUndo } from '../../features/ga
 import { finish, redo, undo } from '../../features/game/gameThunks';
 import { requestHint } from '../../features/interaction/interactionThunks';
 import { selectInputEnabled } from '../../features/interaction/selectors';
+import { useTranslate } from '../../i18n/useTranslate';
 import { Icon } from './Icon';
 
 /**
@@ -13,6 +14,7 @@ import { Icon } from './Icon';
  * ring; the Game frame owns size and layout.
  */
 export function Toolbar() {
+    const t = useTranslate();
     const dispatch = useAppDispatch();
     const canUndo = useAppSelector(selectCanUndo);
     const canRedo = useAppSelector(selectCanRedo);
@@ -20,7 +22,7 @@ export function Toolbar() {
     const finishReady = useAppSelector(selectCanFinish) && inputEnabled;
 
     return (
-        <nav className="toolbar" aria-label="Game actions">
+        <nav className="toolbar" aria-label={t('toolbar.label')}>
             <button
                 type="button"
                 className="tool"
@@ -30,7 +32,7 @@ export function Toolbar() {
                 }}
             >
                 <Icon path="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
-                Undo
+                {t('toolbar.undo')}
             </button>
             <button
                 type="button"
@@ -41,7 +43,7 @@ export function Toolbar() {
                 }}
             >
                 <Icon path="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" />
-                Redo
+                {t('toolbar.redo')}
             </button>
             <button
                 type="button"
@@ -52,7 +54,7 @@ export function Toolbar() {
                 }}
             >
                 <Icon path="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0 0 12 3Z" />
-                Hint
+                {t('toolbar.hint')}
             </button>
             <button
                 type="button"
@@ -63,7 +65,7 @@ export function Toolbar() {
                 }}
             >
                 <Icon path="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
-                Finish
+                {t('toolbar.finish')}
             </button>
         </nav>
     );

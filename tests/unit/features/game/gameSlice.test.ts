@@ -12,10 +12,14 @@ import {
     installed,
     redone,
     replaced,
+    selectBusy,
     selectCanFinish,
     selectCanRedo,
     selectCanUndo,
+    selectCurrentGame,
     selectDisplayedScore,
+    selectEpoch,
+    selectGameControlsIdle,
     selectResumable,
     undone,
     type GameSliceState,
@@ -274,5 +278,41 @@ describe('selectCanFinish', () => {
 
     it('is false when the game is won', () => {
         expect(selectCanFinish({ game: withGame({ ...finishable, status: 'won' }) })).toBe(false);
+    });
+});
+
+describe('selectCurrentGame, selectEpoch and selectBusy', () => {
+    const drawnState = dealFromSeed(7, 'draw1');
+    const playing = withGame(drawnState);
+
+    it('selectCurrentGame reads the game in play, or null', () => {
+        expect(selectCurrentGame({ game: initial })).toBeNull();
+        expect(selectCurrentGame({ game: playing })).toBe(drawnState);
+    });
+
+    it('selectEpoch reads the game epoch, which installing a game advances', () => {
+        expect(selectEpoch({ game: initial })).toBe(0);
+        expect(selectEpoch({ game: playing })).toBe(1);
+    });
+
+    it('selectBusy reads the busy flag', () => {
+        expect(selectBusy({ game: playing })).toBe(false);
+        expect(selectBusy({ game: gameReducer(playing, busySet(true)) })).toBe(true);
+    });
+});
+
+describe('selectGameControlsIdle', () => {
+    const idle = { game: initial, app: { dealing: null } };
+
+    it('is true with no sequence running and no deal in flight', () => {
+        expect(selectGameControlsIdle(idle)).toBe(true);
+    });
+
+    it('is false while a safe-card chain or finish is running', () => {
+        expect(selectGameControlsIdle({ ...idle, game: gameReducer(initial, busySet(true)) })).toBe(false);
+    });
+
+    it('is false while a deal is being prepared', () => {
+        expect(selectGameControlsIdle({ ...idle, app: { dealing: { overlay: false, attempt: 1 } } })).toBe(false);
     });
 });

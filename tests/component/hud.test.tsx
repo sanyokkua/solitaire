@@ -1,26 +1,20 @@
-import { act, render, screen, within } from '@testing-library/react';
-import { Provider } from 'react-redux';
+import { act, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { createAppStore } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
 import type { GameState } from '../../src/domain/types';
 import { accrued, selectDisplayedScore } from '../../src/features/game/gameSlice';
 import { WINNING_LINE } from '../fixtures/deals';
-import { fakeDealService } from '../fixtures/dealService';
 import { gameOf } from '../fixtures/games';
 import { Hud } from '../../src/ui/components/Hud';
+import { renderWithStore } from '../support/renderWithStore';
 
-function renderHud(state?: GameState) {
-    const store = createAppStore({
-        preloadedState: state === undefined ? {} : { game: gameOf(state) },
-        deps: { dealService: fakeDealService() },
+function renderHud(state?: GameState, locale?: 'en' | 'uk') {
+    return renderWithStore(<Hud />, {
+        preloadedState: {
+            ...(state === undefined ? {} : { game: gameOf(state) }),
+            ...(locale === undefined ? {} : { preferences: { locale } }),
+        },
     });
-    const view = render(
-        <Provider store={store}>
-            <Hud />
-        </Provider>,
-    );
-    return { store, ...view };
 }
 
 const stat = (label: string) => {
@@ -70,12 +64,15 @@ describe('Hud', () => {
         expect(container.children).toHaveLength(2);
     });
 
-    it('exposes each label to assistive technology', () => {
+    it('exposes the Score and Moves labels to assistive technology, and Time through its button name', () => {
         renderHud(dealFromSeed(WINNING_LINE.seed, 'draw1'));
 
-        for (const label of ['Score', 'Moves', 'Time']) {
+        for (const label of ['Score', 'Moves']) {
             expect(screen.getByText(label).closest('[aria-hidden="true"]')).toBeNull();
         }
+        // Time's own label and value are decorative (5.7): its accessible name comes from the button instead.
+        expect(screen.getByText('Time').closest('[aria-hidden="true"]')).not.toBeNull();
+        expect(screen.getByRole('button', { name: 'Pause, time 0:00' })).toBeInTheDocument();
     });
 
     it('updates the time as the clock advances', () => {
@@ -100,5 +97,13 @@ describe('Hud', () => {
         const { container } = renderHud();
 
         expect(container).toBeEmptyDOMElement();
+    });
+
+    it('shows translated labels in Ukrainian', () => {
+        renderHud({ ...dealFromSeed(WINNING_LINE.seed, 'draw1'), score: 5, moves: 7 }, 'uk');
+
+        expect(within(stat('Рахунок')).getByText('005')).toBeInTheDocument();
+        expect(within(stat('Ходи')).getByText('007')).toBeInTheDocument();
+        expect(within(stat('Час')).getByText('0:00')).toBeInTheDocument();
     });
 });

@@ -2,15 +2,14 @@ import { act, render } from '@testing-library/react';
 import { StrictMode, type ReactNode } from 'react';
 import { Provider } from 'react-redux';
 import { systemMotionChanged } from '../../src/app/appSlice';
-import { createAppStore } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
 import type { CardId } from '../../src/domain/types';
 import { installed } from '../../src/features/game/gameSlice';
 import { Board } from '../../src/ui/board/Board';
 import { DealtEpochContext, createDealtEpochStore } from '../../src/ui/board/DealtEpochContext';
-import { fakeDealService } from '../fixtures/dealService';
 import { gameOf, playedGame } from '../fixtures/games';
 import { FakeResizeObserver } from '../support/fakeResizeObserver';
+import { testStore } from '../support/testStore';
 
 /** The step between two cards' delays, the glide start of the last card and the whole deal, in ms. */
 const STEP_MS = 28;
@@ -59,7 +58,7 @@ function mount({
     strict = false,
     provider = true,
 }: MountOptions = {}) {
-    const store = createAppStore({ preloadedState: { game }, deps: { dealService: fakeDealService() } });
+    const store = testStore({ preloadedState: { game } });
     if (reduced) store.dispatch(systemMotionChanged(true));
     const dealt = createDealtEpochStore();
     const tree = (shown: boolean): ReactNode => {

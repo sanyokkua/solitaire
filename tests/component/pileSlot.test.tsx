@@ -3,6 +3,7 @@ import { cardId } from '../../src/domain/cards';
 import { canRecycle } from '../../src/domain/rules';
 import { PileSlot, type SlotPile } from '../../src/ui/board/PileSlot';
 import { StockBadge } from '../../src/ui/board/StockBadge';
+import { renderWithStore } from '../support/renderWithStore';
 import { makeState, vegasAtLimit } from '../fixtures/states';
 
 const VS15 = '︎';
@@ -12,7 +13,7 @@ const HEARTS_FOUNDATION: SlotPile = { pile: 'foundation', suit: 0 };
 const SEVEN_OF_CLUBS = cardId(2, 7);
 
 function renderSlot(pile: SlotPile, count: number, spent = false) {
-    render(<PileSlot pile={pile} count={count} x={10} y={20} spent={spent} />);
+    renderWithStore(<PileSlot pile={pile} count={count} x={10} y={20} spent={spent} />);
 }
 
 describe('PileSlot', () => {
@@ -87,7 +88,7 @@ describe('PileSlot', () => {
     });
 
     it('applies the tab stop to a button slot only', () => {
-        render(
+        renderWithStore(
             <>
                 <PileSlot pile={STOCK} count={3} x={0} y={0} tabIndex={0} />
                 <PileSlot pile={{ pile: 'tableau', col: 0 }} count={0} x={0} y={0} tabIndex={-1} />

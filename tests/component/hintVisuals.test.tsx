@@ -1,14 +1,12 @@
-import { act, render } from '@testing-library/react';
-import { Provider } from 'react-redux';
+import { act } from '@testing-library/react';
 import { setRoute } from '../../src/app/appSlice';
-import { createAppStore } from '../../src/app/store';
 import { cardId } from '../../src/domain/cards';
 import type { Command, GameState } from '../../src/domain/types';
 import type { HintOutcome } from '../../src/features/deal/dealService';
 import { announced, hintCleared, hintSet } from '../../src/features/interaction/interactionSlice';
 import { requestHint } from '../../src/features/interaction/interactionThunks';
 import { selectHint } from '../../src/features/interaction/selectors';
-import { defaultPreferences } from '../../src/features/preferences/preferencesSlice';
+import { Announcer } from '../../src/ui/components/Announcer';
 import { GameScreen } from '../../src/ui/screens/GameScreen';
 import { RAILS_QUERY } from '../../src/ui/screens/profiles';
 import { fakeDealService } from '../fixtures/dealService';
@@ -19,6 +17,8 @@ import { installBoardHarness, mount, POSITION, press, SIX_DIAMONDS, SIZE } from 
 import { FakeResizeObserver } from '../support/fakeResizeObserver';
 import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
 import { firePointer } from '../support/pointer';
+import { renderWithStore } from '../support/renderWithStore';
+import { testStore } from '../support/testStore';
 
 installBoardHarness();
 
@@ -43,6 +43,7 @@ const SOLVER_OUTCOME: HintOutcome = {
     hint: { kind: 'move', command: TO_COLUMN_0, cards: [SIX_OF_DIAMONDS] },
 };
 const HINT_TEXT = 'Hint: move the Six of Diamonds onto column 1';
+const TAP_TEXT = 'Tap a card to send it to its best spot · drag to place it yourself';
 
 const hinted = (root: ParentNode) =>
     [...root.querySelectorAll<HTMLElement>('.card.is-hint')].map((el) => Number(el.dataset.cardId));
@@ -229,11 +230,8 @@ function mountGame(matching: readonly string[] = [], preferences = {}) {
     stubMatchMedia(matching);
     const dealService = fakeDealService();
     const timers: (() => void)[] = [];
-    const store = createAppStore({
-        preloadedState: {
-            game: gameOf(oneMovePosition()),
-            preferences: { ...defaultPreferences('en'), ...preferences },
-        },
+    const store = testStore({
+        preloadedState: { game: gameOf(oneMovePosition()), preferences },
         deps: {
             dealService,
             delay: () =>
@@ -243,10 +241,14 @@ function mountGame(matching: readonly string[] = [], preferences = {}) {
         },
     });
     store.dispatch(setRoute('game'));
-    const view = render(
-        <Provider store={store}>
+    // Announcer is mounted by App, outside GameScreen (task 3.5); mount it alongside here so the announcer assertions
+    // below still see the same store.
+    const view = renderWithStore(
+        <>
             <GameScreen />
-        </Provider>,
+            <Announcer />
+        </>,
+        { store },
     );
     FakeResizeObserver.instances.at(-1)?.trigger(SIZE);
     const line = () => view.container.querySelector<HTMLElement>('.game-hint');
@@ -264,12 +266,12 @@ function mountGame(matching: readonly string[] = [], preferences = {}) {
 const announcer = (root: ParentNode) => root.querySelector<HTMLElement>('[aria-live="polite"]');
 
 describe('hint line and the hint request', () => {
-    it('is empty without a hint', () => {
+    it('shows the tap-mode text without a hint', () => {
         const { line } = mountGame();
-        expect(line()).toBeEmptyDOMElement();
+        expect(line()).toHaveTextContent(TAP_TEXT);
     });
 
-    it('shows the hint text and empties when the hint is cleared', () => {
+    it('shows the hint text and returns to the tap-mode text when the hint is cleared', () => {
         const { store, line } = mountGame();
         act(() => {
             store.dispatch(hintSet(SIX_ONTO_SEVEN));
@@ -280,7 +282,7 @@ describe('hint line and the hint request', () => {
         act(() => {
             store.dispatch(hintCleared(1));
         });
-        expect(line()).toBeEmptyDOMElement();
+        expect(line()).toHaveTextContent(TAP_TEXT);
     });
 
     it.each([
@@ -294,7 +296,7 @@ describe('hint line and the hint request', () => {
         expect(line()).toHaveTextContent(text);
     });
 
-    it('shows a requested hint on the cards, the ghost, the line and the announcer, then empties on expiry', async () => {
+    it('shows a requested hint on the cards, the ghost, the line and the announcer, then returns to the tap-mode text on expiry', async () => {
         const { store, dealService, container, line, elapse } = mountGame();
         dealService.hintOutcome = SOLVER_OUTCOME;
 
@@ -317,7 +319,7 @@ describe('hint line and the hint request', () => {
             await done;
         });
 
-        expect(line()).toBeEmptyDOMElement();
+        expect(line()).toHaveTextContent(TAP_TEXT);
         expect(hinted(container)).toEqual([]);
         expect(hintGhosts(container)).toEqual([]);
     });

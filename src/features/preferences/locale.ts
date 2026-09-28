@@ -1,6 +1,7 @@
-export type Locale = 'en' | 'uk';
+import { SUPPORTED_LOCALES, type Locale } from '../../i18n/catalog';
 
-export const SUPPORTED_LOCALES: readonly Locale[] = ['en', 'uk'];
+export type { Locale };
+export { SUPPORTED_LOCALES };
 
 const isLocale = (value: string): value is Locale => (SUPPORTED_LOCALES as readonly string[]).includes(value);
 

@@ -141,13 +141,13 @@ export interface ChromeBudget {
 export const CHROME_BUDGET = {
     stacked: {
         fine: {
-            narrow: { hint: { width: 12, height: 241 }, noHint: { width: 12, height: 220 } },
+            narrow: { hint: { width: 12, height: 215 }, noHint: { width: 12, height: 194 } },
             /** No matrix configuration is wide and hint-hidden, so that partition reuses the hint-shown budget. */
-            wide: { hint: { width: 26, height: 284 }, noHint: { width: 26, height: 284 } },
+            wide: { hint: { width: 26, height: 258 }, noHint: { width: 26, height: 258 } },
         },
         coarse: {
-            narrow: { hint: { width: 12, height: 245 }, noHint: { width: 12, height: 224 } },
-            wide: { hint: { width: 26, height: 288 }, noHint: { width: 26, height: 288 } },
+            narrow: { hint: { width: 12, height: 219 }, noHint: { width: 12, height: 198 } },
+            wide: { hint: { width: 26, height: 262 }, noHint: { width: 26, height: 262 } },
         },
     },
     rails: { fine: { width: 185, height: 15 }, coarse: { width: 185, height: 15 } },

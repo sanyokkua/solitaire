@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { Command, GameState } from '../../../../src/domain/types';
 import { busySet, installed } from '../../../../src/features/game/gameSlice';
 import { finish, play } from '../../../../src/features/game/gameThunks';
 import { preferenceSet } from '../../../../src/features/preferences/preferencesSlice';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { allFaceUp } from '../../../fixtures/deals';
 import { faceUp, makeState, tableauOf } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 /**
  * The two timed sequences, the safe-card chain (started by `play`) and `finish`, share one runner. What the runner
@@ -42,7 +42,7 @@ interface Hooks {
 function setup(game: GameState, hooks: Hooks): Env {
     let delays = 0;
     let reads = 0;
-    const store = createAppStore({
+    const store = testStore({
         deps: {
             now: () => {
                 reads += 1;
@@ -53,7 +53,6 @@ function setup(game: GameState, hooks: Hooks): Env {
                 delays += 1;
                 return hooks.onDelay?.(delays) ?? Promise.resolve();
             },
-            dealService: fakeDealService(),
         },
     });
     store.dispatch(installed({ state: game, dailyKey: null }));

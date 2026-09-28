@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { noticeRaised, setRoute, sheetOpened } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStoreOptions } from '../../../../src/app/store';
+import { createSavePort } from '../../../../src/app/savePort';
+import type { AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { Command } from '../../../../src/domain/types';
 import { installed, selectResumable } from '../../../../src/features/game/gameSlice';
-import { play, startGame } from '../../../../src/features/game/gameThunks';
+import { play } from '../../../../src/features/game/gameThunks';
+import { startGame } from '../../../../src/features/game/sessionThunks';
 import { writeFailed } from '../../../../src/features/persistence/persistenceSlice';
 import { createPersistenceWriter } from '../../../../src/features/persistence/persistenceWriter';
 import { resetAllLocalData, resetStatistics } from '../../../../src/features/persistence/resetThunks';
@@ -17,6 +19,7 @@ import { fakeDealService } from '../../../fixtures/dealService';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
 import { faceUp, makeState, tableauOf } from '../../../fixtures/states';
 import { memoryStorage } from '../../../fixtures/storage';
+import { testStore, type TestStoreOptions } from '../../../support/testStore';
 
 const MOVES: readonly Command[] = parseLine(WINNING_LINE.line);
 const FRESH_STATS = statsReducer(undefined, { type: '@@init' });
@@ -30,26 +33,33 @@ afterEach(() => {
 });
 
 interface Env {
-    readonly store: ReturnType<typeof createAppStore>;
+    readonly store: AppStore;
     readonly storage: ReturnType<typeof memoryStorage>;
     readonly dealService: ReturnType<typeof fakeDealService>;
     readonly writer: ReturnType<typeof createPersistenceWriter>;
 }
 
 /**
- * A store over an in-memory storage, with a real writer; `preloadedState` models what the loader hands over and
- * `wrap` replaces the gateway the store and the writer share.
+ * A store over an in-memory storage, with a real writer connected through the same `saver` the store's thunks read
+ * from the extra; `preloadedState` models what the loader hands over, `wrap` replaces the gateway the store and the
+ * writer share, and `languages` is what `resetAllLocalData` reads to choose the first-run language.
  */
 function setup(
-    preloadedState: AppStoreOptions['preloadedState'] = {},
+    preloadedState: TestStoreOptions['preloadedState'] = {},
     wrap: (gateway: StorageGateway) => StorageGateway = (gateway) => gateway,
     delay: (ms: number) => Promise<void> = () => Promise.resolve(),
+    languages: readonly string[] = [],
 ): Env {
     const storage = memoryStorage();
     const gateway = wrap(createStorageGateway(storage));
     const dealService = fakeDealService();
-    const store = createAppStore({ preloadedState, deps: { now: () => Date.now(), delay, dealService, gateway } });
+    const saver = createSavePort();
+    const store = testStore({
+        preloadedState,
+        deps: { now: () => Date.now(), delay, dealService, gateway, saver, languages: () => languages },
+    });
     const writer = createPersistenceWriter(store, gateway, { now: () => Date.now() });
+    saver.connect(writer);
     return { store, storage, dealService, writer };
 }
 
@@ -109,8 +119,8 @@ describe('resetStatistics', () => {
 
 describe('resetAllLocalData', () => {
     it('during a game removes both keys, restores the defaults and never brings the record back', async () => {
-        const env = setup();
-        const { store, storage, writer } = env;
+        const env = setup({}, undefined, undefined, ['uk-UA']);
+        const { store, storage } = env;
         seedStats(store);
         await startPlaying(store);
         vi.advanceTimersByTime(300);
@@ -120,7 +130,7 @@ describe('resetAllLocalData', () => {
         store.dispatch(preferenceSet({ key: 'cardBack', value: 'coral' }));
         const epoch = store.getState().game.epoch;
 
-        store.dispatch(resetAllLocalData(writer, ['uk-UA']));
+        store.dispatch(resetAllLocalData());
 
         const state = store.getState();
         expect(storage.getItem(STORAGE_KEY)).toBeNull();
@@ -138,21 +148,21 @@ describe('resetAllLocalData', () => {
     });
 
     it('uses English when no language is supported', () => {
-        const { store, writer } = setup();
+        const { store } = setup({}, undefined, undefined, ['fr-FR']);
         store.dispatch(preferenceSet({ key: 'locale', value: 'uk' }));
 
-        store.dispatch(resetAllLocalData(writer, ['fr-FR']));
+        store.dispatch(resetAllLocalData());
 
         expect(store.getState().preferences.locale).toBe('en');
     });
 
     it('ends a deal in flight: late progress and its result change nothing', async () => {
-        const { store, dealService, writer } = setup();
+        const { store, dealService } = setup();
         const started = store.dispatch(startGame({ mode: 'draw3' }));
         dealService.progress(0, { overlay: true, attempt: 2 });
         expect(store.getState().app.dealing).toEqual({ overlay: true, attempt: 2 });
 
-        store.dispatch(resetAllLocalData(writer, []));
+        store.dispatch(resetAllLocalData());
         expect(store.getState().app.dealing).toBeNull();
         dealService.progress(0, { overlay: true, attempt: 3 });
         dealService.resolve(0, dealFromSeed(WINNING_LINE.seed, 'draw3'));
@@ -168,7 +178,7 @@ describe('resetAllLocalData', () => {
         const held = new Promise<void>((resolve) => {
             open = resolve;
         });
-        const { store, storage, writer } = setup({}, undefined, () => held);
+        const { store, storage } = setup({}, undefined, () => held);
         store.dispatch(preferenceSet({ key: 'autoSafe', value: true }));
         const position = makeState({
             tableau: tableauOf([], [], faceUp(cardId(0, 1)), faceUp(cardId(3, 1))),
@@ -179,7 +189,7 @@ describe('resetAllLocalData', () => {
         const playing = store.dispatch(play({ type: 'draw' }));
         expect(store.getState().game.busy).toBe(true);
 
-        store.dispatch(resetAllLocalData(writer, []));
+        store.dispatch(resetAllLocalData());
         open();
         await playing;
 
@@ -192,18 +202,18 @@ describe('resetAllLocalData', () => {
     });
 
     it('goes Home with no sheet open', () => {
-        const { store, writer } = setup();
+        const { store } = setup();
         store.dispatch(setRoute('game'));
         store.dispatch(sheetOpened('settings'));
 
-        store.dispatch(resetAllLocalData(writer, []));
+        store.dispatch(resetAllLocalData());
 
         expect(store.getState().app.route).toBe('home');
         expect(store.getState().app.sheet).toBeNull();
     });
 
     it('dismisses the storage notices, leaves read-only and clears the error, so the next change is saved', () => {
-        const { store, storage, writer } = setup({
+        const { store, storage } = setup({
             persistence: { readOnly: true, lastError: 'read' },
         });
         store.dispatch(noticeRaised('storage-read'));
@@ -215,7 +225,7 @@ describe('resetAllLocalData', () => {
         vi.advanceTimersByTime(1000);
         expect(storage.getItem(STORAGE_KEY)).toBeNull();
 
-        store.dispatch(resetAllLocalData(writer, []));
+        store.dispatch(resetAllLocalData());
 
         expect(store.getState().persistence).toEqual({ readOnly: false, lastError: null });
         expect(store.getState().app.notices).toEqual([]);
@@ -226,13 +236,25 @@ describe('resetAllLocalData', () => {
         expect(storage.getItem(STORAGE_KEY)).not.toBeNull();
     });
 
+    it('does not dismiss update-ready or code-copied notices', () => {
+        const { store } = setup();
+        store.dispatch(noticeRaised('update-ready'));
+        store.dispatch(noticeRaised('code-copied'));
+
+        store.dispatch(resetAllLocalData());
+
+        expect(store.getState().app.notices).toEqual(
+            expect.arrayContaining([{ id: 'update-ready' }, { id: 'code-copied' }]),
+        );
+    });
+
     it('writes nothing until the player changes something', () => {
-        const { store, storage, writer } = setup();
+        const { store, storage } = setup();
         store.dispatch(preferenceSet({ key: 'theme', value: 'dark' }));
         vi.advanceTimersByTime(300);
         expect(storage.getItem(STORAGE_KEY)).not.toBeNull();
 
-        store.dispatch(resetAllLocalData(writer, []));
+        store.dispatch(resetAllLocalData());
         vi.advanceTimersByTime(10_000);
         expect(storage.getItem(STORAGE_KEY)).toBeNull();
 
@@ -243,7 +265,7 @@ describe('resetAllLocalData', () => {
 
     it('still removes both keys and completes the reset when the first remove fails, and saves the next change', () => {
         const removed: string[] = [];
-        const { store, storage, writer } = setup({}, (gateway) => ({
+        const { store, storage } = setup({}, (gateway) => ({
             ...gateway,
             remove: (key) => {
                 removed.push(key);
@@ -255,7 +277,7 @@ describe('resetAllLocalData', () => {
         storage.setItem(BACKUP_KEY, 'an unreadable record');
 
         expect(() => {
-            store.dispatch(resetAllLocalData(writer, []));
+            store.dispatch(resetAllLocalData());
         }).not.toThrow();
 
         expect(removed).toEqual([STORAGE_KEY, BACKUP_KEY]);

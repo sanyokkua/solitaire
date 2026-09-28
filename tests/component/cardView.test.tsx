@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { cardId } from '../../src/domain/cards';
 import { CardView } from '../../src/ui/board/CardView';
+import { renderWithStore } from '../support/renderWithStore';
 
 const SEVEN_OF_CLUBS = cardId(2, 7);
 const QUEEN_OF_HEARTS = cardId(0, 12);
@@ -36,7 +37,7 @@ function renderCard(overrides: Overrides = {}) {
         movable: false,
         ...overrides,
     };
-    const view = render(<CardView {...props} />);
+    const view = renderWithStore(<CardView {...props} />);
     const card = view.container.querySelector<HTMLElement>('.card');
     if (!card) {
         throw new Error('CardView rendered no .card element');

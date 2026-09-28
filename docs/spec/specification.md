@@ -144,7 +144,7 @@ Tapping the stock draws cards; tapping the empty stock turns the waste over (sub
 | H · A · N · P                         | Hint · Finish · New deal · Pause                                                  |
 | Esc                                   | Cancel selection or drag; close a sheet                                           |
 
-N and P are bound when the New deal and Paused sheets exist (Phase 7); until then they do nothing, and the keyboard requirement is complete without them.
+N is bound: it requests a new deal exactly as the HUD New deal control does (the New deal options sheet during a started, unwon game, otherwise an immediate deal), bypassing the input gate so it still works during the win cascade, before the Win sheet opens. P is bound: it pauses the game (opening the Paused sheet) exactly as the HUD Time control does, and resumes it when the Paused sheet is already open; it does nothing while any other sheet is open, on a won game, or while a safe-card chain, Finish or a deal in preparation is running, and it too bypasses the input gate.
 
 ---
 

@@ -1,6 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import { createAppStore, type AppStoreOptions } from '../../src/app/store';
+import { act, screen } from '@testing-library/react';
 import { dealFromSeed } from '../../src/domain/deal';
 import { accrued } from '../../src/features/game/gameSlice';
 import { undo } from '../../src/features/game/gameThunks';
@@ -12,11 +10,11 @@ import { measure, type BoardSize } from '../../src/ui/board/metrics';
 import { cardIndex } from '../../src/ui/board/locate';
 import { pileKey } from '../../src/ui/board/landing';
 import { selectBoardPiles, selectCardLocations } from '../../src/ui/board/selectors';
-import { fakeDealService } from '../fixtures/dealService';
 import { gameOf, playedGame } from '../fixtures/games';
 import { faceUp, makeState, tableauOf } from '../fixtures/states';
 import { FakeResizeObserver } from '../support/fakeResizeObserver';
 import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
+import { renderWithStore, type RenderWithStoreOptions } from '../support/renderWithStore';
 
 vi.mock('../../src/ui/board/layout', async (importOriginal) => {
     const actual = await importOriginal<typeof LayoutModule>();
@@ -37,17 +35,12 @@ afterEach(() => {
     restoreMatchMedia();
 });
 
-function renderBoard(preloadedState: AppStoreOptions['preloadedState'] = {}, size: BoardSize | null = STACKED) {
-    const store = createAppStore({ preloadedState, deps: { dealService: fakeDealService() } });
-    const view = render(
-        <Provider store={store}>
-            <Board />
-        </Provider>,
-    );
+function renderBoard(preloadedState: RenderWithStoreOptions['preloadedState'] = {}, size: BoardSize | null = STACKED) {
+    const view = renderWithStore(<Board />, { preloadedState });
     const observer = FakeResizeObserver.instances.at(-1);
     if (!observer) throw new Error('no ResizeObserver was created');
     if (size !== null) observer.trigger(size);
-    return { store, observer, ...view };
+    return { ...view, observer };
 }
 
 const cardNodes = (root: HTMLElement) => Array.from(root.querySelectorAll<HTMLElement>('[data-card-id]'));

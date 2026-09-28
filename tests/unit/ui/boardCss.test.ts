@@ -1,21 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ruleBody, stripComments } from '../../support/css';
 
 const STYLES_DIR = resolve(import.meta.dirname, '../../../src/ui/styles');
 const cardsCss = readFileSync(resolve(STYLES_DIR, 'cards.css'), 'utf-8');
 const boardCss = readFileSync(resolve(STYLES_DIR, 'board.css'), 'utf-8');
-
-/** The declaration body of the first rule of `css` whose selector list matches `selector`. */
-function ruleBody(css: string, selector: RegExp): string {
-    const rules = css.matchAll(/([^{}]+)\{([^}]*)\}/g);
-    for (const [, selectors, body] of rules) {
-        if (selectors && body !== undefined && selector.test(selectors)) {
-            return body;
-        }
-    }
-    throw new Error(`no rule matching ${String(selector)}`);
-}
 
 describe('cards.css', () => {
     it('casts no shadow on a buried card', () => {
@@ -64,7 +54,6 @@ describe('board.css', () => {
 });
 
 describe('the assistance styles', () => {
-    const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
     const sheets = [
         ['board.css', stripComments(boardCss)],
         ['cards.css', stripComments(cardsCss)],

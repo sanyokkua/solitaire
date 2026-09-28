@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { setRoute, systemMotionChanged } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { finishPlan } from '../../../../src/domain/finish';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import { displayedScore } from '../../../../src/domain/scoring';
 import type { Command, GameState } from '../../../../src/domain/types';
 import { busySet, installed } from '../../../../src/features/game/gameSlice';
 import { finish } from '../../../../src/features/game/gameThunks';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { allFaceUp } from '../../../fixtures/deals';
+import { testStore } from '../../../support/testStore';
 
 /** A delay stub's view: every requested duration, and what the test does with each call. */
 interface DelayHooks {
@@ -31,7 +31,7 @@ function setup(game: GameState | null = allFaceUp(), hooks: DelayHooks = {}) {
         busyDuring.push(storeOf(ref).getState().game.busy);
         return hooks.onCall?.(ms, delays.length) ?? Promise.resolve();
     };
-    const store = createAppStore({ deps: { now: () => 1000, delay, dealService: fakeDealService() } });
+    const store = testStore({ deps: { now: () => 1000, delay } });
     ref.store = store;
     if (game !== null) store.dispatch(installed({ state: game, dailyKey: null }));
     store.dispatch(setRoute('game'));

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppSelector } from '../../app/hooks';
 import { selectAnnouncement } from '../../features/interaction/selectors';
+import { useTranslate } from '../../i18n/useTranslate';
 import { formatAnnouncement } from '../announce';
 
 /** Appended to alternate identical messages: invisible, but it changes the text so the region is read again. */
@@ -25,6 +26,7 @@ interface Spoken {
  * message alternates with the zero-width marker.
  */
 export function Announcer() {
+    const t = useTranslate();
     const log = useAppSelector(selectAnnouncement);
     const [spoken, setSpoken] = useState<Spoken>(() => ({
         seq: log.seq,
@@ -36,7 +38,8 @@ export function Announcer() {
     let current = spoken;
     if (log.seq !== spoken.seq) {
         const fresh = log.items.filter(({ n }) => n > spoken.lastN);
-        const words = fresh.length === 0 ? spoken.words : fresh.map(({ item }) => formatAnnouncement(item)).join(' ');
+        const words =
+            fresh.length === 0 ? spoken.words : fresh.map(({ item }) => formatAnnouncement(t, item)).join(' ');
         current = {
             seq: log.seq,
             lastN: log.items.at(-1)?.n ?? spoken.lastN,

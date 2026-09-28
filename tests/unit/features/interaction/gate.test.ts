@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { dealingProgressed, setRoute, sheetOpened } from '../../../../src/app/appSlice';
-import { createAppStore, type AppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import type { GameState } from '../../../../src/domain/types';
 import { busySet, cleared, installed } from '../../../../src/features/game/gameSlice';
 import { selectInputEnabled } from '../../../../src/features/interaction/selectors';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { faceUp, makeState, tableauOf } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 /** A playable position: one face-up card in column 0. */
 const playing = (): GameState => makeState({ tableau: tableauOf(faceUp(cardId(0, 5))) });
 
 /** A store on the Game route with a game in play, so each test closes the gate by exactly one condition. */
 function openStore(): AppStore {
-    const store = createAppStore({ deps: { dealService: fakeDealService() } });
+    const store = testStore();
     store.dispatch(installed({ state: playing(), dailyKey: null }));
     store.dispatch(setRoute('game'));
     return store;

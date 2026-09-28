@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
-import { createAppStore } from '../../../../src/app/store';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import { gameReducer, initialGameState, installed } from '../../../../src/features/game/gameSlice';
-import { continueGame } from '../../../../src/features/game/gameThunks';
+import { continueGame } from '../../../../src/features/game/sessionThunks';
 import { fakeDealService } from '../../../fixtures/dealService';
 import { playedGame } from '../../../fixtures/games';
+import { testStore } from '../../../support/testStore';
 
 function storeWith(game = initialGameState) {
     const dealService = fakeDealService();
-    return { store: createAppStore({ preloadedState: { game }, deps: { dealService } }), dealService };
+    return { store: testStore({ preloadedState: { game }, deps: { dealService } }), dealService };
 }
 
 describe('continueGame', () => {

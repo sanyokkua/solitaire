@@ -20,6 +20,7 @@ test.describe('Playing by tapping', () => {
 
         await expect(page.locator(ANNOUNCER)).toContainText('You win');
         await expect(page.locator(MOVES_VALUE)).toHaveText('117');
+        await expect(page.getByRole('heading', { name: 'You win!' })).toBeVisible({ timeout: 4000 });
     });
 
     test('a tap on a card moves it to its one legal place in Smart move mode', async ({ page }, testInfo) => {

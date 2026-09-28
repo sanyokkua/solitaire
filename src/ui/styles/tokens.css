@@ -1,6 +1,6 @@
 @font-face {
     font-family: 'Inter';
-    src: url('../../assets/fonts/Inter-Variable.woff2') format('woff2');
+    src: url('../../assets/fonts/Inter-Variable-subset.woff2') format('woff2');
     font-display: swap;
     font-style: normal;
     font-weight: 100 900;
@@ -8,7 +8,7 @@
 
 @font-face {
     font-family: 'Press Start 2P';
-    src: url('../../assets/fonts/PressStart2P-Regular.ttf') format('truetype');
+    src: url('../../assets/fonts/PressStart2P-Regular.woff2') format('woff2');
     font-display: swap;
     font-style: normal;
     font-weight: 400;
@@ -25,7 +25,7 @@
     --color-surface-raised: #eef4ed;
     --color-text: #0b2545;
     --color-text-muted: #4f6a88;
-    --color-primary: #457b9d;
+    --color-primary: #3d7093;
     --color-accent: #a8dadc;
     --color-accent-strong: #5bc0eb;
     --color-outline-soft: #c8d7e3;
@@ -68,6 +68,29 @@
     --color-back-coral-a: #d9555f;
     --color-back-coral-b: #e46e77;
     --color-back-rim: #f1faee;
+    --color-card-ink: #13315c;
+    --color-card-ink-muted: #5d7590;
+    --color-card-accent: #3a7196;
+
+    /* Sheets and controls (D13) */
+    --color-surface-1: #eef4ed;
+    --color-surface-variant: #d6e3ec;
+    --color-on-surface-muted: #4f6a88;
+    --color-outline: #8da9c4;
+    --color-scrim: rgb(11 37 69 / 45%);
+    --color-primary-container: #a8dadc;
+    --color-on-primary-container: #0b2545;
+    --color-secondary: #5bc0eb;
+    --color-tertiary: #f2c078;
+    --color-on-tertiary: #3b2a10;
+    --color-success: #3a9bbf;
+    --color-success-container: rgb(91 192 235 / 22%);
+    --color-on-success-container: #13315c;
+    --color-dither: #c3d7e5;
+    --color-word-shadow-1: #a8dadc;
+    --color-word-shadow-2: #5bc0eb;
+    --shadow-md: 0 6px 20px rgb(11 37 69 / 12%), 0 2px 6px rgb(11 37 69 / 6%);
+    --shadow-lg: 0 20px 50px rgb(11 37 69 / 22%), 0 8px 18px rgb(11 37 69 / 10%);
 
     /* Applied tokens: derived from the settings, never stored */
     --ink-hearts: var(--color-suit-red);
@@ -140,6 +163,28 @@
     --color-back-coral-a: #d9555f;
     --color-back-coral-b: #e46e77;
     --color-back-rim: #b9c9d6;
+    --color-card-ink: #13315c;
+    --color-card-ink-muted: #56708d;
+    --color-card-accent: #2f6a8f;
+
+    --color-surface-1: #1a3a66;
+    --color-surface-variant: #24466f;
+    --color-on-surface-muted: #8da9c4;
+    --color-outline: #6f8fb0;
+    --color-scrim: rgb(3 13 26 / 66%);
+    --color-primary-container: #1d3f70;
+    --color-on-primary-container: #a8dadc;
+    --color-secondary: #a8dadc;
+    --color-tertiary: #f2c078;
+    --color-on-tertiary: #3b2a10;
+    --color-success: #7fd3f3;
+    --color-success-container: rgb(91 192 235 / 18%);
+    --color-on-success-container: #a8dadc;
+    --color-dither: #173a66;
+    --color-word-shadow-1: #1d3f70;
+    --color-word-shadow-2: #457b9d;
+    --shadow-md: 0 8px 24px rgb(0 0 0 / 40%), 0 3px 8px rgb(0 0 0 / 28%);
+    --shadow-lg: 0 24px 60px rgb(0 0 0 / 50%), 0 10px 22px rgb(0 0 0 / 32%);
 }
 
 /* "Night cards" (KS-SET-03) is an independent Appearance setting that changes the cards only: it
@@ -162,6 +207,9 @@
     --color-back-coral-a: #8da9c4;
     --color-back-coral-b: #a4bcd2;
     --color-back-rim: #0b2545;
+    --color-card-ink: #dce8ef;
+    --color-card-ink-muted: #8da9c4;
+    --color-card-accent: #7fd3f3;
 }
 
 /* The deep navy back is as dark as the night card face, so it gets a light rim. */

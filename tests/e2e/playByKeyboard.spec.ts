@@ -25,6 +25,7 @@ test.describe('Playing by keyboard', () => {
 
         await expect(page.locator(ANNOUNCER)).toContainText('You win');
         await expect(page.locator(MOVES_VALUE)).toHaveText('117');
+        await expect(page.getByRole('heading', { name: 'You win!' })).toBeVisible({ timeout: 4000 });
     });
 
     test('Space with nothing focused draws from the stock', async ({ page }, testInfo) => {

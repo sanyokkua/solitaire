@@ -74,6 +74,18 @@ export function checkDeadEnd(): AppThunk {
 }
 
 /**
+ * Confirms a deal-code copy (D14): raises the `code-copied` notice and announces `codeCopied`, together, in one
+ * dispatch. `DealCode.tsx` calls it after `navigator.clipboard.writeText` resolves; a rejected or missing clipboard
+ * selects the code text instead and dispatches nothing.
+ */
+export function dealCodeCopied(): AppThunk {
+    return (dispatch) => {
+        dispatch(noticeRaised('code-copied'));
+        dispatch(announced([{ type: 'codeCopied' }]));
+    };
+}
+
+/**
  * Shows a hint for the position in play (D7); it costs no score and no move and never changes the game. Ignored with
  * no game, when the game is won or while a chain or finish is running. A dead end is reported, on every request, and
  * shows no hint. Otherwise it asks the deal service (the solver's first line move where it applies, else the

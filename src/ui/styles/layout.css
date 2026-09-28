@@ -27,13 +27,19 @@
     overflow: hidden;
 }
 
+/* Paused sheet (5.7, D6): the table is hidden and removed from the accessibility tree, with no animation; its
+   reserved space stays exactly as it was so the layout does not shift when it reappears. */
+.screen--game[data-paused] .board-panel {
+    visibility: hidden;
+}
+
 /* Stacked profile: top bar, HUD, hint line, table, toolbar and footer. */
 .game-topbar {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.7rem 1rem;
+    padding: 0.2rem 1rem;
     border-bottom: 1px solid var(--color-outline-soft);
     background: color-mix(in srgb, var(--color-bg) 88%, transparent);
 }
@@ -44,6 +50,66 @@
     min-width: 0;
     height: 2.5rem;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.mode-chip,
+.deal-chip {
+    box-sizing: border-box;
+    min-width: 0;
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mode-chip {
+    flex: 0 1 auto;
+    padding: 0.35rem 0.7rem;
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+}
+
+.deal-chip {
+    position: relative;
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    background: var(--color-success-container);
+    color: var(--color-on-success-container);
+    font-size: 0.64rem;
+    text-transform: uppercase;
+}
+
+.deal-chip.is-random {
+    background: var(--color-surface-variant);
+    color: var(--color-text);
+}
+
+.deal-chip svg {
+    flex: 0 0 auto;
+    width: 0.8rem;
+    height: 0.8rem;
+}
+
+.deal-chip__text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rail-top {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .game-back {
@@ -108,10 +174,57 @@
 }
 
 .game-face {
+    position: relative;
     flex: 0 0 auto;
     order: 2;
     width: 2.9rem;
     height: 2.9rem;
+}
+
+/*
+ * The New-deal button sits centred over `.game-face`'s own reserved box (never resized here) and normally fills it.
+ * Under a coarse pointer it grows to a 2.75rem (44px) square, centred on the same point, so the touch target meets
+ * the floor without moving or resizing the reserved slot itself.
+ */
+.game-face__button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    gap: 0.15rem;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    transform: translate(-50%, -50%);
+    transition:
+        background-color 150ms ease,
+        transform 100ms ease;
+}
+
+.game-face__button svg {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.game-face__button:hover:not(:disabled) {
+    background: var(--color-hover);
+    color: var(--color-text);
+}
+
+.game-face__button:active:not(:disabled) {
+    transform: translate(-50%, -50%) scale(0.96);
+}
+
+.game-face__button:disabled {
+    opacity: 0.38;
 }
 
 .stat-display--timer {
@@ -120,7 +233,8 @@
 
 .stat-display {
     display: grid;
-    min-width: 4.8rem;
+    min-width: max(4.8rem, 44px);
+    min-height: 44px;
     gap: 0.22rem;
     padding: 0.45rem 0.6rem;
     border-radius: 0.5rem;
@@ -151,13 +265,36 @@
     font-size: 0.7rem;
     line-height: 1.4;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0 0.75rem;
+}
+
+.hint-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hint-keys {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.hint-keys kbd {
+    padding: 0 0.35rem;
+    line-height: 1.4;
 }
 
 .toolbar {
     display: flex;
     flex: 0 0 auto;
     gap: 0.4rem;
-    padding: 0.35rem;
+    padding: 0.15rem;
     border: 1px solid var(--color-outline-soft);
     border-radius: var(--radius-md);
     background: var(--color-surface);
@@ -171,7 +308,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.2rem;
-    min-height: 3rem;
+    min-height: 2.75rem;
     border: 0;
     border-radius: 0.7rem;
     background: transparent;
@@ -213,12 +350,30 @@
 
 .game-footer {
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
     padding: 0.5rem 1rem 0.6rem;
     color: var(--color-text-muted);
     font-family: var(--font-pixel);
     font-size: 0.5rem;
     letter-spacing: 0.04em;
     text-align: center;
+}
+
+/* The deal-code footer control (D14): looks like the plain text beside it, not a native button, until focused. */
+.deal-code {
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+}
+
+.deal-code:hover {
+    color: var(--color-text);
 }
 
 /*
@@ -282,8 +437,22 @@
 }
 
 @media (max-width: 460px) {
+    .hint-keys {
+        display: none;
+    }
+
     .game-topbar {
         padding-inline: 0.75rem;
+    }
+
+    /* Icon only: the text stays in the DOM as the accessible name, hidden visually. */
+    .deal-chip__text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
     }
 
     .game-hud {
@@ -376,6 +545,14 @@
         height: 2.3rem;
     }
 
+    /* Settings takes the rail width Back leaves; the rail's width is fixed by the device-fit budget. */
+    .rail-top .icon-action {
+        flex: 1 1 0;
+        min-width: 0;
+        height: 2.3rem;
+        min-height: 2.3rem;
+    }
+
     .hud-group {
         flex-direction: column;
         gap: 0.3rem;
@@ -420,10 +597,14 @@
 }
 
 /*
- * Touch targets: at least 44 px square in both profiles. A tool is already 3rem (stacked) or 2.75rem (rails) tall
+ * Touch targets: at least 44 px square in both profiles. A tool is already 2.75rem tall
  * whatever the pointer, so only its width needs the floor; Back is 2.5rem or 2.3rem, so it needs both.
  */
 @media (pointer: coarse) {
+    .hint-keys {
+        display: none;
+    }
+
     .game-back {
         min-width: 2.75rem;
         min-height: 2.75rem;
@@ -437,15 +618,37 @@
         height: 2.75rem;
     }
 
+    .game-topbar .icon-action {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
+
+    /* Tall enough here; the rail is too narrow (4.6rem) for two 44 px-wide buttons, so Settings shares Back's row. */
+    .rail-top .icon-action {
+        min-height: 2.75rem;
+    }
+
     .notice-dismiss {
         min-width: 2.75rem;
         min-height: 2.75rem;
     }
+
+    /* Widens the touch target to 44px, centred on the reserved `.game-face` box, without resizing that box. */
+    .game-face__button {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
 }
 
 :root[data-motion='off'] .game-back,
-:root[data-motion='off'] .tool {
+:root[data-motion='off'] .tool,
+:root[data-motion='off'] .game-face__button {
     transition: none;
+}
+
+/* The New-deal control's press effect has a no-motion path with no scaling (spec §3.2 GM "New deal control"). */
+:root[data-motion='off'] .game-face__button:active:not(:disabled) {
+    transform: translate(-50%, -50%);
 }
 
 /* No motion: a notice appears and goes without a slide. */

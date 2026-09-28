@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { BASELINES, DEVICE_CONFIGS, boardSizeFor, type Baseline, type DeviceConfig } from '../fixtures/viewports';
 import { worstColumnState } from '../fixtures/boardPositions';
+import type { Locale } from '../../src/i18n/catalog';
 import { seedRecord } from './support/seed';
 
 /** Smallest gap between the tops of two neighbouring face-up cards of the worst column on an installed phone, in px. */
@@ -34,10 +35,10 @@ interface Measurements {
 }
 
 /** Opens the seeded worst-case game and waits for all 52 cards and a settled board. */
-async function openWorstColumn(page: Page): Promise<void> {
-    await seedRecord(page, { current: worstColumnState() });
+async function openWorstColumn(page: Page, locale: Locale): Promise<void> {
+    await seedRecord(page, { current: worstColumnState(), preferences: { locale } });
     await page.goto('/');
-    await page.getByRole('button', { name: 'Continue game' }).click();
+    await page.locator('.cta-row .action-button--tonal').click();
     await expect(page.locator('[data-card-id]')).toHaveCount(52);
     await expect(page.locator('.board')).not.toHaveAttribute('data-resizing', /.*/);
 }
@@ -65,7 +66,7 @@ async function measure(page: Page, stripIds: readonly number[]): Promise<Measure
             ['Back to Home', '.game-back'],
             ['Score', '.stat-display--score'],
             ['Timer', '.stat-display--timer'],
-            ['Game actions', 'nav[aria-label="Game actions"]'],
+            ['Game actions', '.toolbar'],
         ];
         const moves = document.querySelector('.stat-display--moves');
         const controls = controlSelectors.map(([name, selector]) => ({ name, ...boxOf(required(selector)) }));
@@ -123,9 +124,12 @@ function isInside(inner: Box, outer: Box): boolean {
 }
 
 const cases: readonly (DeviceConfig | Baseline)[] = [...DEVICE_CONFIGS, ...BASELINES];
+/** English, then Ukrainian: the longer strings must not move the reserved frame or push a control out (LO). */
+const LOCALES: readonly Locale[] = ['en', 'uk'];
 
-for (const config of cases) {
-    const { label, width, height } = config;
+for (const [locale, config] of LOCALES.flatMap((code) => cases.map((item) => [code, item] as const))) {
+    const { width, height } = config;
+    const label = locale === 'en' ? config.label : `${config.label} (${locale})`;
     const coarse = config.pointer === 'coarse';
     const installed = 'mode' in config && config.mode === 'installed';
 
@@ -133,7 +137,7 @@ for (const config of cases) {
         test.use({ viewport: { width, height }, hasTouch: coarse, isMobile: coarse });
 
         test('fits without scrolling and keeps every card and control inside', async ({ page }, testInfo) => {
-            await openWorstColumn(page);
+            await openWorstColumn(page, locale);
             if (coarse) {
                 const matches = await page.evaluate(() => window.matchMedia('(pointer: coarse)').matches);
                 expect(matches, `${label}: pointer is coarse`).toBe(true);

@@ -5,7 +5,6 @@ import { preferencesReset } from '../preferences/preferencesSlice';
 import { resolveLocale } from '../preferences/locale';
 import { statsReset } from '../stats/statsSlice';
 import { persistenceReset } from './persistenceSlice';
-import type { PersistenceWriter } from './persistenceWriter';
 import { BACKUP_KEY, STORAGE_KEY } from './recordCodec';
 
 /**
@@ -21,21 +20,21 @@ export function resetStatistics(): AppThunk {
 }
 
 /**
- * Restores the app to a first visit (D3, D13): the settings become the defaults with the language chosen from
- * `languages` (as at a first start), the statistics are cleared, the game is dropped (which bumps the epoch, so a
- * running safe-card chain, finish or deal is discarded when it resumes), the route goes Home with no sheet open, the persistence state
- * leaves read-only and forgets its error, and the storage notices are dismissed.
+ * Restores the app to a first visit (D3, D8, D13): the settings become the defaults with the language chosen from the
+ * extra's `languages()` (as at a first start), the statistics are cleared, the game is dropped (which bumps the
+ * epoch, so a running safe-card chain, finish or deal is discarded when it resumes), the route goes Home with no
+ * sheet open, the persistence state leaves read-only and forgets its error, and the storage notices are dismissed.
  *
- * Only after all of that does the writer's pending save get cancelled, so neither an older save nor one those
- * dispatches scheduled can write anything back. Then both storage keys, the record and the unreadable-data backup, are
- * removed. A key that cannot be removed does not stop the reset; the in-memory state is already the defaults. Nothing is
+ * Only after all of that does the extra's `saver.cancel()` run, so neither an older save nor one those dispatches
+ * scheduled can write anything back. Then both storage keys, the record and the unreadable-data backup, are removed.
+ * A key that cannot be removed does not stop the reset; the in-memory state is already the defaults. Nothing is
  * written until the player next changes something.
  */
-export function resetAllLocalData(writer: Pick<PersistenceWriter, 'cancel'>, languages: readonly string[]): AppThunk {
-    return (dispatch, _getState, { gateway }) => {
+export function resetAllLocalData(): AppThunk {
+    return (dispatch, _getState, { gateway, saver, languages }) => {
         dispatch(cleared());
         dispatch(dealingEnded());
-        dispatch(preferencesReset(resolveLocale(languages)));
+        dispatch(preferencesReset(resolveLocale(languages())));
         dispatch(statsReset());
         dispatch(setRoute('home'));
         dispatch(sheetClosed());
@@ -44,7 +43,7 @@ export function resetAllLocalData(writer: Pick<PersistenceWriter, 'cancel'>, lan
         dispatch(noticeDismissed('storage-read-only'));
         dispatch(noticeDismissed('storage-write'));
 
-        writer.cancel();
+        saver.cancel();
 
         gateway.remove(STORAGE_KEY);
         gateway.remove(BACKUP_KEY);

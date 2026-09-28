@@ -23,6 +23,8 @@ describe('app slice', () => {
             documentVisible: true,
             systemReducedMotion: false,
             dealing: null,
+            installable: false,
+            updateDeferred: false,
         });
     });
 

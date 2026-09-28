@@ -2,7 +2,7 @@
 .DS_Store
 .AppleDouble
 .LSOverride
-Icon?
+Icon[\r]
 ._*
 Thumbs.db
 Desktop.ini
@@ -165,3 +165,6 @@ test-results/
 .claude/worktrees/
 
 .idea
+
+# Validator fixtures are source, not build output
+!tests/fixtures/dist/

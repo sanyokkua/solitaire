@@ -68,10 +68,10 @@ test.describe('Game frame profiles', () => {
 });
 
 test.describe('Touch target size', () => {
-    /** The Back, Undo, Redo, Hint and Finish boxes, keyed by name. */
+    /** The Back, Undo, Redo, Hint, Finish and New deal boxes, keyed by name. */
     async function controlBoxes(page: Page) {
         const boxes: Record<string, { width: number; height: number } | null> = {};
-        for (const name of ['Back to Home', 'Undo', 'Redo', 'Hint', 'Finish']) {
+        for (const name of ['Back to Home', 'Undo', 'Redo', 'Hint', 'Finish', 'New deal']) {
             boxes[name] = await page.getByRole('button', { name }).boundingBox();
         }
         return boxes;
@@ -92,15 +92,34 @@ test.describe('Touch target size', () => {
         test.skip(!coarse, 'Touch targets are only required where the pointer is coarse.');
     });
 
-    test('Back, Undo, Redo, Hint and Finish are at least 44x44 in the project viewport', async ({ page }) => {
+    test('Back, Undo, Redo, Hint, Finish and New deal are at least 44x44 in the project viewport', async ({ page }) => {
         await openGame(page);
 
         await expectTargets(page, 'project viewport');
     });
 
-    test('Back, Undo, Redo, Hint and Finish are at least 44x44 in the rails at 874x350', async ({ page }) => {
+    test('Back, Undo, Redo, Hint, Finish and New deal are at least 44x44 in the rails at 874x350', async ({ page }) => {
         await openGame(page, { width: 874, height: 350 });
 
         await expectTargets(page, '874x350');
+    });
+
+    test('Settings and the theme toggle are at least 44x44 in the top bar', async ({ page }) => {
+        await openGame(page, { width: 390, height: 844 });
+        for (const name of ['Settings', /^Switch to (dark|light) theme$/]) {
+            const box = await page.locator('.game-topbar').getByRole('button', { name }).boundingBox();
+            expect(box, String(name)).not.toBeNull();
+            expect(box?.width, `${String(name)} width`).toBeGreaterThanOrEqual(44);
+            expect(box?.height, `${String(name)} height`).toBeGreaterThanOrEqual(44);
+        }
+    });
+
+    test('The Time control is at least 44x44', async ({ page }) => {
+        await openGame(page);
+
+        const box = await page.getByRole('button', { name: /^Pause, time/ }).boundingBox();
+        expect(box, 'Time').not.toBeNull();
+        expect(box?.width, 'Time width').toBeGreaterThanOrEqual(44);
+        expect(box?.height, 'Time height').toBeGreaterThanOrEqual(44);
     });
 });

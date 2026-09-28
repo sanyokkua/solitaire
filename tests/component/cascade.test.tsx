@@ -1,8 +1,5 @@
-import { act, fireEvent, render } from '@testing-library/react';
-import { StrictMode } from 'react';
-import { Provider } from 'react-redux';
+import { act, fireEvent } from '@testing-library/react';
 import { setRoute, systemMotionChanged } from '../../src/app/appSlice';
-import { createAppStore } from '../../src/app/store';
 import { cardId } from '../../src/domain/cards';
 import { dealFromSeed } from '../../src/domain/deal';
 import type { GameState } from '../../src/domain/types';
@@ -11,12 +8,13 @@ import { play } from '../../src/features/game/gameThunks';
 import { Board } from '../../src/ui/board/Board';
 import { DealtEpochContext, createDealtEpochStore } from '../../src/ui/board/DealtEpochContext';
 import { Announcer } from '../../src/ui/components/Announcer';
-import { fakeDealService } from '../fixtures/dealService';
 import { gameOf } from '../fixtures/games';
 import { faceUp, foundationsOf, makeState, tableauOf } from '../fixtures/states';
 import { installBoardHarness, SIZE } from '../support/boardHarness';
 import { FakeResizeObserver } from '../support/fakeResizeObserver';
 import { firePointer } from '../support/pointer';
+import { renderWithStore } from '../support/renderWithStore';
+import { testStore } from '../support/testStore';
 import { stubElementAnimate, type AnimateStub } from '../support/waapi';
 
 installBoardHarness();
@@ -60,14 +58,11 @@ interface MountOptions {
 }
 
 function mount({ game = nearlyWon(), strict = false, reduced = false, deals = false }: MountOptions = {}) {
-    const store = createAppStore({
-        preloadedState: { game: gameOf(game) },
-        deps: { dealService: fakeDealService(), delay: () => Promise.resolve() },
-    });
+    const store = testStore({ preloadedState: { game: gameOf(game) } });
     store.dispatch(setRoute('game'));
     if (reduced) store.dispatch(systemMotionChanged(true));
     const tree = (
-        <Provider store={store}>
+        <>
             <Announcer />
             {deals ? (
                 <DealtEpochContext.Provider value={createDealtEpochStore()}>
@@ -76,9 +71,9 @@ function mount({ game = nearlyWon(), strict = false, reduced = false, deals = fa
             ) : (
                 <Board />
             )}
-        </Provider>
+        </>
     );
-    const view = render(strict ? <StrictMode>{tree}</StrictMode> : tree);
+    const view = renderWithStore(tree, { store, strict });
     const observer = FakeResizeObserver.instances.at(-1);
     if (!observer) throw new Error('no ResizeObserver was created');
     observer.trigger(SIZE);

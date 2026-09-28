@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
-import { createAppStore } from '../../../../src/app/store';
 import { cardId } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import { displayedScore } from '../../../../src/domain/scoring';
@@ -8,9 +7,9 @@ import type { Command, GameState } from '../../../../src/domain/types';
 import { busySet, countedSet, installed } from '../../../../src/features/game/gameSlice';
 import { play, redo, undo } from '../../../../src/features/game/gameThunks';
 import { statsReset } from '../../../../src/features/stats/statsSlice';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
 import { faceDown, faceUp, makeState, tableauOf, vegasAtLimit } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 const DRAW: Command = { type: 'draw' };
 /** Refused on a fresh deal: the waste is empty. */
@@ -19,9 +18,7 @@ const ILLEGAL: Command = { type: 'autoFoundation', from: { pile: 'waste' } };
 /** A store on the Game route whose clock is a mutable reading the test advances by hand. */
 function setup(game: GameState | null = dealFromSeed(1, 'draw1'), dailyKey: string | null = null) {
     const clock = { ms: 1000 };
-    const store = createAppStore({
-        deps: { now: () => clock.ms, delay: () => Promise.resolve(), dealService: fakeDealService() },
-    });
+    const store = testStore({ deps: { now: () => clock.ms } });
     if (game !== null) store.dispatch(installed({ state: game, dailyKey }));
     store.dispatch(setRoute('game'));
     return { store, clock };

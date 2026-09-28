@@ -1,7 +1,7 @@
-import type { UnknownAction } from '@reduxjs/toolkit';
 import { noticeRaised } from '../../app/appSlice';
 import type { RootState } from '../../app/store';
 import type { GameState } from '../../domain/types';
+import { globalTimers, type SubscribableStore } from '../shared/timers';
 import { writeFailed, writeSucceeded } from './persistenceSlice';
 import { STORAGE_KEY, encodeRecord } from './recordCodec';
 import type { StorageGateway } from './storageGateway';
@@ -11,27 +11,17 @@ const DEBOUNCE_MS = 250;
 /** The shortest time between two saves that only differ in `elapsedMs`. */
 const CLOCK_INTERVAL_MS = 5000;
 
-/**
- * The store as the writer sees it: structurally, so this module needs no runtime import of the store. The real store
- * from `createAppStore` satisfies it.
- */
-export interface WriterStore {
-    getState(): RootState;
-    subscribe(listener: () => void): () => void;
-    dispatch(action: UnknownAction): unknown;
-}
+/** The store as the writer sees it: structurally, so this module needs no runtime import of the store. */
+export type WriterStore = SubscribableStore<RootState>;
 
 /** The timing the writer relies on; tests replace any part. */
-export interface WriterTimers {
-    readonly setTimeout: (callback: () => void, ms: number) => unknown;
-    readonly clearTimeout: (handle: unknown) => void;
-    /** A millisecond reading; only differences between readings mean anything. */
-    readonly now: () => number;
-}
+export type WriterTimers = Pick<ReturnType<typeof globalTimers>, 'setTimeout' | 'clearTimeout' | 'now'>;
 
 export interface PersistenceWriter {
     /** Saves now if a save is waiting or the last one failed (called when the page is hidden or unloaded). */
     flush(): void;
+    /** `flush()` for the update flow: a failed write changes no state and raises no notice, since the caller is about to reload. */
+    flushQuietly(): void;
     /** Drops any waiting save and forgets what was last written, so the next change is always written (reset-all). */
     cancel(): void;
     /** `cancel()`, then stops listening to the store. */
@@ -47,17 +37,6 @@ interface Snapshot {
     readonly dailyKey: RootState['game']['dailyKey'];
     readonly counted: RootState['game']['counted'];
     readonly current: GameState | null;
-}
-
-/** The timers at call time, so a test that installs fake timers after this module loaded still controls them. */
-function globalTimers(): WriterTimers {
-    return {
-        setTimeout: (callback, ms) => globalThis.setTimeout(callback, ms),
-        clearTimeout: (handle) => {
-            globalThis.clearTimeout(handle as ReturnType<typeof setTimeout>);
-        },
-        now: () => performance.now(),
-    };
 }
 
 function snapshotOf({ preferences, stats, game }: RootState): Snapshot {
@@ -107,7 +86,7 @@ function changeBetween(before: Snapshot, after: Snapshot): Change {
  * - A failed write dispatches `writeFailed` and raises `storage-write` once; the notice is armed again only after a
  *   write succeeds, so a dismissed notice does not return. The next change (or `flush`) tries again.
  *
- * `flush()` is for leaving the page, `cancel()` for reset-all, `dispose()` for tearing the writer down.
+ * `flush()` is for leaving the page, `flushQuietly()` for the update flow (a failed write is silent), `cancel()` for reset-all, `dispose()` for tearing the writer down.
  */
 export function createPersistenceWriter(
     store: WriterStore,
@@ -144,7 +123,7 @@ export function createPersistenceWriter(
         store.dispatch(writeSucceeded());
     }
 
-    function write(): void {
+    function write(quiet = false): void {
         const state = store.getState();
         if (state.persistence.readOnly) return;
         const encoded = encodeRecord({ preferences: state.preferences, stats: state.stats, game: state.game });
@@ -159,6 +138,7 @@ export function createPersistenceWriter(
             recordSuccess();
             return;
         }
+        if (quiet) return;
         lastFailed = true;
         store.dispatch(writeFailed());
         if (!noticeRaisedSinceSuccess) {
@@ -194,6 +174,11 @@ export function createPersistenceWriter(
             if (timer === null && !lastFailed) return;
             clearPending();
             write();
+        },
+        flushQuietly: () => {
+            if (timer === null && !lastFailed) return;
+            clearPending();
+            write(true);
         },
         cancel,
         dispose: () => {

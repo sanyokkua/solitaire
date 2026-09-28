@@ -1,19 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { dealingEnded, dealingProgressed, setRoute } from '../../../../src/app/appSlice';
-import { createAppStore } from '../../../../src/app/store';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { GameState, Mode } from '../../../../src/domain/types';
 import type { DealService } from '../../../../src/features/deal/dealService';
 import { busySet, cleared, installed } from '../../../../src/features/game/gameSlice';
-import { play, restart, startGame } from '../../../../src/features/game/gameThunks';
+import { play } from '../../../../src/features/game/gameThunks';
+import { restart, startGame } from '../../../../src/features/game/sessionThunks';
 import { preferenceSet } from '../../../../src/features/preferences/preferencesSlice';
 import { won } from '../../../../src/features/stats/statsSlice';
 import { fakeDealService } from '../../../fixtures/dealService';
+import { testStore } from '../../../support/testStore';
 
 /** A store on the Home route with a fake deal service; `game` is installed first when given. */
 function setup(game: GameState | null = null, dailyKey: string | null = null) {
     const dealService = fakeDealService();
-    const store = createAppStore({ deps: { now: () => 1000, delay: () => Promise.resolve(), dealService } });
+    const store = testStore({ deps: { now: () => 1000, dealService } });
     if (game !== null) store.dispatch(installed({ state: game, dailyKey }));
     return { store, dealService };
 }
@@ -230,7 +231,7 @@ describe('startGame', () => {
 
     it('propagates a rejection and still clears the dealing progress', async () => {
         const failing: DealService = { ...fakeDealService(), deal: () => Promise.reject(new Error('no entropy')) };
-        const store = createAppStore({ deps: { dealService: failing } });
+        const store = testStore({ deps: { dealService: failing } });
         store.dispatch(installed({ state: startedGame(1, 'draw1'), dailyKey: null }));
         const env = { store };
         env.store.dispatch(dealingProgressed({ overlay: true, attempt: 1 }));

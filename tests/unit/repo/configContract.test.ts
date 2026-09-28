@@ -30,15 +30,35 @@ describe('base path agreement across configurations', () => {
     });
 });
 
+describe('vite.config.ts app version define', () => {
+    it('defines __APP_VERSION__ from package.json', () => {
+        expect(viteConfig).toContain('__APP_VERSION__: JSON.stringify(packageJson.version)');
+    });
+
+    it('reads package.json for the version rather than hardcoding it', () => {
+        expect(viteConfig).toMatch(/readFileSync\(.*package\.json.*\)/);
+    });
+});
+
 describe('package.json scripts', () => {
     it('exposes the lifecycle-storage guard', () => {
         expect(packageJson.scripts['validate:lifecycle-storage']).toBe('node scripts/validate-lifecycle-storage.mjs');
     });
 
-    it('runs the whole gate in order, with the guard after type checking', () => {
-        const steps = ['format:check', 'lint', 'typecheck', 'validate:lifecycle-storage', 'test:unit', 'build'].map(
-            (name) => `npm run ${name}`,
-        );
+    it('exposes the artifact validator', () => {
+        expect(packageJson.scripts['validate:artifact']).toBe('node scripts/validate-artifact.mjs');
+    });
+
+    it('runs the whole gate in order, with the guard after type checking and artifact validation after the build', () => {
+        const steps = [
+            'format:check',
+            'lint',
+            'typecheck',
+            'validate:lifecycle-storage',
+            'test:unit',
+            'build',
+            'validate:artifact',
+        ].map((name) => `npm run ${name}`);
 
         expect(packageJson.scripts.validate).toBe(steps.join(' && '));
     });
@@ -113,11 +133,15 @@ describe('pages.yml', () => {
         'node-version: 22.22.2',
         'run: npm ci',
         'run: npm run validate',
-        'run: npm run build',
         'uses: actions/upload-pages-artifact@',
         'path: dist',
     ])('build job contains the required step %s', (step) => {
         expect(buildSlice).toContain(step);
+    });
+
+    it('builds once: validate runs the build and no separate build step follows it', () => {
+        expect(buildSlice.match(/run: npm run validate\b/g)).toHaveLength(1);
+        expect(buildSlice).not.toMatch(/run: npm run build\b/);
     });
 
     it('deploy job depends on build and uses actions/deploy-pages', () => {
@@ -136,6 +160,47 @@ describe('pages.yml', () => {
 describe('index.html', () => {
     it('references no third-party runtime host', () => {
         expect(indexHtml).not.toMatch(/https?:\/\//);
+    });
+
+    it.each([
+        '<link rel="manifest" href="/solitaire/manifest.webmanifest" />',
+        '<link rel="apple-touch-icon" href="/solitaire/icons/apple-touch-icon.png" />',
+        '<link rel="icon" type="image/svg+xml" href="/solitaire/favicon.svg" />',
+        '<meta name="theme-color" content="#e8f0f5" media="(prefers-color-scheme: light)" />',
+        '<meta name="theme-color" content="#0b2545" media="(prefers-color-scheme: dark)" />',
+        '<meta name="description"',
+    ])('declares %s', (tag) => {
+        expect(indexHtml).toContain(tag);
+    });
+});
+
+describe('vite.config.ts PWA plugin', () => {
+    it.each([
+        "registerType: 'prompt'",
+        'injectRegister: false',
+        'manifest: false',
+        "globPatterns: ['**/*.{js,css,html,woff2,ttf,png,svg,webmanifest}']",
+        "navigateFallback: 'index.html'",
+        'cleanupOutdatedCaches: true',
+        'devOptions: { enabled: false }',
+    ])('configures %s', (setting) => {
+        expect(viteConfig).toContain(setting);
+    });
+
+    it('has no runtime caching', () => {
+        expect(viteConfig).not.toContain('runtimeCaching');
+    });
+});
+
+describe('PWA dependencies', () => {
+    const pinned = JSON.parse(readFileSync(resolve(import.meta.dirname, '../../../package.json'), 'utf-8')) as {
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+    };
+
+    it('pins vite-plugin-pwa and workbox-window exactly', () => {
+        expect(pinned.devDependencies['vite-plugin-pwa']).toBe('1.3.0');
+        expect(pinned.dependencies['workbox-window']).toMatch(/^7\.\d+\.\d+$/);
     });
 });
 

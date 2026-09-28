@@ -1,9 +1,7 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Provider } from 'react-redux';
 import { describe, expect, it } from 'vitest';
 import { setRoute, sheetClosed, sheetOpened } from '../../src/app/appSlice';
-import { createAppStore } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
 import { selectCanFinish, busySet } from '../../src/features/game/gameSlice';
 import { undo } from '../../src/features/game/gameThunks';
@@ -12,22 +10,20 @@ import { allFaceUp, WINNING_LINE } from '../fixtures/deals';
 import { fakeDealService } from '../fixtures/dealService';
 import { gameOf, playedGame } from '../fixtures/games';
 import { faceDown, faceUp, makeState, tableauOf } from '../fixtures/states';
+import { renderWithStore } from '../support/renderWithStore';
+import { testStore } from '../support/testStore';
 
 /** A position with a face-down card, so no finish plan exists. */
 const buried = () => makeState({ tableau: tableauOf([...faceDown(9), ...faceUp(10)]), stock: [11], started: true });
 
-function renderToolbar(game = playedGame()) {
+function renderToolbar(game = playedGame(), locale?: 'en' | 'uk') {
     const dealService = fakeDealService();
-    const store = createAppStore({
-        preloadedState: { game },
-        deps: { dealService, delay: () => Promise.resolve() },
+    const store = testStore({
+        preloadedState: { game, ...(locale === undefined ? {} : { preferences: { locale } }) },
+        deps: { dealService },
     });
     store.dispatch(setRoute('game'));
-    render(
-        <Provider store={store}>
-            <Toolbar />
-        </Provider>,
-    );
+    renderWithStore(<Toolbar />, { store });
     return { store, dealService };
 }
 
@@ -106,13 +102,9 @@ describe('Toolbar', () => {
     });
 
     it('disables both controls without a game', () => {
-        const store = createAppStore({ deps: { dealService: fakeDealService() } });
+        const store = testStore();
         store.dispatch(setRoute('game'));
-        render(
-            <Provider store={store}>
-                <Toolbar />
-            </Provider>,
-        );
+        renderWithStore(<Toolbar />, { store });
 
         expect(undoButton()).toBeDisabled();
         expect(redoButton()).toBeDisabled();
@@ -284,5 +276,18 @@ describe('Toolbar', () => {
             });
             expect(finishButton()).toBeDisabled();
         });
+    });
+
+    it('is a navigation landmark named "Дії гри" with translated button text, in Ukrainian', () => {
+        renderToolbar(playedGame(), 'uk');
+
+        const nav = screen.getByRole('navigation', { name: 'Дії гри' });
+        const buttons = [...nav.querySelectorAll('button')];
+        expect(buttons.map((button) => button.textContent.trim())).toEqual([
+            'Скасувати',
+            'Повторити',
+            'Підказка',
+            'Завершити',
+        ]);
     });
 });

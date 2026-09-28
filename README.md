@@ -12,14 +12,16 @@ Source repository: <https://github.com/sanyokkua/solitaire>
 
 ## Current status
 
-**Phases 1–6 are complete.** The build, lint, test, CI and deployment tooling are in place.
+**Phases 1–8 are implemented** (Phases 7 and 8 via `add-screens-sheets-pwa`, archived 2026-09-28). The build, lint, test, CI and deployment tooling are in place.
 The pure Klondike engine lives in `src/domain/`, the bounded-DFS solver in `src/solver/`,
 and the deal service (deals per mode, Daily v1, solver hints) in `src/features/deal/`. The
 application state layer (`app`, `preferences`, `stats`, `game` and `persistence` slices, with
 thunks for start, play, undo/redo, restart and finish) plays, scores and times a game. Preferences,
 statistics and an unfinished game are saved in the versioned `solitaire.local-state` record and
 restored on reload. The Home and Game shell is wired to it: Home "Deal cards" starts a game,
-"Continue game" appears while one can be resumed, and Back keeps it. The Game screen now draws the table: 52
+"Continue game" appears while one can be resumed, and Back keeps it. Home is a styled screen with a mode choice
+(Draw 1, Draw 3, Vegas, Daily), a Winnable switch, How to play, an LCD record strip (played, won, win rate, streak) and links
+to Statistics, Settings, a deal code and About; on phones and short screens its actions stay pinned to the bottom. The Game screen now draws the table: 52
 named cards, slots, a stock badge, four card backs, night cards and the four-colour deck, with glide, flip and
 deal motion (or none, under reduced motion), a read-only HUD and a toolbar with Undo, Redo, Hint and Finish, laid out to
 fit every supported screen without scrolling. The board takes every move by drag, tap and keyboard: smart tap
@@ -27,9 +29,17 @@ and select-and-place with double-tap, mouse/touch/pen drag with glide-back, and 
 roving focus and global shortcuts (see the shortcuts table below). Hint and Finish, a polite announcer, a
 notices host and hint visuals (ghosts, selection ring, hint line) make assistance visible, and the win cascade
 plays when a game is won — all proven end to end by full-line win tests played through each input path
-(`tests/e2e/playByTap.spec.ts`, `playByDrag.spec.ts`, `playByKeyboard.spec.ts`). Phases 7–11 (screens and
-localisation, PWA hardening, verification, documentation and release, and the optional Draw 3 winnable deals)
-are pending — see `docs/spec/phased-design.md` for the full phase list. There is no deployed build yet.
+(`tests/e2e/playByTap.spec.ts`, `playByDrag.spec.ts`, `playByKeyboard.spec.ts`). The sheets (Settings, How to play, Statistics, New deal options, Paused, Win, Play a deal code, About)
+open over either screen, and the whole interface is available in English and Ukrainian. The PWA part (manifest and icons, a prompt-mode service worker, the update and install flows, artifact validation; see "Offline and install" below) is in place. Phases 9–11 (full verification and edge cases, documentation and release, and the optional Draw 3 winnable deals) are pending — see `docs/spec/phased-design.md` for the full phase list. There is no deployed build yet.
+
+### Offline and install
+
+The app is a static PWA: after one online visit the service worker precaches the build (scripts, styles, fonts, the
+solver worker and icons), so it starts and plays offline. Registration runs after the page's `load` event, so it never
+delays the first render. A new version is never applied silently: when one is ready, a notice offers Update (which saves
+the game, then reloads onto the new version) or Later (the notice stays hidden for the rest of the session and the update applies on the next cold start). When the browser
+offers installation, Home shows an Install app link that opens the browser's install prompt; the link disappears once
+the app is installed or the offer is used. End-to-end tests block service workers unless a spec opts in.
 
 ### Keyboard shortcuts
 
@@ -47,8 +57,7 @@ are pending — see `docs/spec/phased-design.md` for the full phase list. There 
 | Esc                              | Cancel a selection or a drag, or close an open sheet             |
 
 Shortcuts are layout-independent (they match the physical key, not the character a non-Latin layout
-produces) and do not auto-repeat while a key is held. `N` and `P` are recognised but do nothing until the
-New-deal and Pause sheets arrive in Phase 7.
+produces) and do not auto-repeat while a key is held. `N` opens the New deal options and `P` pauses the game.
 
 ## Prerequisites
 
@@ -76,26 +85,27 @@ npm run preview
 
 ## Quality commands
 
-| Command                              | Purpose                                                                                            |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `npm run dev`                        | Start the Vite development server.                                                                 |
-| `npm run dev-network`                | Start the Vite development server bound to all network interfaces.                                 |
-| `npm run build`                      | Type-check the project, then produce the production build in `dist/`.                              |
-| `npm run preview`                    | Serve the production build locally.                                                                |
-| `npm run format`                     | Format repository files with Prettier.                                                             |
-| `npm run format:check`               | Check Prettier formatting without writing files.                                                   |
-| `npm run lint`                       | Run ESLint.                                                                                        |
-| `npm run lint:fix`                   | Run ESLint and apply automatic fixes.                                                              |
-| `npm run typecheck`                  | Run the non-emitting TypeScript project build.                                                     |
-| `npm run test`                       | Run the Vitest unit and component test set.                                                        |
-| `npm run test:unit`                  | Run unit and component tests.                                                                      |
-| `npm run test:coverage`              | Run unit/component tests with V8 coverage thresholds.                                              |
-| `npm run bench`                      | Run the informational winnable-search latency benchmark.                                           |
-| `npm run e2e`                        | Run the Playwright suite across desktop, touch and device-fit projects.                            |
-| `npm run e2e:headed`                 | Run the Playwright suite with visible browsers.                                                    |
-| `npm run prepare`                    | Install the Husky git hooks (runs automatically after `npm install`).                              |
-| `npm run validate:lifecycle-storage` | Check that the application lifecycle tests inject their storage gateway.                           |
-| `npm run validate`                   | Run formatting, lint, typecheck, the lifecycle-storage guard, unit/component tests, and the build. |
+| Command                              | Purpose                                                                                                               |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                        | Start the Vite development server.                                                                                    |
+| `npm run dev-network`                | Start the Vite development server bound to all network interfaces.                                                    |
+| `npm run build`                      | Type-check the project, then produce the production build in `dist/`.                                                 |
+| `npm run preview`                    | Serve the production build locally.                                                                                   |
+| `npm run format`                     | Format repository files with Prettier.                                                                                |
+| `npm run format:check`               | Check Prettier formatting without writing files.                                                                      |
+| `npm run lint`                       | Run ESLint.                                                                                                           |
+| `npm run lint:fix`                   | Run ESLint and apply automatic fixes.                                                                                 |
+| `npm run typecheck`                  | Run the non-emitting TypeScript project build.                                                                        |
+| `npm run test`                       | Run the Vitest unit and component test set.                                                                           |
+| `npm run test:unit`                  | Run unit and component tests.                                                                                         |
+| `npm run test:coverage`              | Run unit/component tests with V8 coverage thresholds.                                                                 |
+| `npm run bench`                      | Run the informational winnable-search latency benchmark.                                                              |
+| `npm run e2e`                        | Run the Playwright suite across desktop, touch and device-fit projects.                                               |
+| `npm run e2e:headed`                 | Run the Playwright suite with visible browsers.                                                                       |
+| `npm run prepare`                    | Install the Husky git hooks (runs automatically after `npm install`).                                                 |
+| `npm run validate:lifecycle-storage` | Check that the application lifecycle tests inject their storage gateway.                                              |
+| `npm run validate:artifact`          | Check the built `dist/` (base path, manifest, precache, no external URLs); runs after `build`.                        |
+| `npm run validate`                   | Run formatting, lint, typecheck, the lifecycle-storage guard, unit/component tests, the build and the artifact check. |
 
 `bench` reports median and p95 for the winnable-deal search against KS-PERF-02; it never asserts
 on timings and is not part of `validate`, the git hooks or CI.
@@ -116,14 +126,15 @@ This mirrors the repository's git hooks: `.husky/pre-commit` runs lint-staged, `
 src/app/          Redux store, application state slices, lifecycle bootstrap
 src/ui/           Board (pure layout, cards, slots, motion, drag/tap/keyboard input, hints, win
                   cascade), Game frame, HUD, toolbar, announcer, notices host, token-based CSS
-                  (sheets and localisation planned)
+                  sheets (Settings, How to play, Statistics, New deal, Paused, Win, deal code, About),
+                  Home screen
 src/assets/       Bundled fonts and other static assets
 src/domain/       Pure Klondike engine: cards, seeded deals, rules, scoring, commands, hints
 src/solver/       Pure bounded-DFS solver and its Web Worker message protocol
 src/features/     Deal service (Phase 3), game state thunks and history, statistics, preferences,
                   persistence (codec, storage gateway, loader, writer, reset)
-src/i18n/         Reserved for the English/Ukrainian catalogs (Phase 7) — directory + README only today
-src/pwa/          Reserved for the service-worker lifecycle (Phase 8) — directory + README only today
+src/i18n/         English/Ukrainian catalogs, language registry, translator and locale controller
+src/pwa/          Service-worker registration (after `load`), update and install gateways
 tests/unit/       Vitest unit tests
 tests/component/  Vitest + Testing Library component tests
 tests/e2e/        Playwright end-to-end specs

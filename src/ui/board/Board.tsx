@@ -1,10 +1,10 @@
 import { useMemo, useRef } from 'react';
-import type { CSSProperties } from 'react';
 import { useAppSelector } from '../../app/hooks';
 import { DECK_SIZE, FOUNDATION_DISPLAY_ORDER, TABLEAU_COLS } from '../../domain/cards';
 import type { CardId } from '../../domain/types';
 import { selectHint, selectSelectedGroup } from '../../features/interaction/selectors';
 import { selectPreference } from '../../features/preferences/preferencesSlice';
+import { DealingOverlay } from '../components/DealingOverlay';
 import { useMediaQuery } from '../useMediaQuery';
 import { CardView } from './CardView';
 import { CARD_RADIUS_FACTOR } from './constants';
@@ -15,6 +15,7 @@ import { PileSlot } from './PileSlot';
 import { pileKey } from './landing';
 import { selectBoardPiles, selectCardLocations, selectStockSpent } from './selectors';
 import { StockBadge } from './StockBadge';
+import { boardStyle, px } from './style';
 import { useBoardSize } from './useBoardSize';
 import { useDealAnimation } from './useDealAnimation';
 import { useBoardActions } from './useBoardActions';
@@ -22,6 +23,7 @@ import { tabIndexOf, useBoardKeyboard } from './useBoardKeyboard';
 import { useBoardPointer } from './useBoardPointer';
 import { useCascade } from './useCascade';
 import { useResizeSettle } from './useResizeSettle';
+import { useWinSheet } from './useWinSheet';
 
 /** The corner radius never drops below this many px. */
 const CARD_RADIUS_MIN_PX = 5;
@@ -81,6 +83,7 @@ export function Board() {
         size,
         card: metrics === null ? null : { cw: metrics.cw, ch: metrics.ch },
     });
+    useWinSheet();
     useDealAnimation({ boardRef, ready, dealOrder: layout?.dealOrder ?? NO_DEAL_ORDER });
     const { activate, pickUp } = useBoardActions(boardRef);
     useBoardPointer({ boardRef, layout, metrics, piles, activate });
@@ -94,15 +97,13 @@ export function Board() {
                     ref={boardRef}
                     data-wide={metrics.wide}
                     {...handlers}
-                    style={
-                        {
-                            '--stock-x': `${String(layout.slots.stock.x)}px`,
-                            '--stock-y': `${String(layout.slots.stock.y)}px`,
-                            '--cw': `${String(metrics.cw)}px`,
-                            '--ch': `${String(metrics.ch)}px`,
-                            '--cr': `${String(Math.max(CARD_RADIUS_MIN_PX, metrics.cw * CARD_RADIUS_FACTOR))}px`,
-                        } as CSSProperties
-                    }
+                    style={boardStyle({
+                        '--stock-x': px(layout.slots.stock.x),
+                        '--stock-y': px(layout.slots.stock.y),
+                        '--cw': px(metrics.cw),
+                        '--ch': px(metrics.ch),
+                        '--cr': px(Math.max(CARD_RADIUS_MIN_PX, metrics.cw * CARD_RADIUS_FACTOR)),
+                    })}
                 >
                     <PileSlot
                         pile={{ pile: 'stock' }}
@@ -161,6 +162,7 @@ export function Board() {
                     {piles === null ? null : <Ghosts layout={layout} metrics={metrics} piles={piles} />}
                 </div>
             ) : null}
+            <DealingOverlay />
         </div>
     );
 }

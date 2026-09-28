@@ -1,4 +1,5 @@
 import type { CardId } from '../../domain/types';
+import { cardElement } from './dom';
 
 /** Gap between two cards' glide starts in a deal; mirrors `--motion-deal-step`. */
 export const DEAL_STEP_MS = 28;
@@ -25,7 +26,7 @@ export interface DealPlayback {
  */
 export function playDeal(boardEl: HTMLElement, dealOrder: readonly CardId[]): DealPlayback {
     const cards = dealOrder.flatMap((id) => {
-        const card = boardEl.querySelector<HTMLElement>(`[data-card-id='${String(id)}']`);
+        const card = cardElement(boardEl, id);
         return card === null ? [] : [card];
     });
     let done = false;

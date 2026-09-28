@@ -1,43 +1,20 @@
-import type { UnknownAction } from '@reduxjs/toolkit';
 import type { RootState } from '../../app/store';
+import { globalTimers, type SubscribableStore } from '../shared/timers';
 import { selectClockEligible } from './clock';
 import { accrued } from './gameSlice';
 
 /** How often play time is accrued while the game runs. */
 const TICK_MS = 250;
 
-/**
- * The store as the ticker sees it: structurally, so this module needs no runtime import of the store. The real store
- * from `createAppStore` satisfies it.
- */
-export interface ClockTickerStore {
-    getState(): RootState;
-    subscribe(listener: () => void): () => void;
-    dispatch(action: UnknownAction): unknown;
-}
+/** The store as the ticker sees it: structurally, so this module needs no runtime import of the store. */
+export type ClockTickerStore = SubscribableStore<RootState>;
 
 /** The timing the ticker relies on; tests replace any part. */
-export interface ClockTimers {
-    /** A monotonic millisecond reading; only differences between readings mean anything. */
-    readonly now: () => number;
-    readonly setInterval: (callback: () => void, ms: number) => unknown;
-    readonly clearInterval: (handle: unknown) => void;
-}
+export type ClockTimers = Pick<ReturnType<typeof globalTimers>, 'now' | 'setInterval' | 'clearInterval'>;
 
 export interface ClockTicker {
     /** Stops the interval and stops listening to the store; calling it again does nothing. */
     dispose(): void;
-}
-
-/** The timers at call time, so a test that installs fake timers after this module loaded still controls them. */
-function globalTimers(): ClockTimers {
-    return {
-        now: () => performance.now(),
-        setInterval: (callback, ms) => globalThis.setInterval(callback, ms),
-        clearInterval: (handle) => {
-            globalThis.clearInterval(handle as ReturnType<typeof setInterval>);
-        },
-    };
 }
 
 /**

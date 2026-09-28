@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { noticeDismissed, setRoute } from '../../../../src/app/appSlice';
-import { createAppStore } from '../../../../src/app/store';
+import type { AppStore } from '../../../../src/app/store';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { Command } from '../../../../src/domain/types';
 import { accrued, installed } from '../../../../src/features/game/gameSlice';
@@ -10,14 +10,14 @@ import { createPersistenceWriter } from '../../../../src/features/persistence/pe
 import { STORAGE_KEY, decodeRecord } from '../../../../src/features/persistence/recordCodec';
 import { createStorageGateway, type StorageGateway } from '../../../../src/features/persistence/storageGateway';
 import { preferenceSet } from '../../../../src/features/preferences/preferencesSlice';
-import { fakeDealService } from '../../../fixtures/dealService';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
 import { memoryStorage } from '../../../fixtures/storage';
+import { testStore } from '../../../support/testStore';
 
 const MOVES: readonly Command[] = parseLine(WINNING_LINE.line);
 
 interface Env {
-    readonly store: ReturnType<typeof createAppStore>;
+    readonly store: AppStore;
     readonly storage: ReturnType<typeof memoryStorage>;
     /** The time (fake `Date.now()`) of every write attempt, successful or not. */
     readonly attempts: number[];
@@ -39,9 +39,7 @@ function setup(prepare: (store: Env['store']) => void = () => undefined): Env {
             return inner.write(key, value);
         },
     };
-    const store = createAppStore({
-        deps: { now: () => Date.now(), delay: () => Promise.resolve(), dealService: fakeDealService(), gateway },
-    });
+    const store = testStore({ deps: { now: () => Date.now(), gateway } });
     store.dispatch(preferenceSet({ key: 'autoSafe', value: false }));
     store.dispatch(installed({ state: dealFromSeed(WINNING_LINE.seed, 'draw1'), dailyKey: null }));
     store.dispatch(setRoute('game'));
@@ -320,6 +318,27 @@ describe('persistence writer: a failed save', () => {
         env.store.dispatch(preferenceSet({ key: 'theme', value: 'light' }));
         vi.advanceTimersByTime(250);
         expect(env.store.getState().app.notices).toEqual([{ id: 'storage-write' }]);
+    });
+
+    it('flushQuietly that fails changes nothing the player sees: no error state, no notice', async () => {
+        const env = setup();
+        env.storage.failWrites = true;
+        await move(env, 0);
+
+        env.writer.flushQuietly();
+
+        expect(env.attempts).toHaveLength(1);
+        expect(env.store.getState().persistence.lastError).toBeNull();
+        expect(env.store.getState().app.notices).toEqual([]);
+    });
+
+    it('flushQuietly that succeeds saves like flush', async () => {
+        const env = setup();
+        await move(env, 0);
+
+        env.writer.flushQuietly();
+
+        expect(storedMoves(env.storage)).toBe(1);
     });
 
     it('flush retries a failed save even with nothing new pending', async () => {

@@ -3,6 +3,9 @@
 @import './board.css';
 @import './hud.css';
 @import './layout.css';
+@import './controls.css';
+@import './sheets.css';
+@import './home.css';
 
 * {
     box-sizing: border-box;

@@ -1,6 +1,5 @@
-import type { GameSliceState } from '../features/game/gameSlice';
 import type { Preferences } from '../features/preferences/preferencesSlice';
-import type { AppState } from './appSlice';
+import type { AppState, Route, SheetId } from './appSlice';
 
 /**
  * The single reduced-motion signal: motion is reduced whenever the Animations preference is off or the device asks
@@ -20,17 +19,12 @@ export function selectDealing(state: { readonly app: AppState }): AppState['deal
     return state.app.dealing;
 }
 
-/** Whether a safe-card chain or finish is running and the gate is closed. */
-export function selectBusy(state: { readonly game: GameSliceState }): boolean {
-    return state.game.busy;
+/** The current screen. */
+export function selectRoute(state: { readonly app: AppState }): Route {
+    return state.app.route;
 }
 
-/** The game epoch, bumped whenever a game is installed or cleared. */
-export function selectEpoch(state: { readonly game: GameSliceState }): number {
-    return state.game.epoch;
-}
-
-/** The position in play, or `null` when there is no game. */
-export function selectCurrentGame(state: { readonly game: GameSliceState }): GameSliceState['current'] {
-    return state.game.current;
+/** The open sheet, or `null` when none is open. */
+export function selectSheet(state: { readonly app: AppState }): SheetId | null {
+    return state.app.sheet;
 }

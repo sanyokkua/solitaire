@@ -85,6 +85,38 @@ describe.each(THEMES)('text pairs, %s theme', (_name, block) => {
     });
 });
 
+describe.each(THEMES)('sheet and control text pairs, %s theme (D13)', (_name, block) => {
+    it('on-surface-muted on surface-1 is at least 4.5:1', () => {
+        expect(
+            contrast(hexOf(block, '--color-on-surface-muted'), hexOf(block, '--color-surface-1')),
+        ).toBeGreaterThanOrEqual(MIN_RATIO);
+    });
+
+    it('on-primary-container on primary-container is at least 4.5:1', () => {
+        expect(
+            contrast(hexOf(block, '--color-on-primary-container'), hexOf(block, '--color-primary-container')),
+        ).toBeGreaterThanOrEqual(MIN_RATIO);
+    });
+
+    it('on-tertiary on tertiary is at least 4.5:1', () => {
+        expect(contrast(hexOf(block, '--color-on-tertiary'), hexOf(block, '--color-tertiary'))).toBeGreaterThanOrEqual(
+            MIN_RATIO,
+        );
+    });
+});
+
+describe.each(THEMES)('Home hero text pairs, %s theme', (_name, block) => {
+    it('the wordmark and pitch (text) on the hero table is at least 4.5:1', () => {
+        expect(contrast(hexOf(block, '--color-text'), hexOf(block, '--color-table'))).toBeGreaterThanOrEqual(MIN_RATIO);
+    });
+
+    it('the badge text (on-surface-muted) on the surface is at least 4.5:1', () => {
+        expect(
+            contrast(hexOf(block, '--color-on-surface-muted'), hexOf(block, '--color-surface')),
+        ).toBeGreaterThanOrEqual(MIN_RATIO);
+    });
+});
+
 describe.each(THEMES)('state marks on the table, %s theme', (_name, block) => {
     it.each(['--color-legal', '--color-focus', '--color-hint-line', '--color-primary'])(
         '%s is at least 3:1',
@@ -92,4 +124,64 @@ describe.each(THEMES)('state marks on the table, %s theme', (_name, block) => {
             expect(contrast(hexOf(block, token), hexOf(block, '--color-table'))).toBeGreaterThanOrEqual(MIN_MARK_RATIO);
         },
     );
+});
+
+describe.each(PALETTES)('Home mode tile text on the card face, %s palette', (_name, block) => {
+    it('--color-card-ink (name, rules line and best time) is at least 4.5:1', () => {
+        expect(contrast(hexOf(block, '--color-card-ink'), hexOf(block, '--color-card-face'))).toBeGreaterThanOrEqual(
+            MIN_RATIO,
+        );
+    });
+});
+
+describe.each(THEMES)('Home Winnable card text, %s theme', (_name, block) => {
+    it('the caption (on-surface-muted) and title (text) on the surface are at least 4.5:1', () => {
+        expect(
+            contrast(hexOf(block, '--color-on-surface-muted'), hexOf(block, '--color-surface')),
+        ).toBeGreaterThanOrEqual(MIN_RATIO);
+        expect(contrast(hexOf(block, '--color-text'), hexOf(block, '--color-surface'))).toBeGreaterThanOrEqual(
+            MIN_RATIO,
+        );
+    });
+});
+
+describe.each(THEMES)('Home section label, %s theme', (_name, block) => {
+    it('on-surface-muted on the page background is at least 4.5:1', () => {
+        expect(contrast(hexOf(block, '--color-on-surface-muted'), hexOf(block, '--color-bg'))).toBeGreaterThanOrEqual(
+            MIN_RATIO,
+        );
+    });
+});
+
+/** The `rgb(r g b / a%)` value of a token composited over `--color-bg`, as `#rrggbb`. */
+function overBg(block: string, token: string): string {
+    const match = new RegExp(`${token}\\s*:\\s*rgb\\((\\d+) (\\d+) (\\d+) / (\\d+)%\\)`).exec(block);
+    if (!match) return hexOf(block, token);
+    const bg = hexOf(block, '--color-bg');
+    const alpha = Number(match[4]) / 100;
+    const mixed = [1, 2, 3].map((i, at) => {
+        const under = parseInt(bg.slice(1 + at * 2, 3 + at * 2), 16);
+        return Math.round(Number(match[i]) * alpha + under * (1 - alpha));
+    });
+    return `#${mixed.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+describe.each(THEMES)('Game chip text pairs, %s theme', (_name, block) => {
+    it('the mode chip (on-primary-container on primary-container) is at least 4.5:1', () => {
+        expect(
+            contrast(hexOf(block, '--color-on-primary-container'), hexOf(block, '--color-primary-container')),
+        ).toBeGreaterThanOrEqual(MIN_RATIO);
+    });
+
+    it('the winnable deal chip (on-success-container on success-container over the top bar) is at least 4.5:1', () => {
+        expect(
+            contrast(hexOf(block, '--color-on-success-container'), overBg(block, '--color-success-container')),
+        ).toBeGreaterThanOrEqual(MIN_RATIO);
+    });
+
+    it('the random deal chip (text on surface-variant) is at least 4.5:1', () => {
+        expect(contrast(hexOf(block, '--color-text'), hexOf(block, '--color-surface-variant'))).toBeGreaterThanOrEqual(
+            MIN_RATIO,
+        );
+    });
 });

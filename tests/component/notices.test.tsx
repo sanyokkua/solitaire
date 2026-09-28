@@ -1,21 +1,27 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import { Provider } from 'react-redux';
+import { act, fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { noticeDismissed, noticeRaised, type NoticeId } from '../../src/app/appSlice';
-import { createAppStore } from '../../src/app/store';
+import { noticeDismissed, noticeRaised, setRoute, type NoticeId } from '../../src/app/appSlice';
+import { App } from '../../src/App';
+import { readOnlyEntered, writeFailed, writeSucceeded } from '../../src/features/persistence/persistenceSlice';
 import { Notices } from '../../src/ui/components/Notices';
-import { GameScreen } from '../../src/ui/screens/GameScreen';
-import { fakeDealService } from '../fixtures/dealService';
 import { playedGame } from '../fixtures/games';
 import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
+import { renderWithStore, type RenderWithStoreOptions } from '../support/renderWithStore';
 
 const DEAD_END = 'No moves left. Undo a few steps or deal again.';
 const NO_REDEALS = 'No redeals left';
 
-function setup(ui = <Notices />) {
-    const store = createAppStore({ preloadedState: { game: playedGame() }, deps: { dealService: fakeDealService() } });
-    const view = render(<Provider store={store}>{ui}</Provider>);
-    return { store, view };
+function setup(ui = <Notices onUpdate={() => undefined} />, locale?: 'en' | 'uk') {
+    const view = renderWithStore(ui, {
+        preloadedState: { game: playedGame(), ...(locale === undefined ? {} : { preferences: { locale } }) },
+    });
+    return { store: view.store, view };
+}
+
+function renderApp(options: RenderWithStoreOptions = {}) {
+    stubMatchMedia([]);
+    return renderWithStore(<App />, options);
 }
 
 function raise(store: ReturnType<typeof setup>['store'], id: NoticeId) {
@@ -61,6 +67,18 @@ describe('Notices', () => {
         expect(screen.getByText(NO_REDEALS)).toBeInTheDocument();
         advance(3200);
         expect(screen.queryByText(NO_REDEALS)).toBeNull();
+    });
+
+    it('Code copied: shows "Deal code copied" and removes it after 3.2 s, with no live region', () => {
+        vi.useFakeTimers();
+        const { store } = setup();
+        raise(store, 'code-copied');
+        const node = screen.getByText('Deal code copied');
+        expect(node).toBeInTheDocument();
+        expect(node.closest('[role="status"], [role="alert"], [aria-live]')).toBeNull();
+
+        advance(3200);
+        expect(screen.queryByText('Deal code copied')).toBeNull();
     });
 
     it('a re-raise after the dismissal shows the message again, for another 3.2 s', () => {
@@ -136,29 +154,159 @@ describe('Notices', () => {
         const { store } = setup(
             <>
                 <button type="button">Elsewhere</button>
-                <Notices />
+                <Notices onUpdate={() => undefined} />
             </>,
         );
         screen.getByRole('button', { name: 'Elsewhere' }).focus();
         raise(store, 'storage-write');
         raise(store, 'dead-end');
+        raise(store, 'update-ready');
         expect(screen.getByRole('button', { name: 'Elsewhere' })).toHaveFocus();
+    });
+
+    it('shows translated text and a translated Dismiss button, in Ukrainian', () => {
+        vi.useFakeTimers();
+        const { store } = setup(<Notices onUpdate={() => undefined} />, 'uk');
+        raise(store, 'dead-end');
+        raise(store, 'storage-write');
+
+        expect(screen.getByText('Ходів не залишилось. Скасуйте кілька ходів або здайте нову гру.')).toBeInTheDocument();
+        const status = screen.getByRole('status');
+        expect(status).toHaveTextContent('Не вдалося зберегти прогрес.');
+        expect(within(status).getByRole('button', { name: 'Закрити' })).toBeInTheDocument();
     });
 });
 
-describe('Notices in the Game frame', () => {
-    it('sits outside the body, after the announcer, so it can never move the board or toolbar', () => {
-        stubMatchMedia([]);
-        const { store, view } = setup(<GameScreen />);
-        const before = [...(view.container.querySelector('.screen--game')?.children ?? [])];
-        raise(store, 'storage-write');
-        raise(store, 'dead-end');
+describe('Update-ready notice', () => {
+    it('stays until Later, and Later dismisses it', () => {
+        vi.useFakeTimers();
+        const { store } = setup();
+        raise(store, 'update-ready');
+        expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
 
-        const host = view.container.querySelector('.notices');
-        expect(host).not.toBeNull();
-        expect(view.container.querySelector('.game-body')).not.toContainElement(host as HTMLElement);
-        expect(host?.parentElement).toBe(view.container.querySelector('.screen--game'));
-        // The frame gained no children on raising: the host was already there.
-        expect([...(view.container.querySelector('.screen--game')?.children ?? [])]).toEqual(before);
+        advance(60_000);
+        expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Later' }));
+        expect(screen.queryByText('A new version is ready.')).toBeNull();
+        expect(store.getState().app.notices).toEqual([]);
+    });
+
+    it('shows the warning text when saving is read-only or the last save failed', () => {
+        const { store } = setup();
+        act(() => {
+            store.dispatch(readOnlyEntered());
+        });
+        raise(store, 'update-ready');
+
+        expect(screen.getByText('A new version is ready. The current game will not be kept.')).toBeInTheDocument();
+    });
+
+    it('keeps its text as decided when it appeared, whatever the storage does afterwards', () => {
+        const { store } = setup();
+        raise(store, 'update-ready');
+        expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
+
+        act(() => {
+            store.dispatch(writeFailed());
+        });
+        expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
+        act(() => {
+            store.dispatch(readOnlyEntered());
+        });
+        expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
+    });
+
+    it('keeps the warning text once shown, even after a save succeeds', () => {
+        const { store } = setup();
+        act(() => {
+            store.dispatch(writeFailed());
+        });
+        raise(store, 'update-ready');
+        expect(screen.getByText('A new version is ready. The current game will not be kept.')).toBeInTheDocument();
+
+        act(() => {
+            store.dispatch(writeSucceeded());
+        });
+        expect(screen.getByText('A new version is ready. The current game will not be kept.')).toBeInTheDocument();
+    });
+
+    it('is announced politely and does not take focus', () => {
+        const { store } = setup();
+        raise(store, 'update-ready');
+        const status = screen.getByRole('status');
+        expect(status).toHaveTextContent('A new version is ready.');
+        expect(document.activeElement).not.toBe(within(status).getByRole('button', { name: 'Update' }));
+    });
+
+    it('Update calls the handler', () => {
+        const onUpdate = vi.fn();
+        const { store } = setup(<Notices onUpdate={onUpdate} />);
+        raise(store, 'update-ready');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+
+        expect(onUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+        ['Enter', '{Enter}'],
+        ['Space', ' '],
+    ])('both buttons work by keyboard (%s)', async (_name, key) => {
+        const user = userEvent.setup();
+        const onUpdate = vi.fn();
+        const { store } = setup(<Notices onUpdate={onUpdate} />);
+        raise(store, 'update-ready');
+
+        screen.getByRole('button', { name: 'Update' }).focus();
+        await user.keyboard(key);
+        expect(onUpdate).toHaveBeenCalledTimes(1);
+
+        raise(store, 'update-ready');
+        screen.getByRole('button', { name: 'Later' }).focus();
+        await user.keyboard(key);
+        expect(store.getState().app.notices).toEqual([]);
+    });
+
+    it('Update and Later reuse the notice-dismiss class, which carries the 44x44 coarse-pointer hit area rule', () => {
+        const { store } = setup();
+        raise(store, 'update-ready');
+
+        expect(screen.getByRole('button', { name: 'Update' })).toHaveClass('notice-dismiss');
+        expect(screen.getByRole('button', { name: 'Later' })).toHaveClass('notice-dismiss');
+    });
+
+    it('shows translated text in Ukrainian', () => {
+        const { store } = setup(<Notices onUpdate={() => undefined} />, 'uk');
+        raise(store, 'update-ready');
+
+        expect(screen.getByText('Доступна нова версія.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Оновити' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Пізніше' })).toBeInTheDocument();
+    });
+});
+
+describe('Notices at the app level', () => {
+    it('shows a storage notice on Home', () => {
+        const { store, container } = renderApp();
+        raise(store, 'storage-read');
+
+        const host = container.querySelector('.notices');
+        expect(host).toHaveTextContent(
+            'Saved data could not be read. A fresh start was made and the old data was kept as a backup.',
+        );
+    });
+
+    it('stays mounted, and keeps showing notices, across a route change', () => {
+        const { store, container } = renderApp();
+        raise(store, 'storage-write');
+        const host = () => container.querySelector('.notices');
+        expect(host()).not.toBeEmptyDOMElement();
+
+        act(() => {
+            store.dispatch(setRoute('game'));
+        });
+
+        expect(host()).not.toBeEmptyDOMElement();
     });
 });

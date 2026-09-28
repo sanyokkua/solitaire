@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react';
 import { BADGE_Z } from './constants';
+import { positionStyle } from './style';
 
 export interface StockBadgeProps {
     /** Cards left in the stock. */
@@ -15,7 +15,7 @@ export function StockBadge({ count, x, y }: StockBadgeProps) {
     if (count === 0) {
         return null;
     }
-    const style = { '--x': `${String(x)}px`, '--y': `${String(y)}px`, zIndex: BADGE_Z } as CSSProperties;
+    const style = positionStyle(x, y, { zIndex: BADGE_Z });
 
     return (
         <div className="stock-count" aria-hidden="true" style={style}>

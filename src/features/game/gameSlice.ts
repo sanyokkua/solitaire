@@ -7,6 +7,7 @@ import {
     type Draft,
     type PayloadAction,
 } from '@reduxjs/toolkit';
+import type { AppState } from '../../app/appSlice';
 import { finishPlan } from '../../domain/finish';
 import { displayedScore } from '../../domain/scoring';
 import type { GameState } from '../../domain/types';
@@ -191,4 +192,32 @@ const selectFinishable = createSelector(
 /** Whether Finish is offered: no safe-card chain or finish is running and the position can be played out automatically. */
 export function selectCanFinish(state: GameRoot): boolean {
     return !state.game.busy && selectFinishable(state);
+}
+
+/** Whether a safe-card chain or finish is running. */
+export function selectBusy({ game }: GameRoot): boolean {
+    return game.busy;
+}
+
+/** The game epoch, bumped whenever a game is installed or cleared. */
+export function selectEpoch({ game }: GameRoot): number {
+    return game.epoch;
+}
+
+/** The position in play, or `null` when there is no game. */
+export function selectCurrentGame({ game }: GameRoot): GameSliceState['current'] {
+    return game.current;
+}
+
+/** The structural slice of the store `selectGameControlsIdle` reads: the game session plus the shell's dealing progress. */
+interface ControlsRoot extends GameRoot {
+    readonly app: Pick<AppState, 'dealing'>;
+}
+
+/**
+ * Whether the HUD New deal control and Time may be used (D3): false while a safe-card chain or finish is running, or
+ * while a deal is being prepared.
+ */
+export function selectGameControlsIdle({ app, game }: ControlsRoot): boolean {
+    return !game.busy && app.dealing === null;
 }

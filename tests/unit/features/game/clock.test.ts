@@ -4,7 +4,6 @@ import { applyCommand } from '../../../../src/domain/engine';
 import type { GameState } from '../../../../src/domain/types';
 import { setRoute, sheetOpened, sheetClosed, visibilityChanged } from '../../../../src/app/appSlice';
 import type { AppState } from '../../../../src/app/appSlice';
-import { createAppStore } from '../../../../src/app/store';
 import { selectClockEligible } from '../../../../src/features/game/clock';
 import {
     accrued,
@@ -15,6 +14,7 @@ import {
     type GameSliceState,
 } from '../../../../src/features/game/gameSlice';
 import { makeState } from '../../../fixtures/states';
+import { testStore } from '../../../support/testStore';
 
 const initialGame: GameSliceState = gameReducer(undefined, { type: 'init' });
 
@@ -31,6 +31,8 @@ function appState(partial: Partial<AppState> = {}): AppState {
         documentVisible: true,
         systemReducedMotion: false,
         dealing: null,
+        installable: false,
+        updateDeferred: false,
         ...partial,
     };
 }
@@ -71,7 +73,7 @@ describe('selectClockEligible', () => {
 describe('accrued through the store', () => {
     /** A store with `state` installed and the Game route shown, plus a helper that accrues at a given time. */
     function setup(state: GameState) {
-        const store = createAppStore();
+        const store = testStore();
         store.dispatch(installed({ state, dailyKey: null }));
         store.dispatch(setRoute('game'));
         return {
@@ -208,7 +210,7 @@ describe('accrued through the store', () => {
 
     it('leaves the history and future snapshots untouched', () => {
         const before = dealFromSeed(1, 'draw1');
-        const store = createAppStore();
+        const store = testStore();
         store.dispatch(installed({ state: before, dailyKey: null }));
         store.dispatch(committed(startedState()));
         store.dispatch(setRoute('game'));
@@ -228,7 +230,7 @@ describe('accrued through the store', () => {
     });
 
     it('leaves the state equal and the anchor null when there is no game', () => {
-        const store = createAppStore();
+        const store = testStore();
         const before = store.getState().game;
 
         store.dispatch(accrued({ atMs: 100, eligible: true }));

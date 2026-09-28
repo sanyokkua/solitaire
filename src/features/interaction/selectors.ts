@@ -3,7 +3,14 @@ import { groupAt, legalTargets } from '../../domain/rules';
 import type { CardId, PileRef } from '../../domain/types';
 import type { AppState } from '../../app/appSlice';
 import type { GameSliceState } from '../game/gameSlice';
-import type { AnnouncementLog, HintView, InteractionState, PendingHint, Selection } from './interactionSlice';
+import type {
+    AnnouncementLog,
+    HintView,
+    InteractionState,
+    PendingHint,
+    Selection,
+    WinSummary,
+} from './interactionSlice';
 
 /** The structural slice of the store the interaction selectors read, so this module needs no store import. */
 interface InteractionRoot {
@@ -40,6 +47,11 @@ export function selectPendingHint({ interaction }: InteractionRoot): PendingHint
 /** The id the next hint takes: one more than any hint shown so far in this session. */
 export function selectNextHintId({ interaction }: InteractionRoot): number {
     return interaction.lastHintId + 1;
+}
+
+/** The just-won game's outcome, or `null`. Cleared when a new deal is installed or the game is cleared. */
+export function selectWinSummary({ interaction }: InteractionRoot): WinSummary | null {
+    return interaction.win;
 }
 
 /**

@@ -1,12 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { act, render, screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Provider } from 'react-redux';
 import { describe, expect, it } from 'vitest';
 import { App } from '../../src/App';
 import { dealingEnded, dealingProgressed } from '../../src/app/appSlice';
-import { createAppStore, type AppStoreOptions } from '../../src/app/store';
 import { dealFromSeed } from '../../src/domain/deal';
 import { selectDisplayedScore } from '../../src/features/game/gameSlice';
 import { play } from '../../src/features/game/gameThunks';
@@ -15,21 +13,24 @@ import { formatMoves, formatScore } from '../../src/ui/format';
 import { WINNING_LINE, parseLine } from '../fixtures/deals';
 import { fakeDealService } from '../fixtures/dealService';
 import { gameOf, playedGame } from '../fixtures/games';
+import { renderWithStore, type RenderWithStoreOptions } from '../support/renderWithStore';
 
 // Drag is not asserted here: the shell has no draggable object at this point in the
 // build — card dragging is introduced with the board in a later phase.
 
 const GLOBAL_CSS = readFileSync(resolve(import.meta.dirname, '../../src/ui/styles/global.css'), 'utf-8');
 
-function renderApp(preloadedState: AppStoreOptions['preloadedState'] = {}) {
+function renderApp(preloadedState: RenderWithStoreOptions['preloadedState'] = {}) {
     const dealService = fakeDealService();
-    const store = createAppStore({ preloadedState, deps: { dealService } });
-    render(
-        <Provider store={store}>
-            <App />
-        </Provider>,
-    );
+    const { store } = renderWithStore(<App />, { preloadedState, deps: { dealService } });
     return { store, dealService };
+}
+
+/** The Home top bar's theme toggle and Settings button, the selected mode tile and the Winnable switch come first. */
+async function tabPastTopbar(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+    for (let stop = 0; stop < 4; stop += 1) {
+        await user.tab();
+    }
 }
 
 const dealCards = () => screen.getByRole('button', { name: /deal cards/i });
@@ -43,6 +44,17 @@ describe('application shell navigation', () => {
 
         expect(dealCards()).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /back to home/i })).not.toBeInTheDocument();
+    });
+
+    it('exposes exactly one main landmark on Home and on Game', async () => {
+        const user = userEvent.setup();
+        renderApp();
+
+        expect(screen.getAllByRole('main')).toHaveLength(1);
+
+        await user.click(dealCards());
+
+        expect(screen.getAllByRole('main')).toHaveLength(1);
     });
 
     it('starts a game in the selected mode and shows Game when the start control is activated by pointer', async () => {
@@ -61,6 +73,7 @@ describe('application shell navigation', () => {
         const user = userEvent.setup();
         const { dealService } = renderApp();
 
+        await tabPastTopbar(user);
         await user.tab();
         expect(dealCards()).toHaveFocus();
 
@@ -157,7 +170,7 @@ describe('application shell navigation', () => {
     });
 });
 
-function playedGameState(): AppStoreOptions['preloadedState'] {
+function playedGameState(): RenderWithStoreOptions['preloadedState'] {
     return { game: playedGame() };
 }
 
@@ -216,6 +229,7 @@ describe('Continue game', () => {
         const user = userEvent.setup();
         renderApp(playedGameState());
 
+        await tabPastTopbar(user);
         await user.tab();
         await user.tab();
 

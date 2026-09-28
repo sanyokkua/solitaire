@@ -113,6 +113,11 @@ function hasExactCardKeys(tableau: unknown): boolean {
     );
 }
 
+/** A typed record view of a game state's own keys, with no unsafe cast (D15). */
+function gameStateRecord(state: GameState): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(state));
+}
+
 const cloneColumn = (column: Column): Column => column.map((card) => ({ id: card.id, up: card.up }));
 
 const cloneTableau = (t: Tableau): Tableau => [
@@ -230,7 +235,7 @@ export function decodeSession(value: unknown): StoredSession | null {
     if (!isRecord(value) || !hasExactKeys(value, SESSION_KEYS)) return null;
     const { current, history, future, dailyKey, counted } = value;
     if (!isValidGameState(current) || !current.started || current.status !== 'playing') return null;
-    if (!hasExactKeys(current as unknown as Record<string, unknown>, GAME_KEYS) || !hasExactCardKeys(current.tableau)) {
+    if (!hasExactKeys(gameStateRecord(current), GAME_KEYS) || !hasExactCardKeys(current.tableau)) {
         return null;
     }
     if (typeof counted !== 'boolean' || !isDayKeyOrNull(dailyKey)) return null;

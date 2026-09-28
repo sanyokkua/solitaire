@@ -7,12 +7,20 @@ const scrolls = () =>
         vertical: document.documentElement.scrollHeight > window.innerHeight,
     }) as const;
 
-test('loads Home, fits the viewport, and navigates to Game and back', async ({ page }) => {
+test('loads Home, fits the width, and navigates to Game and back', async ({ page }) => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'Solitaire' })).toBeVisible();
 
-    expect(await page.evaluate(scrolls)).toEqual({ horizontal: false, vertical: false });
+    // Home may scroll vertically (the mode tiles make it taller than a phone); it never scrolls sideways.
+    expect((await page.evaluate(scrolls)).horizontal).toBe(false);
+
+    // The actions are pinned on phones and short screens and sit high enough on large ones: Deal cards needs no scrolling.
+    const deal = await page.getByRole('button', { name: 'Deal cards' }).boundingBox();
+    const viewport = page.viewportSize();
+    expect(deal).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect((deal?.y ?? Infinity) + (deal?.height ?? 0)).toBeLessThanOrEqual(viewport?.height ?? 0);
 
     await page.getByRole('button', { name: 'Deal cards' }).click();
     // The Game heading is visually hidden (it names the screen for assistive technology), so it is attached, not visible.

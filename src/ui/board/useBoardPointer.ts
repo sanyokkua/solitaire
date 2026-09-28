@@ -6,6 +6,7 @@ import { play } from '../../features/game/gameThunks';
 import { hintCleared, selectionCleared } from '../../features/interaction/interactionSlice';
 import { selectCard } from '../../features/interaction/interactionThunks';
 import { selectInputEnabled, selectLegalTargets, selectSelectedGroup } from '../../features/interaction/selectors';
+import { cardElement } from './dom';
 import { landingAreas, pickLargestOverlap, pileAt, pileKey, type Rect } from './landing';
 import type { BoardPiles, Layout, Point } from './layout';
 import type { Metrics } from './metrics';
@@ -163,7 +164,7 @@ export function useBoardPointer({ boardRef, layout, metrics, piles, activate }: 
                 return;
             }
             const els = group.flatMap((id) => {
-                const el = board.querySelector<HTMLElement>(`[data-card-id='${String(id)}']`);
+                const el = cardElement(board, id);
                 return el === null ? [] : [el];
             });
             els.forEach((el, k) => {

@@ -1,4 +1,5 @@
 import { act, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { preferenceSet } from '../../src/features/preferences/preferencesSlice';
 import { startApp, type StartAppDeps } from '../../src/app/lifecycle';
@@ -70,6 +71,11 @@ function stubVisibility(state: DocumentVisibilityState): void {
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
 }
 
+/** Makes `navigator.languages` read `languages`; `afterEach` removes the override. */
+function stubLanguages(languages: readonly string[]): void {
+    Object.defineProperty(navigator, 'languages', { configurable: true, get: () => languages });
+}
+
 function fireVisibilityChange(state: DocumentVisibilityState): void {
     stubVisibility(state);
     act(() => {
@@ -99,6 +105,7 @@ function start(storage: MemoryStorage = memoryStorage(), overrides: StartAppDeps
             extra: { gateway: createStorageGateway(storage), dealService: fakeDealService(), ...overrides.extra },
             ticker: { setInterval, clearInterval, ...overrides.ticker },
             ...(overrides.writer === undefined ? {} : { writer: overrides.writer }),
+            ...(overrides.pwa === undefined ? {} : { pwa: overrides.pwa }),
         });
     });
     if (app === undefined) throw new Error('startApp did not return');
@@ -124,6 +131,7 @@ afterEach(() => {
         });
     });
     Reflect.deleteProperty(document, 'visibilityState');
+    Reflect.deleteProperty(navigator, 'languages');
     APPEARANCE_ATTRIBUTES.forEach((name) => {
         document.documentElement.removeAttribute(name);
     });
@@ -158,6 +166,23 @@ describe('application lifecycle wiring', () => {
 
         fireVisibilityChange('visible');
         expect(app.store.getState().app.documentVisible).toBe(true);
+    });
+
+    it('flushes a pending write through the extra saver', () => {
+        const { app, storage } = start();
+        act(() => {
+            app.store.dispatch(preferenceSet({ key: 'theme', value: 'dark' }));
+        });
+        expect(storage.getItem(STORAGE_KEY)).toBeNull();
+
+        act(() => {
+            app.store.dispatch((_dispatch, _getState, extra) => {
+                extra.saver.flush();
+            });
+        });
+
+        const stored = storedRecord(storage);
+        expect(stored?.ok && stored.record.preferences.theme).toBe('dark');
     });
 
     it('flushes a pending write on pagehide', () => {
@@ -340,5 +365,125 @@ describe('application lifecycle wiring', () => {
 
         expect(await screen.findByRole('button', { name: /deal cards/i })).toBeInTheDocument();
         expect(root).toContainElement(screen.getByRole('button', { name: /deal cards/i }));
+    });
+
+    it('follows a stored language on <html lang>, and remembers a change after a reload', () => {
+        const saved = memoryStorage();
+        saved.setItem(
+            STORAGE_KEY,
+            encodeRecord({
+                preferences: { ...defaultPreferences('en'), locale: 'uk' },
+                stats: statsReducer(undefined, { type: '@@init' }),
+                game: { current: null, history: [], future: [], dailyKey: null, counted: false },
+            }),
+        );
+        const { app, storage } = start(saved);
+        expect(document.documentElement.lang).toBe('uk');
+
+        act(() => {
+            app.store.dispatch(preferenceSet({ key: 'locale', value: 'en' }));
+        });
+        fireVisibilityChange('hidden');
+        const stored = storedRecord(storage);
+        expect(stored?.ok && stored.record.preferences.locale).toBe('en');
+    });
+
+    it('renders a first run in Ukrainian, with no English text, when the browser prefers Ukrainian', async () => {
+        stubLanguages(['uk-UA']);
+        const { root } = start();
+
+        expect(document.documentElement.lang).toBe('uk');
+        expect(await screen.findByRole('button', { name: 'Роздати карти' })).toBeInTheDocument();
+        expect(root).toHaveTextContent('Пасьянс');
+        expect(root).not.toHaveTextContent(/deal cards/i);
+        expect(root).not.toHaveTextContent(/solitaire/i);
+    });
+
+    describe('PWA gateways', () => {
+        function fakeGateways() {
+            let updateReady: () => void = () => undefined;
+            let availability: (available: boolean) => void = () => undefined;
+            const applyUpdate = vi.fn(() => Promise.resolve());
+            const prompt = vi.fn(() => Promise.resolve('accepted' as const));
+            return {
+                applyUpdate,
+                prompt,
+                pwa: {
+                    update: {
+                        onUpdateReady: (callback: () => void) => {
+                            updateReady = callback;
+                        },
+                        applyUpdate,
+                    },
+                    install: {
+                        onAvailabilityChange: (callback: (available: boolean) => void) => {
+                            availability = callback;
+                        },
+                        prompt,
+                    },
+                },
+                needRefresh: () => {
+                    act(() => {
+                        updateReady();
+                    });
+                },
+                setAvailable: (available: boolean) => {
+                    act(() => {
+                        availability(available);
+                    });
+                },
+            };
+        }
+
+        it('raises update-ready on a need-refresh, and Update saves then applies', async () => {
+            const gateways = fakeGateways();
+            const { app } = start(memoryStorage(), { pwa: gateways.pwa });
+            expect(app.store.getState().app.notices).toEqual([]);
+
+            gateways.needRefresh();
+            expect(app.store.getState().app.notices).toEqual([{ id: 'update-ready' }]);
+
+            const user = userEvent.setup();
+            await user.click(await screen.findByRole('button', { name: 'Update' }));
+            expect(gateways.applyUpdate).toHaveBeenCalledOnce();
+        });
+
+        it('does not raise the update notice again for the session once Later was chosen', async () => {
+            const gateways = fakeGateways();
+            const { app } = start(memoryStorage(), { pwa: gateways.pwa });
+            gateways.needRefresh();
+            const user = userEvent.setup();
+            await user.click(await screen.findByRole('button', { name: 'Later' }));
+            expect(app.store.getState().app.notices).toEqual([]);
+
+            gateways.needRefresh();
+
+            expect(app.store.getState().app.notices).toEqual([]);
+            expect(screen.queryByRole('button', { name: 'Update' })).toBeNull();
+        });
+
+        it('shows and hides the Install link as availability changes, and the link prompts', async () => {
+            const gateways = fakeGateways();
+            start(memoryStorage(), { pwa: gateways.pwa });
+            expect(screen.queryByRole('button', { name: 'Install app' })).toBeNull();
+
+            gateways.setAvailable(true);
+            const user = userEvent.setup();
+            await user.click(await screen.findByRole('button', { name: 'Install app' }));
+            expect(gateways.prompt).toHaveBeenCalledOnce();
+            expect(screen.queryByRole('button', { name: 'Install app' })).toBeNull();
+
+            gateways.setAvailable(true);
+            expect(await screen.findByRole('button', { name: 'Install app' })).toBeInTheDocument();
+            gateways.setAvailable(false);
+            expect(screen.queryByRole('button', { name: 'Install app' })).toBeNull();
+        });
+
+        it('has no update or install offer without gateways', () => {
+            const { app } = start();
+
+            expect(app.store.getState().app.installable).toBe(false);
+            expect(app.store.getState().app.notices).toEqual([]);
+        });
     });
 });

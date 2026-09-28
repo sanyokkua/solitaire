@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import { useAppSelector } from '../../app/hooks';
-import { selectEpoch, selectReducedMotion } from '../../app/selectors';
+import { selectReducedMotion } from '../../app/selectors';
 import type { CardId, GameState } from '../../domain/types';
+import { selectEpoch } from '../../features/game/gameSlice';
 import { playCascade, type CascadePlayback } from './cascade';
 import { cascadeFrames } from './cascadeFrames';
 import type { Point } from './layout';

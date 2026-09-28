@@ -1,82 +1,80 @@
 import type { PileRef } from '../domain/types';
 import type { Announcement } from '../features/interaction/announcements';
-import { cardName, pileLabel } from './board/names';
+import type { Translate } from '../i18n/translate';
+import { cardName } from './board/names';
 
 /** A hint as the formatter needs it: what to move and where. `HintView` in the interaction slice has this shape. */
 export type HintDescriptor = Omit<Extract<Announcement, { type: 'hinted' }>, 'type'>;
 
-function lowercased(text: string): string {
-    return text.charAt(0).toLowerCase() + text.slice(1);
-}
-
-/** A pile in a sentence: "column 4", "the Hearts foundation", "the waste", "the stock". */
-function place(ref: PileRef | 'stock'): string {
+/** A pile in a sentence: "column 4", "the Hearts foundation", "the waste", "the stock" (localised). */
+function place(t: Translate, ref: PileRef | 'stock'): string {
     const target: PileRef = ref === 'stock' ? { pile: 'stock' } : ref;
-    const label = pileLabel(target);
     switch (target.pile) {
         case 'tableau':
-            return lowercased(label);
+            return t('place.tableau', { n: target.col + 1 });
         case 'foundation':
-            return `the ${label}`;
+            return t('place.foundation', { suit: t(`card.suit.${String(target.suit)}`) });
         case 'stock':
+            return t('place.stock');
         case 'waste':
-            return `the ${lowercased(label)}`;
+            return t('place.waste');
     }
 }
 
-function cardCount(count: number): string {
-    return count === 1 ? '1 card' : `${String(count)} cards`;
-}
-
-/** The hint in words: "Hint: move the Four of Hearts onto column 6", "Hint: draw from the stock". */
-export function hintText(hint: HintDescriptor): string {
+/** The hint in words: "Hint: move the Four of Hearts onto column 6", "Hint: draw from the stock" (localised). */
+export function hintText(t: Translate, hint: HintDescriptor): string {
     switch (hint.kind) {
         case 'draw':
-            return 'Hint: draw from the stock';
+            return t('hint.draw');
         case 'recycle':
-            return 'Hint: turn the waste back over';
+            return t('hint.recycle');
         case 'move': {
             const [first] = hint.cards;
             const subject =
                 first === undefined
-                    ? 'the cards'
+                    ? t('hint.subject.none')
                     : hint.cards.length === 1
-                      ? `the ${cardName(first, true)}`
-                      : `the ${cardName(first, true)} and the cards on it`;
-            return `Hint: move ${subject} onto ${place(hint.target)}`;
+                      ? t('hint.subject.one', { card: cardName(t, first, true) })
+                      : t('hint.subject.many', { card: cardName(t, first, true) });
+            return t('hint.move', { subject, place: place(t, hint.target) });
         }
     }
 }
 
 /**
- * The English wording of one announcement, for the screen-reader announcer (KS-A11Y-02). Phase 7 replaces only this
- * formatter; the descriptors carry no text.
+ * The wording of one announcement, for the screen-reader announcer (KS-A11Y-02), in the active language. The
+ * descriptors carry no text.
  */
-export function formatAnnouncement(item: Announcement): string {
+export function formatAnnouncement(t: Translate, item: Announcement): string {
     switch (item.type) {
         case 'moved': {
             const [first] = item.cards;
             return first !== undefined && item.cards.length === 1
-                ? `${cardName(first, true)} moved to ${place(item.to)}`
-                : `Moved ${cardCount(item.cards.length)} to ${place(item.to)}`;
+                ? t('announce.moved.one', { card: cardName(t, first, true), place: place(t, item.to) })
+                : t('announce.moved.many', {
+                      count: t('pile.count', { count: item.cards.length }),
+                      place: place(t, item.to),
+                  });
         }
         case 'drew':
-            return `Drew ${cardCount(item.count)}`;
+            return t('announce.drew', { count: t('pile.count', { count: item.count }) });
         case 'recycled':
-            return 'Turned the waste over';
+            return t('announce.recycled');
         case 'undone':
-            return 'Undid the last move';
+            return t('announce.undone');
         case 'redone':
-            return 'Redid the move';
+            return t('announce.redone');
         case 'hinted':
-            return hintText(item);
+            return hintText(t, item);
         case 'refused':
-            return item.reason === 'pass-limit' ? 'No redeals left' : 'That move is not possible';
+            return item.reason === 'pass-limit' ? t('announce.refused.passLimit') : t('announce.refused.other');
         case 'deadEnd':
-            return 'No moves left. Undo a few steps or deal again.';
+            return t('announce.deadEnd');
         case 'sentHome':
-            return `Moved ${cardCount(item.count)} to the foundations`;
+            return t('announce.sentHome', { count: t('pile.count', { count: item.count }) });
         case 'won':
-            return 'You win';
+            return t('announce.won');
+        case 'codeCopied':
+            return t('announce.codeCopied');
     }
 }

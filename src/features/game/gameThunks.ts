@@ -1,31 +1,27 @@
-import { dealingEnded, dealingProgressed, noticeRaised, setRoute } from '../../app/appSlice';
+import { noticeRaised } from '../../app/appSlice';
 import type { AppThunk } from '../../app/appThunk';
 import { selectReducedMotion } from '../../app/selectors';
 import type { RootState } from '../../app/store';
 import { finishPlan } from '../../domain/finish';
 import { nextSafeMove } from '../../domain/safeMoves';
-import { dealFromSeed } from '../../domain/deal';
 import { applyCommand } from '../../domain/engine';
-import { displayedScore } from '../../domain/scoring';
-import type { Command, GameEvent, GameState, Mode } from '../../domain/types';
-import type { DealService } from '../deal/dealService';
+import { displayedScore, winBonus } from '../../domain/scoring';
+import type { Command, GameEvent } from '../../domain/types';
 import { announcementsOf } from '../interaction/announcements';
-import { announced } from '../interaction/interactionSlice';
+import { announced, winRecorded } from '../interaction/interactionSlice';
 import { checkDeadEnd } from '../interaction/interactionThunks';
-import { dailyCompleted, played, streakBroken, won } from '../stats/statsSlice';
+import { dailyCompleted, played, selectModeStats, won } from '../stats/statsSlice';
 import { selectClockEligible } from './clock';
 import {
     accrued,
     busySet,
     committed,
     countedSet,
-    installed,
     redone,
     replaced,
     selectCanFinish,
     selectCanRedo,
     selectCanUndo,
-    selectResumable,
     undone,
 } from './gameSlice';
 
@@ -82,7 +78,20 @@ export function commitCommand(cmd: Command, options: CommitOptions): AppThunk<Co
         }
         if (before.status !== 'won' && next.status === 'won') {
             // The settled time is already in `next`: the engine ran on the state the first settlement produced.
-            dispatch(won({ mode: next.mode, elapsedMs: next.elapsedMs, score: displayedScore(next) }));
+            const score = displayedScore(next);
+            // Read before `won` overwrites the mode's best time, so "new best" reflects what it was before this win.
+            const previousBestMs = selectModeStats(getState(), next.mode).bestTimeMs;
+            dispatch(won({ mode: next.mode, elapsedMs: next.elapsedMs, score }));
+            dispatch(
+                winRecorded({
+                    mode: next.mode,
+                    score,
+                    elapsedMs: next.elapsedMs,
+                    moves: next.moves,
+                    timeBonus: winBonus(next.elapsedMs, next.scoring),
+                    newBestTime: previousBestMs === null || next.elapsedMs < previousBestMs,
+                }),
+            );
             const { dailyKey } = getState().game;
             if (next.mode === 'daily' && dailyKey !== null) dispatch(dailyCompleted(dailyKey));
         }
@@ -258,90 +267,5 @@ export function redo(): AppThunk {
         dispatch(settleClock(now()));
         dispatch(redone());
         dispatch(announced([{ type: 'redone' }]));
-    };
-}
-
-/**
- * Breaks the streak of the game about to be replaced when the player is walking away from it: it has had an accepted
- * command and is not won. An unstarted game costs nothing to abandon and a won game already settled its streak, so
- * neither changes a statistic. The streak that breaks is the replaced game's own mode, whatever mode comes next.
- */
-function breakStreakOf(outgoing: GameState | null): AppThunk {
-    return (dispatch) => {
-        if (outgoing?.started === true && outgoing.status !== 'won') dispatch(streakBroken(outgoing.mode));
-    };
-}
-
-/** The latest start id taken per deal service, so a start knows whether a newer one has taken over (one map, many stores). */
-const latestStart = new WeakMap<DealService, number>();
-
-/**
- * Deals a new game of `mode` and installs it (D9). Winnable deals only is read from the preferences when the start
- * begins and travels in the request, so changing the setting while a deal is pending changes nothing about it. While
- * the deal service works, its progress is published for the dealing overlay. The result is discarded, changing
- * nothing, when the service reports the request `cancelled` (a newer start replaced it), when the game epoch moved
- * while dealing (a restart, a reset or any other install got there first; progress reported after the epoch moved is
- * dropped too), or when a newer start was requested (a deal that had already resolved before the newer request
- * arrived must not install over it). Otherwise the replaced game's streak is
- * broken if it was started and unwon, and the deal is installed with the day key of a Daily deal, or `null`. The
- * dealing progress is cleared at the end only if this is still the latest start on this deal service, so a superseded
- * start never wipes the progress of the one that replaced it. A rejection (no entropy source) propagates after that
- * cleanup, leaving the current game as it was.
- */
-export function startGame({ mode }: { readonly mode: Mode }): AppThunk<Promise<void>> {
-    return async (dispatch, getState, { dealService }) => {
-        const { winnableOnly } = getState().preferences;
-        const { epoch } = getState().game;
-        const startId = (latestStart.get(dealService) ?? 0) + 1;
-        latestStart.set(dealService, startId);
-        try {
-            const outcome = await dealService.deal({ mode, winnableOnly }, (progress) => {
-                // A late report after the game was replaced or cleared (reset-all) must not bring the overlay back.
-                if (getState().game.epoch === epoch) dispatch(dealingProgressed(progress));
-            });
-            if (
-                outcome.status === 'cancelled' ||
-                getState().game.epoch !== epoch ||
-                latestStart.get(dealService) !== startId
-            ) {
-                return;
-            }
-
-            dispatch(breakStreakOf(getState().game.current));
-            dispatch(installed({ state: outcome.state, dailyKey: outcome.dayKey ?? null }));
-        } finally {
-            if (latestStart.get(dealService) === startId) dispatch(dealingEnded());
-        }
-    };
-}
-
-/**
- * Replays the current deal from the start (D10): the same seed, mode, verdict and attempts, so the layout is identical,
- * with no moves, time, undo charges or history. It is dealt on the spot, not by the deal service, and reads no
- * preference, so changed settings never alter a game already in play; the day key of a Daily deal is kept. The
- * replaced game's streak is broken if it was started and unwon. Allowed while a safe-card chain or finish is running:
- * installing bumps the epoch, which stops that sequence. Does nothing without a game.
- */
-export function restart(): AppThunk {
-    return (dispatch, getState) => {
-        const { current, dailyKey } = getState().game;
-        if (current === null) return;
-
-        const state = dealFromSeed(current.seed, current.mode, {
-            verdict: current.verdict,
-            attempts: current.attempts,
-        });
-        dispatch(breakStreakOf(current));
-        dispatch(installed({ state, dailyKey }));
-    };
-}
-
-/**
- * Shows the Game screen for the game in play (D9). Only a resumable game (started and not over) is continued; otherwise
- * nothing happens. It touches nothing but the route, so continuing never replaces the game or breaks a streak.
- */
-export function continueGame(): AppThunk {
-    return (dispatch, getState) => {
-        if (selectResumable(getState())) dispatch(setRoute('game'));
     };
 }

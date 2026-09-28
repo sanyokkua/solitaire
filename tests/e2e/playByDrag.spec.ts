@@ -18,5 +18,6 @@ test.describe('Playing by dragging', () => {
 
         await expect(page.locator(ANNOUNCER)).toContainText('You win');
         await expect(page.locator(MOVES_VALUE)).toHaveText('117');
+        await expect(page.getByRole('heading', { name: 'You win!' })).toBeVisible({ timeout: 4000 });
     });
 });

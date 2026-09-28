@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import type { CSSProperties } from 'react';
 import { useAppSelector } from '../../app/hooks';
 import type { PileRef } from '../../domain/types';
 import { selectHint, selectLegalTargets } from '../../features/interaction/selectors';
@@ -7,6 +6,7 @@ import { selectPreference } from '../../features/preferences/preferencesSlice';
 import { landingAreas, nextLanding, pileKey } from './landing';
 import type { BoardPiles, Layout, Point } from './layout';
 import type { Metrics } from './metrics';
+import { positionStyle } from './style';
 
 interface GhostsProps {
     readonly layout: Layout;
@@ -30,7 +30,7 @@ export function Ghosts({ layout, metrics, piles }: GhostsProps) {
 
     const placeAt = (target: PileRef): Point | undefined =>
         target.pile === 'tableau' ? nextLanding(layout, metrics, piles, target.col) : areas.get(pileKey(target));
-    const style = (at: Point) => ({ '--x': `${String(at.x)}px`, '--y': `${String(at.y)}px` }) as CSSProperties;
+    const style = (at: Point) => positionStyle(at.x, at.y);
 
     const hintTarget = hint?.kind === 'move' && hint.target !== 'stock' ? hint.target : undefined;
     const hintAt = hintTarget === undefined ? undefined : placeAt(hintTarget);

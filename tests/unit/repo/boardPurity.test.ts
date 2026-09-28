@@ -8,8 +8,13 @@ const ESLINT_CONFIG = resolve(import.meta.dirname, '../../../eslint.config.js');
 /** Timers, clocks and DOM entry points the shared scanner does not cover but the layout spec rules out. */
 const BOARD_ONLY_IDENTIFIERS =
     /\b(?:setTimeout|setInterval|requestAnimationFrame|Date|performance|matchMedia|ResizeObserver|getComputedStyle|globalThis|self)\b/g;
-/** A sibling board module (`./name`) or a domain module (`../../domain/name`); nothing else. */
-const ALLOWED_SPECIFIER = /^(?:\.\/[A-Za-z]+|\.\.\/\.\.\/domain\/[A-Za-z]+)(?:\.js)?$/;
+/**
+ * A sibling board module (`./name`), a domain module (`../../domain/name`) or the i18n translator type
+ * (`../../i18n/translate`, allowed only as a type-only import — see `namesUsesTranslateAsType` below); nothing else.
+ */
+const ALLOWED_SPECIFIER = /^(?:\.\/[A-Za-z]+|\.\.\/\.\.\/domain\/[A-Za-z]+|\.\.\/\.\.\/i18n\/translate)(?:\.js)?$/;
+/** `names.ts` is the one pure board module that names the translator's type, for `cardName`/`pileLabel`/`pileName`. */
+const TRANSLATE_IMPORTING_FILE = 'board/names.ts';
 
 function timersAndDomApis(source: string): string[] {
     return stripComments(source).match(BOARD_ONLY_IDENTIFIERS) ?? [];
@@ -85,6 +90,15 @@ describe('src/ui board purity (D6)', () => {
             expect(forbiddenGlobals(source)).toEqual([]);
             expect(usesCrypto(source)).toBe(false);
         });
+
+        if (file === TRANSLATE_IMPORTING_FILE) {
+            it('imports the translator only as a type', () => {
+                expect(source).toMatch(
+                    /^import type \{[^}]*\bTranslate\b[^}]*\} from '\.\.\/\.\.\/i18n\/translate';$/m,
+                );
+                expect(source).not.toMatch(/^import \{[^}]*\} from '\.\.\/\.\.\/i18n\/translate';$/m);
+            });
+        }
 
         it('uses no timers, clocks or DOM entry points', () => {
             expect(timersAndDomApis(source)).toEqual([]);

@@ -1,57 +1,33 @@
-import { rankOf, SUIT_KEYS, suitOf, type Rank } from '../../domain/cards';
+import { rankOf, suitOf } from '../../domain/cards';
 import type { CardId, PileRef } from '../../domain/types';
+import type { Translate } from '../../i18n/translate';
 
-/** The spelled-out name of each rank. */
-const RANK_WORDS: Readonly<Record<Rank, string>> = {
-    1: 'Ace',
-    2: 'Two',
-    3: 'Three',
-    4: 'Four',
-    5: 'Five',
-    6: 'Six',
-    7: 'Seven',
-    8: 'Eight',
-    9: 'Nine',
-    10: 'Ten',
-    11: 'Jack',
-    12: 'Queen',
-    13: 'King',
-};
-
-function capitalised(word: string): string {
-    return word.charAt(0).toUpperCase() + word.slice(1);
-}
-
-/** The accessible name of a card: "Queen of Spades" face up, "Face-down card" face down. */
-export function cardName(id: CardId, faceUp: boolean): string {
+/** The accessible name of a card: "Queen of Spades" face up, "Face-down card" face down (localised). */
+export function cardName(t: Translate, id: CardId, faceUp: boolean): string {
     if (!faceUp) {
-        return 'Face-down card';
+        return t('card.faceDown');
     }
-    return `${RANK_WORDS[rankOf(id)]} of ${capitalised(SUIT_KEYS[suitOf(id)])}`;
+    const rank = t(`card.rank.${String(rankOf(id))}`);
+    const suit = t(`card.suit.${String(suitOf(id))}`);
+    return t('card.name', { rank, suit });
 }
 
-function countSuffix(count: number): string {
-    if (count === 0) {
-        return 'empty';
-    }
-    return count === 1 ? '1 card' : `${String(count)} cards`;
-}
-
-/** The bare name of a pile, without a count: "Stock", "Waste", "Hearts foundation" or "Column 4". */
-export function pileLabel(ref: PileRef): string {
+/** The bare name of a pile, without a count: "Stock", "Waste", "Hearts foundation" or "Column 4" (localised). */
+export function pileLabel(t: Translate, ref: PileRef): string {
     switch (ref.pile) {
         case 'stock':
-            return 'Stock';
+            return t('pile.stock');
         case 'waste':
-            return 'Waste';
+            return t('pile.waste');
         case 'foundation':
-            return `${capitalised(SUIT_KEYS[ref.suit])} foundation`;
+            return t('pile.foundation', { suit: t(`card.suit.${String(ref.suit)}`) });
         case 'tableau':
-            return `Column ${String(ref.col + 1)}`;
+            return t('pile.column', { n: ref.col + 1 });
     }
 }
 
-/** The accessible name of a pile with its card count, such as "Column 4, 1 card" or "Stock, empty". */
-export function pileName(ref: PileRef, count: number): string {
-    return `${pileLabel(ref)}, ${countSuffix(count)}`;
+/** The accessible name of a pile with its card count, such as "Column 4, 1 card" or "Stock, empty" (localised). */
+export function pileName(t: Translate, ref: PileRef, count: number): string {
+    const countText = count === 0 ? t('pile.empty') : t('pile.count', { count });
+    return t('pile.withCount', { label: pileLabel(t, ref), count: countText });
 }

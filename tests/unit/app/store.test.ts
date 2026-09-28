@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createAppStore } from '../../../src/app/store';
-import { appReducer, selectRoute, setRoute } from '../../../src/app/appSlice';
+import { appReducer, setRoute } from '../../../src/app/appSlice';
+import { selectRoute } from '../../../src/app/selectors';
 import { dealFromSeed } from '../../../src/domain/deal';
 import type { GameState } from '../../../src/domain/types';
 import { committed, gameReducer, installed, type GameSliceState } from '../../../src/features/game/gameSlice';

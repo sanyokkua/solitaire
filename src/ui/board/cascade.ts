@@ -1,4 +1,5 @@
 import type { CascadePath } from './cascadeFrames';
+import { cardElement } from './dom';
 
 /** The gap between two cards' starts, in ms. */
 const STAGGER_MS = 70;
@@ -28,7 +29,7 @@ export function playCascade(boardEl: HTMLElement, paths: readonly CascadePath[])
         readonly resting: string;
     }[] = [];
     paths.forEach(({ id, frames }, index) => {
-        const el = boardEl.querySelector<HTMLElement>(`[data-card-id='${String(id)}']`);
+        const el = cardElement(boardEl, id);
         if (el === null) return;
         const resting = el.style.zIndex;
         const lifted = String(CASCADE_Z_BASE + index);
