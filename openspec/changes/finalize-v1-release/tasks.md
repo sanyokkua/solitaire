@@ -83,7 +83,7 @@
 
 ## 2. Quality work with no behaviour change (D15)
 
-- [ ] 2.1 Enforce the coverage thresholds in the validation gate
+- [x] 2.1 Enforce the coverage thresholds in the validation gate
     - **Implements:** RF "Single aggregate validation gate".
     - **Files:**
       - `package.json`: `validate` runs the unit and component suites with `--coverage`, in place of `test:unit`, keeping the step order;

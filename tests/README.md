@@ -135,7 +135,8 @@ and System (live, via `page.emulateMedia`) themes, night cards, the four-colour 
 `rtk npm run test:coverage` measures every file under `src/` (`coverage.include: ['src/**/*.{ts,tsx}']`), so a source
 file no test imports still appears in the report at 0% instead of being silently omitted. Only `src/main.tsx` and
 `src/vite-env.d.ts` are excluded. Thresholds are a single project-wide floor of 80% for lines, functions, branches and
-statements; there is no separate `src/domain` threshold. The text table hides files at 100%, so use the `html` report
+statements; there is no separate `src/domain` threshold. `rtk npm run validate` runs the unit and component suites
+with `--coverage`, so the thresholds are enforced by the gate. The text table hides files at 100%, so use the `html` report
 in `coverage/` (gitignored) to see every file.
 
 ### Visual-parity review of the Home and sheet screens (task 10.1)

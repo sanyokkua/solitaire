@@ -51,16 +51,27 @@ describe('package.json scripts', () => {
 
     it('runs the whole gate in order, with the guard after type checking and artifact validation after the build', () => {
         const steps = [
-            'format:check',
-            'lint',
-            'typecheck',
-            'validate:lifecycle-storage',
-            'test:unit',
-            'build',
-            'validate:artifact',
-        ].map((name) => `npm run ${name}`);
+            'npm run format:check',
+            'npm run lint',
+            'npm run typecheck',
+            'npm run validate:lifecycle-storage',
+            'vitest run tests/unit tests/component --coverage',
+            'npm run build',
+            'npm run validate:artifact',
+        ];
 
         expect(packageJson.scripts.validate).toBe(steps.join(' && '));
+    });
+
+    it('measures coverage in the gate, so the thresholds fail it even when every test passes', () => {
+        expect(packageJson.scripts.validate).toMatch(/vitest run tests\/unit tests\/component --coverage/);
+        expect(packageJson.scripts['test:unit']).toBe('vitest run tests/unit tests/component');
+    });
+
+    it('sets the coverage thresholds to 80% for lines, functions, branches and statements', () => {
+        expect(vitestConfig).toMatch(
+            /thresholds:\s*\{\s*lines:\s*80,\s*functions:\s*80,\s*branches:\s*80,\s*statements:\s*80\s*\}/,
+        );
     });
 });
 

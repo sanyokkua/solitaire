@@ -33,7 +33,7 @@ Configured in `vitest.config.ts`:
 Commands (prefix with `rtk` in this repo):
 
 ```sh
-npm run test:unit        # vitest run tests/unit tests/component (what validate and the pre-commit hook run)
+npm run test:unit        # vitest run tests/unit tests/component (what the pre-commit hook runs)
 npm run test             # vitest run (everything Vitest collects)
 npm run test:coverage    # vitest run --coverage
 npm run bench            # informational benchmark; never asserts, exits zero
@@ -51,9 +51,10 @@ npx vitest run tests/component/sheets
 
 `coverage.provider: 'v8'`, reporters `text` and `html` (`coverage/`, gitignored). It measures every file under `src/`
 (`src/**/*.{ts,tsx}`), excluding only `src/main.tsx` and `src/vite-env.d.ts`. Thresholds: one project-wide floor of 80%
-for lines, functions, branches and statements. There is no separate threshold for `src/domain`. Whether `npm run
-validate` or CI enforces coverage: it does not (`validate` runs `test:unit`, not `test:coverage`); TODO: confirm no
-other workflow does.
+for lines, functions, branches and statements. There is no separate threshold for `src/domain`. `npm run validate`
+runs the unit and component suites with `--coverage` (`vitest run tests/unit tests/component --coverage`), so a
+threshold miss fails the gate even when every test passes; CI runs `validate`, so it enforces the same floor. The
+pre-commit hook runs `test:unit` without coverage.
 
 ### Benchmark
 
@@ -73,7 +74,7 @@ These fail when architectural or configuration rules are broken.
 | `tests/unit/repo/layerBoundaries.test.ts`       | `src/i18n` and `src/pwa` import nothing from `app`, `features` or `ui`; only `useTranslate.ts` may import React or react-redux.                   |
 | `tests/unit/repo/storageBoundary.test.ts`       | Only `src/features/persistence/storageGateway.ts` may name `localStorage` or `sessionStorage`.                                                    |
 | `tests/unit/repo/eslintRules.test.ts`           | The ESLint import restrictions are really in force (for example a pure board module importing `app/appSlice` is reported).                        |
-| `tests/unit/repo/configContract.test.ts`        | `/solitaire/` base in Vite, Vitest and Playwright configs; `__APP_VERSION__` define; the `validate` chain order; `ci.yml` and `pages.yml` shape (permissions, triggers, concurrency, build-once, deploy job); PWA plugin settings and pinned versions; pinned action versions; no third-party host in `index.html`. |
+| `tests/unit/repo/configContract.test.ts`        | `/solitaire/` base in Vite, Vitest and Playwright configs; `__APP_VERSION__` define; the `validate` chain order, including its coverage step, and the 80% coverage thresholds; `ci.yml` and `pages.yml` shape (permissions, triggers, concurrency, build-once, deploy job); PWA plugin settings and pinned versions; pinned action versions; no third-party host in `index.html`. |
 | `tests/unit/repo/manifest.test.ts`              | Manifest start URL and scope, standalone display, palette colours, icons present on disk.                                                        |
 | `tests/unit/repo/icons.test.ts`                 | Generated icons; the maskable mark stays inside the safe zone.                                                                                   |
 | `tests/unit/repo/validateArtifact.test.ts`      | The four checks of `scripts/validate-artifact.mjs`, run against the mini trees in `tests/fixtures/dist/` (a `good` tree and broken variants).    |
@@ -164,9 +165,10 @@ Prefix with `rtk` as usual. Browsers must be installed once: `npx playwright ins
 
 | Check                          | Locally                                   | CI (`ci.yml`)           |
 | ------------------------------ | ----------------------------------------- | ----------------------- |
-| Vitest unit and component      | pre-commit hook, `validate`               | inside `validate`       |
+| Vitest unit and component      | pre-commit hook, `validate` (with coverage) | inside `validate`     |
 | Repo guard tests               | inside `test:unit`                        | inside `validate`       |
 | Playwright, all projects       | pre-push hook, `npm run e2e`              | after `validate`        |
-| Coverage, bench                | on demand                                 | not run                 |
+| Coverage                       | `validate` (unit and component suites)    | inside `validate`       |
+| Bench                          | on demand                                 | not run                 |
 
 See [CI and deployment](ci-and-deployment.md) and [workflow](workflow.md).
