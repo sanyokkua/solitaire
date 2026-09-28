@@ -3,9 +3,7 @@ import { dealFromSeed } from '../../src/domain/deal';
 import { accrued } from '../../src/features/game/gameSlice';
 import { undo } from '../../src/features/game/gameThunks';
 import { defaultPreferences } from '../../src/features/preferences/preferencesSlice';
-import type * as LayoutModule from '../../src/ui/board/layout';
 import { Board } from '../../src/ui/board/Board';
-import { positions } from '../../src/ui/board/layout';
 import { measure, type BoardSize } from '../../src/ui/board/metrics';
 import { cardIndex } from '../../src/ui/board/locate';
 import { pileKey } from '../../src/ui/board/locate';
@@ -16,18 +14,12 @@ import { FakeResizeObserver } from '../support/fakeResizeObserver';
 import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
 import { renderWithStore, type RenderWithStoreOptions } from '../support/renderWithStore';
 
-vi.mock('../../src/ui/board/layout', async (importOriginal) => {
-    const actual = await importOriginal<typeof LayoutModule>();
-    return { ...actual, positions: vi.fn(actual.positions) };
-});
-
 /** A stacked table with room for a full deal at a fine or a coarse pointer alike. */
 const STACKED: BoardSize = { width: 900, height: 800 };
 
 beforeEach(() => {
     FakeResizeObserver.instances.length = 0;
     vi.stubGlobal('ResizeObserver', FakeResizeObserver);
-    vi.mocked(positions).mockClear();
 });
 
 afterEach(() => {
@@ -205,13 +197,11 @@ describe('Board', () => {
         expect(coarse).toBeGreaterThan(fine);
     });
 
-    it('does not lay the table out again, or restyle a card, on a clock tick', () => {
+    it('keeps the piles and the rendered style of every card on a clock tick', () => {
         const { container, store } = renderBoard({ game: playedGame() });
         const before = store.getState().game.current;
         const stylesBefore = cardNodes(container).map(styleOf);
         const piles = selectBoardPiles(store.getState());
-        expect(positions).toHaveBeenCalled();
-        vi.mocked(positions).mockClear();
 
         act(() => {
             store.dispatch(accrued({ atMs: 1500, eligible: true }));
@@ -221,7 +211,6 @@ describe('Board', () => {
         expect(after).not.toBe(before);
         expect(after?.elapsedMs).toBeGreaterThan(before?.elapsedMs ?? 0);
         expect(selectBoardPiles(store.getState())).toBe(piles);
-        expect(positions).not.toHaveBeenCalled();
         expect(cardNodes(container).map(styleOf)).toEqual(stylesBefore);
     });
 

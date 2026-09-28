@@ -3,53 +3,9 @@ import { systemMotionChanged } from '../../../src/app/appSlice';
 import { createAppStore } from '../../../src/app/store';
 import { createThemeController } from '../../../src/app/themeController';
 import { preferenceSet } from '../../../src/features/preferences/preferencesSlice';
+import { createMatchMedia } from '../../support/mediaQueryList';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
-
-type MediaListener = (event: { matches: boolean }) => void;
-
-/** A controllable `matchMedia` result that records its listeners and can fire a `change` event. */
-interface FakeQuery {
-    matches: boolean;
-    readonly listeners: Set<MediaListener>;
-    change(matches: boolean): void;
-}
-
-function fakeQuery(matches: boolean): FakeQuery {
-    const listeners = new Set<MediaListener>();
-    const query: FakeQuery = {
-        matches,
-        listeners,
-        change: (next) => {
-            query.matches = next;
-            listeners.forEach((listener) => {
-                listener({ matches: next });
-            });
-        },
-    };
-    return query;
-}
-
-/** A `matchMedia` with one fake per query string; only the dark-scheme query is of interest to the controller. */
-function fakeMatchMedia(dark: FakeQuery) {
-    const other = fakeQuery(false);
-    const queries = new Map<string, FakeQuery>([[DARK_QUERY, dark]]);
-    return vi.fn((query: string) => {
-        const fake = queries.get(query) ?? other;
-        return {
-            get matches() {
-                return fake.matches;
-            },
-            media: query,
-            addEventListener: (_type: string, listener: MediaListener) => {
-                fake.listeners.add(listener);
-            },
-            removeEventListener: (_type: string, listener: MediaListener) => {
-                fake.listeners.delete(listener);
-            },
-        } as unknown as MediaQueryList;
-    });
-}
 
 let root: HTMLElement;
 
@@ -63,8 +19,8 @@ afterEach(() => {
 
 function setup(deviceDark: boolean) {
     const store = createAppStore();
-    const dark = fakeQuery(deviceDark);
-    const matchMedia = fakeMatchMedia(dark);
+    const dark = createMatchMedia({ [DARK_QUERY]: deviceDark });
+    const matchMedia = vi.fn(dark.matchMedia);
     const controller = createThemeController(store, root, matchMedia);
     return { store, dark, matchMedia, controller };
 }
@@ -102,10 +58,10 @@ describe('createThemeController', () => {
         const before = store.getState();
         expect(root.getAttribute('data-theme')).toBe('light');
 
-        dark.change(true);
+        dark.set(DARK_QUERY, true);
         expect(root.getAttribute('data-theme')).toBe('dark');
 
-        dark.change(false);
+        dark.set(DARK_QUERY, false);
         expect(root.getAttribute('data-theme')).toBe('light');
         expect(store.getState()).toBe(before);
     });
@@ -114,7 +70,7 @@ describe('createThemeController', () => {
         const { store, dark } = setup(false);
         store.dispatch(preferenceSet({ key: 'theme', value: 'light' }));
 
-        dark.change(true);
+        dark.set(DARK_QUERY, true);
 
         expect(root.getAttribute('data-theme')).toBe('light');
     });
@@ -181,7 +137,7 @@ describe('createThemeController', () => {
 
     it('tolerates a media query without addEventListener', () => {
         const store = createAppStore();
-        const matchMedia = vi.fn(() => ({ matches: true, media: DARK_QUERY }) as unknown as MediaQueryList);
+        const matchMedia = createMatchMedia({ [DARK_QUERY]: true }, { withoutEventListener: true }).matchMedia;
 
         const controller = createThemeController(store, root, matchMedia);
 
@@ -194,14 +150,14 @@ describe('createThemeController', () => {
     it('subscribes to the dark query and removes the listener and the store subscription on dispose', () => {
         const { store, dark, matchMedia, controller } = setup(false);
         expect(matchMedia).toHaveBeenCalledWith(DARK_QUERY);
-        expect(dark.listeners.size).toBe(1);
+        expect(dark.listenerCount(DARK_QUERY)).toBe(1);
 
         controller.dispose();
 
-        expect(dark.listeners.size).toBe(0);
+        expect(dark.listenerCount(DARK_QUERY)).toBe(0);
         store.dispatch(preferenceSet({ key: 'cardBack', value: 'navy' }));
         store.dispatch(preferenceSet({ key: 'theme', value: 'dark' }));
-        dark.change(true);
+        dark.set(DARK_QUERY, true);
         expect(root.getAttribute('data-back')).toBe('harbour');
         expect(root.getAttribute('data-theme')).toBe('light');
     });

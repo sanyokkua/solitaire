@@ -172,7 +172,7 @@
     - **Tests:** `tests/unit/features/game/dealCode.test.ts` and `tests/component/sheets/dealCode.test.tsx` stay green.
     - **Verify:** `rtk npx vitest run tests/unit/features/game tests/component/sheets` passes.
 
-- [ ] 2.9 Test hygiene
+- [x] 2.9 Test hygiene
     - **Implements:** D15 (test hygiene).
     - **Files:**
       - `tests/unit/features/game/finishable.test.ts` asserts that the Finish availability value stays stable across ticks, instead of counting `finishPlan` calls;

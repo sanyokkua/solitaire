@@ -1,21 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type * as SolverModule from '../../../src/solver/solver';
 import { findWinnable } from '../../../src/solver/winnable';
 import { corpusSeeds } from '../../fixtures/solverCorpus';
-
-/** Everything `solve` and `onAttempt` do, in call order; `solve` is wrapped, never replaced. */
-const events: string[] = [];
-
-vi.mock('../../../src/solver/solver', async (importOriginal) => {
-    const original = await importOriginal<typeof SolverModule>();
-    return {
-        ...original,
-        solve: (...args: Parameters<typeof original.solve>) => {
-            events.push('solve');
-            return original.solve(...args);
-        },
-    };
-});
 
 const BUDGET = 5000;
 const FASTEST_WIN_SEED = 19;
@@ -52,13 +37,10 @@ describe('findWinnable', () => {
         expect(attempts).toEqual([1, 2, 3]);
     });
 
-    it('reports attempt k before solving it', () => {
-        events.length = 0;
-        const result = findWinnable([LOSS_SEED, WIN_SEED], BUDGET, (attempt) => {
-            events.push(`attempt ${String(attempt)}`);
-        });
-        expect(events).toEqual(['attempt 1', 'solve', 'attempt 2', 'solve']);
-        expect(result.verdict).toBe('win');
+    it('reports each attempt number in order, one per candidate tried', () => {
+        const { result, attempts } = run([LOSS_SEED, WIN_SEED]);
+        expect(attempts).toEqual([1, 2]);
+        expect(result).toEqual({ seed: WIN_SEED, verdict: 'win', attempts: 2 });
     });
 
     it('falls back to the last seed as random when no candidate wins', () => {

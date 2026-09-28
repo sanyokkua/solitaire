@@ -169,3 +169,118 @@ describe('applyUpdate with the real writer over a storage that fails (PW "Update
         writer.dispose();
     });
 });
+
+describe('createSavePort over real writers', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+    });
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
+    /** A real writer over its own in-memory storage, subscribed to `store`. */
+    function writerOver(store: ReturnType<typeof testStore>) {
+        const storage = memoryStorage();
+        const writer = createPersistenceWriter(store, createStorageGateway(storage), { now: () => Date.now() });
+        return { storage, writer };
+    }
+
+    /** A store whose game was installed after the writers were created, so a save is waiting. */
+    function installGame(store: ReturnType<typeof testStore>): void {
+        store.dispatch(installed({ state: dealFromSeed(WINNING_LINE.seed, 'draw1'), dailyKey: null }));
+    }
+
+    it('does nothing before connect, and a writer connected later still finds its save waiting', () => {
+        const store = testStore();
+        const { storage, writer } = writerOver(store);
+        const port = createSavePort();
+        installGame(store);
+
+        expect(() => {
+            port.flush();
+            port.flushQuietly();
+            port.cancel();
+        }).not.toThrow();
+        expect(storage.getItem(STORAGE_KEY)).toBeNull();
+
+        port.connect(writer);
+        port.flush();
+
+        expect(storage.getItem(STORAGE_KEY)).not.toBeNull();
+        writer.dispose();
+    });
+
+    it('forwards flush to the connected writer, writing the waiting save now', () => {
+        const store = testStore();
+        const { storage, writer } = writerOver(store);
+        const port = createSavePort();
+        port.connect(writer);
+        installGame(store);
+        expect(storage.getItem(STORAGE_KEY)).toBeNull();
+
+        port.flush();
+
+        expect(storage.getItem(STORAGE_KEY)).not.toBeNull();
+        writer.dispose();
+    });
+
+    it('forwards cancel to the connected writer, dropping the waiting save', () => {
+        const store = testStore();
+        const { storage, writer } = writerOver(store);
+        const port = createSavePort();
+        port.connect(writer);
+        installGame(store);
+
+        port.cancel();
+        vi.advanceTimersByTime(10_000);
+
+        expect(storage.getItem(STORAGE_KEY)).toBeNull();
+        writer.dispose();
+    });
+
+    it('forwards flushQuietly to the connected writer: a failed write stays silent', () => {
+        const store = testStore();
+        const { storage, writer } = writerOver(store);
+        const port = createSavePort();
+        port.connect(writer);
+        installGame(store);
+        storage.failWrites = true;
+
+        port.flushQuietly();
+
+        expect(store.getState().persistence.lastError).toBeNull();
+        expect(store.getState().app.notices).toEqual([]);
+        writer.dispose();
+    });
+
+    it('forwards flush to the connected writer: a failed write is reported', () => {
+        const store = testStore();
+        const { storage, writer } = writerOver(store);
+        const port = createSavePort();
+        port.connect(writer);
+        installGame(store);
+        storage.failWrites = true;
+
+        port.flush();
+
+        expect(store.getState().persistence.lastError).not.toBeNull();
+        writer.dispose();
+    });
+
+    it('forwards to the latest connected writer only', () => {
+        const store = testStore();
+        const first = writerOver(store);
+        const second = writerOver(store);
+        const port = createSavePort();
+        port.connect(first.writer);
+        port.connect(second.writer);
+        installGame(store);
+
+        port.flush();
+
+        expect(first.storage.getItem(STORAGE_KEY)).toBeNull();
+        expect(second.storage.getItem(STORAGE_KEY)).not.toBeNull();
+        first.writer.dispose();
+        second.writer.dispose();
+    });
+});

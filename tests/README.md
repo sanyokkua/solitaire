@@ -41,9 +41,13 @@ Layers:
   and returns `{ store, ...renderResult }`; `fakeResizeObserver.ts` exports
   `FakeResizeObserver` (records its instances and observe/disconnect calls; `trigger({ width, height })` reports a size
   inside `act`; a test empties `instances` in `beforeEach` and installs it with `vi.stubGlobal('ResizeObserver', ...)`);
-  `matchMedia.ts` exports `stubMatchMedia(queries)` (exactly those queries match), `controllableMatchMedia()` (one live
-  fake per query, `set(query, matches)` fires its listeners inside `act`, `listenerCount(query)`) and
-  `restoreMatchMedia()` (puts back the `setup.ts` stub, for `afterEach`)
+  `matchMedia.ts` exports `stubMatchMedia(queries)` (exactly those queries match), `controllableMatchMedia(initial?,
+options?)` (one live fake per query, matching only the queries `initial` sets to true; `set(query, matches)` fires
+  its listeners inside `act`, `listenerCount(query)`; `options.withoutEventListener` gives lists with no
+  `addEventListener`), `removeMatchMedia()` (an environment without `window.matchMedia`) and `restoreMatchMedia()`
+  (puts back the `setup.ts` stub, for `afterEach`); all of them are built on the plain factory in `mediaQueryList.ts`
+  (`createMediaQueryList`, `createMatchMedia`), which imports nothing from Testing Library, so `setup.ts` and the unit
+  tests that hand a `matchMedia` function to the code under test (`unit/app/themeController.test.ts`) share it
 - `e2e/` — Playwright end-to-end specs against the built artifact (added in Phase 1)
 - `bench/` — the informational KS-PERF-02 latency benchmark for the winnable-deal search (`bench/winnable.bench.ts`); see "Benchmark" below
 - `fixtures/` — shared, non-test builders used by unit tests, such as seeded deals and game-state helpers (not
@@ -52,14 +56,39 @@ Layers:
 
 `setup.ts` is the shared Vitest setup file (`tests/setup.ts`), loaded via `vitest.config.ts`.
 
+## Test doubles
+
+Real code first: a test runs the real module and asserts what an observer can see (state, rendered output, written
+storage), not how often an internal function was called. `vi.fn` and `vi.spyOn` stand in for a callback or a boundary
+the test hands in; they do not wrap our own functions to count calls.
+
+Only three tests mock a module of ours, and each has a reason a real module cannot give:
+
+- `unit/solver/hint.defensive.test.ts` mocks the solver entry itself, to force a defensive path that the real solver
+  never takes;
+- `component/pseudoLocale.test.tsx` and `component/sheets/settings.test.tsx` (`vi.doMock`) register an extra language in
+  the static catalog registry, which nothing else can extend at run time.
+
+`rg "vi\.(do)?[mM]ock\(" tests` must list only those three files.
+
+The other doubles stand in for a real boundary:
+
+- **Worker**: `fixtures/workers.ts` (`StubWorker`, `stubFactory`, `stubAt`) and `@vitest-environment node` for the real
+  module (see below);
+- **Storage**: `fixtures/storage.ts` (`memoryStorage`, `throwingStorage`), always injected (see "Storage in tests");
+- **`ResizeObserver`**: the inert stub in `setup.ts`, and `support/fakeResizeObserver.ts` when a test reports a size;
+- **`matchMedia`**: one fake, `support/matchMedia.ts` (built on `support/mediaQueryList.ts`, which `setup.ts` also
+  uses); no test writes its own;
+- **Web Animations** (`support/waapi.ts`) and **pointer capture** (`support/pointer.ts`), which jsdom lacks.
+
 ## Node-environment and worker tests
 
 Vitest runs in `jsdom` by default (document URL `http://localhost/solitaire/`). A test file that starts a worker (the
 worker and deal-service suites) declares `// @vitest-environment node` as its first line; pure solver tests keep jsdom; `setup.ts` skips
 its DOM-only `matchMedia` stub when there is no `window`, so it loads in either environment. The stub is query-aware:
 it returns a fresh list per call that matches nothing by default and really registers and removes its listeners (both
-`addEventListener` and the legacy `addListener`). A test that needs a query to match, or to fire `change`, installs its own
-fake (`appLifecycle.wiring.test.tsx` returns one controllable fake per query).
+`addEventListener` and the legacy `addListener`). A test that needs a query to match, or to fire `change`, installs
+`controllableMatchMedia()` from `support/matchMedia.ts` (see "Test doubles").
 
 Worker entry modules run in-process, with no browser: a test imports `@vitest/web-worker` at the top of the file and then
 constructs the real module with `new Worker(new URL('../../../src/solver/solver.worker.ts', import.meta.url), { type: 'module' })`
