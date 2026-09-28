@@ -5,12 +5,12 @@ The pure Klondike game engine (Phase 2 — Card engine).
 - `cards.ts` — card id `0..51`, the validity check `isCardId` (for the Phase 4 persistence decoder), suit/rank/colour helpers (`suitOf`, `rankOf`, `cardId`, `colorOf`), labels (`cardLabels`), foundation display order (`FOUNDATION_DISPLAY_ORDER`, ♥ ♣ ♦ ♠, distinct from the ♥ ♦ ♣ ♠ suit encoding), and the shared pile and suit lists `TABLEAU_COLS` and `SUITS`
 - `prng.ts` — `mulberry32`, `cryptoSeed()` (injectable `SeedSource`; the only domain module that may reference `crypto`)
 - `dealCode.ts` — `encodeDealCode` / `decodeDealCode`: seed+mode ↔ `"1-K7Q29XD"`
-- `deal.ts` — `orderedDeck`, Fisher–Yates `shuffle`, `modeConfig`, `dealFromSeed()` (records the seed reduced to unsigned 32 bits)
+- `deal.ts` — `orderedDeck`, Fisher–Yates `shuffle`, `MODES` (the four game modes, the one list the validator, the record codec and the statistics sheet share), `modeConfig`, `dealFromSeed()` (records the seed reduced to unsigned 32 bits)
 - `rules.ts` — `canDrop`, `legalTargets`, `isMovable`, `groupAt`, `canRecycle`, `passLimit`, `isWon`, guarded pile accessors
 - `engine.ts` — `applyCommand(state, cmd) → { state, events }`
 - `validate.ts` — `isValidGameState(value): value is GameState`, the total, never-throwing shape and
   invariant check reused by the Phase 4 persistence decoder (design D13); reuses `isCardId` (cards.ts),
-  `modeConfig` (deal.ts) and `isWon` (rules.ts)
+  `MODES` and `modeConfig` (deal.ts) and `isWon` (rules.ts)
 - `scoring.ts` — `startingScore`, per-event and per-command deltas (`eventDelta`, `commandDelta`), the clamped `applyDelta`, `timePenalty`, `winBonus`, `undoCost`, `displayedScore`
 - `safeMoves.ts` — `isReady`, `isSafe`, `nextSafeMove`, and the shared source-card scan (`Source`, `sourceCards`)
 - `hint.ts` — the hint types (`Hint`, `MoveHint`, `MoveCommand`, `HintPriority`), `findMove` and `hint`

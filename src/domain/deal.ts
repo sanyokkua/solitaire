@@ -15,6 +15,9 @@ const MODE_CONFIG: Readonly<Record<Mode, ModeConfig>> = {
     daily: { draw: 1, scoring: 'standard' },
 };
 
+/** Every game mode, in display order; the one list the validator, the record codec and the statistics sheet share. */
+export const MODES: readonly Mode[] = ['draw1', 'draw3', 'vegas', 'daily'];
+
 export function modeConfig(mode: Mode): ModeConfig {
     return MODE_CONFIG[mode];
 }

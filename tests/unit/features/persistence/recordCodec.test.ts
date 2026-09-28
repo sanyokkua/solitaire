@@ -15,13 +15,13 @@ import { commit, undo, type Session } from '../../../../src/features/game/histor
 import { defaultPreferences, type Preferences } from '../../../../src/features/preferences/preferencesSlice';
 import {
     BACKUP_KEY,
-    MAX_STORED_STEPS,
     RECORD_VERSION,
     STORAGE_KEY,
     decodeRecord,
     encodeRecord,
     type RecordInput,
 } from '../../../../src/features/persistence/recordCodec';
+import { MAX_STORED_STEPS } from '../../../../src/features/persistence/sessionCodec';
 import type { StatsState } from '../../../../src/features/stats/statsSlice';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
 

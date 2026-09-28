@@ -25,7 +25,7 @@ export interface WinRecord {
 }
 
 /** How many completed Daily dates are kept; the stored best streak outlives the trimmed ones. */
-const MAX_DAILY_COMPLETED = 400;
+export const MAX_DAILY_COMPLETED = 400;
 
 const emptyModeStats = (): ModeStats => ({
     played: 0,

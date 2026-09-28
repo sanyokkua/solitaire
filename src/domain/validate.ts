@@ -1,5 +1,5 @@
 import { DECK_SIZE, isCardId, rankOf, suitOf } from './cards';
-import { modeConfig } from './deal';
+import { MODES, modeConfig } from './deal';
 import { isWon } from './rules';
 import type { CardId, Column, GameState, Mode, Pile, Suit, TableauCard } from './types';
 
@@ -15,7 +15,7 @@ function isNonNegativeInteger(value: unknown): value is number {
 
 /** One of the four known game modes. */
 function isMode(value: unknown): value is Mode {
-    return value === 'draw1' || value === 'draw3' || value === 'vegas' || value === 'daily';
+    return MODES.some((mode) => mode === value);
 }
 
 /**

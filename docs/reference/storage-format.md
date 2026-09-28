@@ -109,7 +109,7 @@ What the app does with each outcome (from `src/features/persistence/persistenceL
 | --- | --- | --- |
 | stored undo steps | 200 newest | `src/features/persistence/sessionCodec.ts#MAX_STORED_STEPS` |
 | stored redo steps | 200 nearest | same |
-| completed Daily dates kept | 400 | `src/features/persistence/recordCodec.ts` (`MAX_DAILY_COMPLETED`), matching `src/features/stats/statsSlice.ts` |
+| completed Daily dates kept | 400 | `src/features/stats/statsSlice.ts#MAX_DAILY_COMPLETED`, also enforced by the decoder in `recordCodec.ts` |
 | save debounce | 250 ms after the last change | `src/features/persistence/persistenceWriter.ts` (`DEBOUNCE_MS`) |
 | clock-only save interval | at most every 5 s | same (`CLOCK_INTERVAL_MS`) |
 | record version | 1 (`RECORD_VERSION`) | `src/features/persistence/recordCodec.ts` |

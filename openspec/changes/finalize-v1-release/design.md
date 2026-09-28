@@ -474,7 +474,7 @@ test:
 | Coverage | `validate` runs the unit and component suites with coverage, so the 80% thresholds are enforced. If they fail, stop and surface it; never lower the bar |
 | Thunk extra | One `assembleThunkExtra(overrides)` used by `store.ts` and `lifecycle.tsx`. The loader reads `extra.languages` |
 | Dead code | `readOnlyEntered`, `selectBusy` and `selectPendingHint` are removed. `StatsSheet` uses `selectWinRate` (a fraction from 0 to 1), formatting it as today's rounded percent and keeping "—" when nothing is played |
-| Single sources | `MODES` in `domain/deal.ts`; `MAX_DAILY_COMPLETED` in `statsSlice`; the codec guards in `persistence/guards.ts`, with `dayKeys` reusing `isDayKey` |
+| Single sources | `MODES` in `domain/deal.ts`; `MAX_DAILY_COMPLETED` in `statsSlice`; the codec guards in `persistence/guards.ts` |
 | Engine casts | `engine.ts:47,53` use a typed tuple update, with no `as unknown as` |
 | Pile identity | One exported `samePile` (from `rules.ts`). `pileKey` moves from `landing.ts` to `locate.ts`, beside `cardIndex`. Keyboard hits come from `selectCardLocations` |
 | Sheets and shortcuts | `ModalSheet`'s `returnFocusFallback` becomes optional and defaults to `onDismiss`; About, Help, NewDeal and Stats, which pass `dismiss` today, drop it, while Settings, Win, Paused and DealCode keep their own. `ModalSheet` loses `data-testid` (tests find the backdrop through the dialog's parent). `SheetHost` has an exhaustive map; `SettingsSheet` builds its switch rows from one list; `useGameShortcuts` has one pause guard and one auto-repeat check |

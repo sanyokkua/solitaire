@@ -198,24 +198,25 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
   throws, as in Safari private mode; tests inject `memoryStorage()` or `throwingStorage()` from
   `tests/fixtures/storage.ts`
 - `persistence/recordCodec.ts` — the v1 device record, pure. Exports `STORAGE_KEY` (`solitaire.local-state`),
-  `BACKUP_KEY` (`solitaire.local-state.unreadable`), `RECORD_VERSION` (1) and `MAX_STORED_STEPS` (200).
+  `BACKUP_KEY` (`solitaire.local-state.unreadable`) and `RECORD_VERSION` (1).
   `encodeRecord({ preferences, stats, game })` returns one JSON string whose objects are built field by field in a
   fixed order (`version`, `preferences`, `stats`, then `session`), so equal input always gives the identical string;
   `session` is present only for a started game that is still playing. `decodeRecord(raw)` never throws and returns
   `{ ok: true, record: { preferences, stats, session } }` or `{ ok: false, reason }`: `empty` (no stored value),
   `malformed` (not JSON), `future` (a version above 1, never interpreted) or `invalid` (anything else that is not
   exactly a valid v1 record). Every object must have exactly its known keys; the enum values, non-negative integer
-  counts (a mode's `streak` may not exceed its `bestStreak`), `bestTimeMs`, `bestScore` and the Daily list (at most 400 real, strictly ascending `YYYY-MM-DD` dates) are
+  counts (a mode's `streak` may not exceed its `bestStreak`), `bestTimeMs`, `bestScore` and the Daily list (at most `MAX_DAILY_COMPLETED`, 400, real, strictly ascending `YYYY-MM-DD` dates, the cap exported by `statsSlice.ts`) are
   checked, and a bad part rejects the whole record, with no salvage
-- `persistence/sessionCodec.ts` — the stored game, used by `recordCodec.ts`. `encodeSession` keeps the newest 200
+- `persistence/guards.ts` — the shape checks the codecs share when decoding untrusted storage: `isRecord`, `hasExactKeys`
+  (required and optional keys; unknown keys fail) and `isDayKey` (a real UTC `YYYY-MM-DD` date)
+- `persistence/sessionCodec.ts` — the stored game, used by `recordCodec.ts`. Exports `MAX_STORED_STEPS` (200). `encodeSession` keeps the newest 200
   history steps and the nearest 200 future steps (the tail of each stack, since the next redo is last) as compact
   steps holding `tableau`, `stock`, `waste`, `foundations`, `score`, `moves`, `passes`, `elapsedMs`, `undos` and
   `started` (the last three because a snapshot keeps the values it had when captured). `decodeSession` accepts exactly
   `current`, `history`, `future`, `dailyKey` (a real date, and only for a Daily game, or `null`) and `counted`;
   `current` must pass `isValidGameState`, have exactly the `GameState` keys and `{ id, up }` cards, and be started and
   playing; each step is rebuilt into a full `GameState` (the constant fields
-  copied from `current`, `status` `playing`) that must pass `isValidGameState` too, so a round trip is exact. Also
-  exports the shared `isRecord`, `hasExactKeys` and `isDayKey` checks
+  copied from `current`, `status` `playing`) that must pass `isValidGameState` too, so a round trip is exact
 - `persistence/persistenceSlice.ts` — what the shell needs to know about saving: `{ readOnly, lastError }`, starting at
   `{ readOnly: false, lastError: null }` (`initialPersistenceState`). Read-only comes only from the loader's `preloadedState`, and stops saving for the
   session; `writeFailed()` sets `lastError` to `'write'`, and `writeSucceeded()` clears it only if it is `'write'`, so a

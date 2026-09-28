@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { MODES } from '../../domain/deal';
 import type { Mode } from '../../domain/types';
 import { closeSheet } from '../../features/game/navigationThunks';
 import { resetStatistics } from '../../features/persistence/resetThunks';
@@ -9,8 +10,6 @@ import { useToday } from '../useToday';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { formatBank, formatTime } from '../format';
 import { ModalSheet } from './ModalSheet';
-
-const MODES: readonly Mode[] = ['draw1', 'draw3', 'vegas', 'daily'];
 
 /** Shown for a record that does not exist yet (SH "Statistics sheet"). */
 const MISSING = '—';

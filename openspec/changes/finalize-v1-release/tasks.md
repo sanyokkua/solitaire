@@ -117,18 +117,17 @@
       - `tests/component/sheets/stats.test.tsx` still shows the same win rates.
     - **Verify:** `rtk npx vitest run tests/unit/features tests/component/sheets/stats.test.tsx` passes, and `rg "readOnlyEntered|selectBusy|selectPendingHint" src tests` finds nothing.
 
-- [ ] 2.4 One source for the mode list, the Daily cap and the codec guards
+- [x] 2.4 One source for the mode list, the Daily cap and the codec guards
     - **Implements:** D15 (single sources).
     - **Files:**
       - `src/domain/deal.ts` exports `MODES`, used by `src/domain/validate.ts:18`, `src/features/persistence/recordCodec.ts:47` and `src/ui/sheets/StatsSheet.tsx:13`;
       - `MAX_DAILY_COMPLETED` is defined only in `src/features/stats/statsSlice.ts`;
       - new `src/features/persistence/guards.ts` holds `isRecord`, `hasExactKeys` and `isDayKey` (moved from `sessionCodec.ts:76-101`);
-      - `src/features/stats/dayKeys.ts` reuses `isDayKey`;
       - `recordCodec.ts:26` drops the test-only re-export;
       - `src/domain/README.md`, `src/features/README.md`.
     - **Tests:**
       - new `tests/unit/features/persistence/guards.test.ts` (exact keys, day keys including 2026-02-30 rejected, non-objects);
-      - `recordCodec.test.ts`, `sessionCodec.test.ts` and `dayKeys.test.ts` keep their assertions.
+      - `recordCodec.test.ts` and `dayKeys.test.ts` keep their assertions; `sessionCodec.test.ts`, which only tested the moved guards, becomes `guards.test.ts`.
     - **Verify:** `rtk npx vitest run tests/unit/features tests/unit/domain` passes.
 
 - [ ] 2.5 Engine tuple updates without casts

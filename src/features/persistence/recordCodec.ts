@@ -1,17 +1,9 @@
-import type { Mode } from '../../domain/types';
-import type { ModeStats, StatsState } from '../stats/statsSlice';
+import { MODES } from '../../domain/deal';
+import { MAX_DAILY_COMPLETED, type ModeStats, type StatsState } from '../stats/statsSlice';
 import { SUPPORTED_LOCALES } from '../preferences/locale';
 import type { CardBack, Preferences, TapMode, Theme } from '../preferences/preferencesSlice';
-import {
-    MAX_STORED_STEPS,
-    decodeSession,
-    encodeSession,
-    hasExactKeys,
-    isDayKey,
-    isRecord,
-    type SessionInput,
-    type StoredSession,
-} from './sessionCodec';
+import { hasExactKeys, isDayKey, isRecord } from './guards';
+import { decodeSession, encodeSession, type SessionInput, type StoredSession } from './sessionCodec';
 
 /**
  * The device record `solitaire.local-state`, version 1 (D5 and D13): one JSON object holding the preferences, the
@@ -23,7 +15,6 @@ export const STORAGE_KEY = 'solitaire.local-state';
 /** Where an unreadable record is copied before anything is written over it (D3). */
 export const BACKUP_KEY = 'solitaire.local-state.unreadable';
 export const RECORD_VERSION = 1;
-export { MAX_STORED_STEPS, type StoredSession };
 
 /** What the writer hands the encoder; structurally a subset of the store's slices, so no store import is needed. */
 export interface RecordInput {
@@ -43,10 +34,6 @@ export type DecodeFailure = 'empty' | 'malformed' | 'invalid' | 'future';
 
 export type DecodeResult =
     { readonly ok: true; readonly record: DecodedRecord } | { readonly ok: false; readonly reason: DecodeFailure };
-
-const MODES: readonly Mode[] = ['draw1', 'draw3', 'vegas', 'daily'];
-/** How many completed Daily dates a record keeps (matches the statistics slice). */
-const MAX_DAILY_COMPLETED = 400;
 
 const RECORD_KEYS = ['version', 'preferences', 'stats'] as const;
 const PREFERENCE_KEYS = [
