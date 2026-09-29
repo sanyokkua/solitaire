@@ -13,12 +13,23 @@ import {
 } from '../../../../src/features/game/gameSlice';
 import { loadInitialState } from '../../../../src/features/persistence/persistenceLoader';
 import { initialPersistenceState } from '../../../../src/features/persistence/persistenceSlice';
-import { BACKUP_KEY, STORAGE_KEY, encodeRecord } from '../../../../src/features/persistence/recordCodec';
+import {
+    BACKUP_KEY,
+    RECORD_VERSION,
+    STORAGE_KEY,
+    decodeRecord,
+    encodeRecord,
+} from '../../../../src/features/persistence/recordCodec';
+import { createPersistenceWriter } from '../../../../src/features/persistence/persistenceWriter';
 import { createStorageGateway, type StorageGateway } from '../../../../src/features/persistence/storageGateway';
-import { defaultPreferences, type Preferences } from '../../../../src/features/preferences/preferencesSlice';
+import {
+    defaultPreferences,
+    preferenceSet,
+    type Preferences,
+} from '../../../../src/features/preferences/preferencesSlice';
 import { statsReducer, type StatsState } from '../../../../src/features/stats/statsSlice';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
-import { memoryStorage, throwingStorage, type MemoryStorage } from '../../../fixtures/storage';
+import { V1_RECORD, memoryStorage, throwingStorage, type MemoryStorage } from '../../../fixtures/storage';
 import { testStore } from '../../../support/testStore';
 
 const NO_LANGUAGES: readonly string[] = [];
@@ -65,7 +76,7 @@ const invalidRaw = (): string => {
     stock[0] = stock[1] ?? 0;
     return JSON.stringify(record);
 };
-const futureRaw = JSON.stringify({ version: 2, anything: true });
+const futureRaw = JSON.stringify({ version: 3, anything: true });
 
 function seeded(entries: Record<string, string>): MemoryStorage {
     const storage = memoryStorage();
@@ -158,9 +169,50 @@ describe('loadInitialState', () => {
         });
     });
 
+    describe('a version 1 record', () => {
+        it('loads upgraded, with the backup key empty and no notice, and the next save writes version 2', () => {
+            const storage = seeded({ [STORAGE_KEY]: V1_RECORD });
+            const { gateway, writes, removals } = spied(storage);
+
+            const { preloadedState, notices } = loadInitialState(gateway, ['en']);
+            const store = testStore({ preloadedState });
+            const state = store.getState();
+
+            expect(notices).toEqual([]);
+            expect(state.persistence).toEqual(initialPersistenceState);
+            expect(state.preferences).toEqual({
+                ...(JSON.parse(V1_RECORD) as { preferences: object }).preferences,
+                difficulty: 'any',
+            });
+            expect(selectResumable(state)).toBe(true);
+            expect(state.game.history).toHaveLength(3);
+            expect(state.game.future).toHaveLength(1);
+            expect(state.game.counted).toBe(true);
+            expect(storage.getItem(BACKUP_KEY)).toBeNull();
+            expect(storage.getItem(STORAGE_KEY)).toBe(V1_RECORD);
+            expect(writes).toEqual([]);
+            expect(removals).toEqual([]);
+
+            // The next change is saved through the real writer, as a version 2 record that still holds the game.
+            const writerStore = testStore({ preloadedState, deps: { now: () => Date.now(), gateway } });
+            const writer = createPersistenceWriter(writerStore, gateway, { now: () => Date.now() });
+            writerStore.dispatch(preferenceSet({ key: 'theme', value: 'light' }));
+            writer.flush();
+            writer.dispose();
+
+            expect(writes).toEqual([STORAGE_KEY]);
+            const saved = storage.getItem(STORAGE_KEY);
+            expect((JSON.parse(saved ?? 'null') as { version: number }).version).toBe(RECORD_VERSION);
+            const decoded = decodeRecord(saved);
+            expect(decoded.ok && decoded.record.preferences).toEqual({ ...state.preferences, theme: 'light' });
+            expect(decoded.ok && decoded.record.session?.history).toHaveLength(3);
+            expect(storage.getItem(BACKUP_KEY)).toBeNull();
+        });
+    });
+
     describe.each([
         ['corrupt JSON', () => corruptRaw],
-        ['a version-2 record', () => futureRaw],
+        ['a version-3 record', () => futureRaw],
         ['an invalid record', invalidRaw],
     ])('%s', (_name, makeRaw) => {
         it('starts with the defaults, backs the raw string up and raises the read notice', () => {
@@ -252,7 +304,7 @@ describe('loadInitialState', () => {
     });
 
     it('never writes the main record, whatever it holds', () => {
-        for (const raw of [validRaw(), corruptRaw, futureRaw, invalidRaw()]) {
+        for (const raw of [validRaw(), V1_RECORD, corruptRaw, futureRaw, invalidRaw()]) {
             const { gateway, writes, removals } = spied(seeded({ [STORAGE_KEY]: raw }));
 
             loadInitialState(gateway, NO_LANGUAGES);

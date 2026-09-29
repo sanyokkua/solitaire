@@ -11,7 +11,7 @@ this page is the map.
 | Slice         | File                                           | Holds                                                                                                                                                    | Persisted                                                                               |
 | ------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `app`         | `src/app/appSlice.ts`                          | route (`home`/`game`), open sheet (one of eight), notices, document visibility, system reduced-motion, dealing progress, `installable`, `updateDeferred` | no                                                                                      |
-| `preferences` | `src/features/preferences/preferencesSlice.ts` | the twelve settings                                                                                                                                      | yes                                                                                     |
+| `preferences` | `src/features/preferences/preferencesSlice.ts` | the thirteen settings                                                                                                                                    | yes                                                                                     |
 | `stats`       | `src/features/stats/statsSlice.ts`             | per-mode stats and Daily record                                                                                                                          | yes                                                                                     |
 | `game`        | `src/features/game/gameSlice.ts`               | `current`, `history`, `future`, `dailyKey`, `counted`; runtime `busy`, `epoch`, `clock.anchorMs`                                                         | `current`, `history`, `future`, `dailyKey`, `counted` (only a started, unfinished game) |
 | `interaction` | `src/features/interaction/interactionSlice.ts` | selection, hint, pending hint, announcement log, reported dead ends, win summary                                                                         | no                                                                                      |
@@ -113,7 +113,9 @@ flowchart TD
 - Gateway: `src/features/persistence/storageGateway.ts#createStorageGateway` wraps `getItem`/`setItem`/`removeItem`;
   failures (no storage, blocked, full) return `{ ok: false, error }` and are never thrown.
 - Codec: `src/features/persistence/recordCodec.ts#encodeRecord` and `#decodeRecord`, with the session part in
-  `src/features/persistence/sessionCodec.ts`. The format is in [storage-format.md](../reference/storage-format.md).
+  `src/features/persistence/sessionCodec.ts`. The record is version 2 (`RECORD_VERSION`); the decoder also reads
+  version 1 and upgrades it in memory, so an older record loads without a backup or a notice and the next save writes
+  version 2. The format is in [storage-format.md](../reference/storage-format.md).
 - Loader: `src/features/persistence/persistenceLoader.ts#loadInitialState` reads before the store exists and returns
   `preloadedState` plus notices to raise. It never throws and never touches the main record. Its only write is one
   copy of an unreadable record to the backup key.

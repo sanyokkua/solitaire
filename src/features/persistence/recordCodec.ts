@@ -1,20 +1,27 @@
 import { MODES } from '../../domain/deal';
 import { MAX_DAILY_COMPLETED, type ModeStats, type StatsState } from '../stats/statsSlice';
 import { SUPPORTED_LOCALES } from '../preferences/locale';
-import type { CardBack, Preferences, TapMode, Theme } from '../preferences/preferencesSlice';
+import type { CardBack, Difficulty, Preferences, TapMode, Theme } from '../preferences/preferencesSlice';
 import { hasExactKeys, isDayKey, isRecord } from './guards';
-import { decodeSession, encodeSession, type SessionInput, type StoredSession } from './sessionCodec';
+import {
+    decodeSession,
+    encodeSession,
+    type RecordVersion,
+    type SessionInput,
+    type StoredSession,
+} from './sessionCodec';
 
 /**
- * The device record `solitaire.local-state`, version 1 (D5 and D13): one JSON object holding the preferences, the
+ * The device record `solitaire.local-state`, version 2 (D5, D10 and D13): one JSON object holding the preferences, the
  * statistics and, only while a game is resumable, that game. Pure: no storage, no clock, no randomness. The decoder
- * accepts a record whole or not at all; it never salvages a valid part of a bad record (D3).
+ * accepts a record whole or not at all; it never salvages a valid part of a bad record (D3). A readable version 1
+ * record is upgraded in memory, losslessly, and is written as version 2 by the next save.
  */
 
 export const STORAGE_KEY = 'solitaire.local-state';
 /** Where an unreadable record is copied before anything is written over it (D3). */
 export const BACKUP_KEY = 'solitaire.local-state.unreadable';
-export const RECORD_VERSION = 1;
+export const RECORD_VERSION = 2;
 
 /** What the writer hands the encoder; structurally a subset of the store's slices, so no store import is needed. */
 export interface RecordInput {
@@ -36,7 +43,8 @@ export type DecodeResult =
     { readonly ok: true; readonly record: DecodedRecord } | { readonly ok: false; readonly reason: DecodeFailure };
 
 const RECORD_KEYS = ['version', 'preferences', 'stats'] as const;
-const PREFERENCE_KEYS = [
+/** The twelve preferences a version 1 record holds. */
+const PREFERENCE_KEYS_V1 = [
     'theme',
     'nightCards',
     'fourColor',
@@ -50,6 +58,8 @@ const PREFERENCE_KEYS = [
     'winnableOnly',
     'selectedMode',
 ] as const;
+/** The thirteen preferences of a version 2 record: those of version 1, then the difficulty. */
+const PREFERENCE_KEYS = [...PREFERENCE_KEYS_V1, 'difficulty'] as const;
 const STATS_KEYS = ['modes', 'daily'] as const;
 const MODE_STATS_KEYS = ['played', 'won', 'streak', 'bestStreak', 'bestTimeMs', 'bestScore'] as const;
 const DAILY_KEYS = ['completed', 'bestStreak'] as const;
@@ -57,15 +67,7 @@ const DAILY_KEYS = ['completed', 'bestStreak'] as const;
 const THEMES: readonly Theme[] = ['light', 'dark', 'system'];
 const CARD_BACKS: readonly CardBack[] = ['harbour', 'navy', 'sky', 'coral'];
 const TAP_MODES: readonly TapMode[] = ['smart', 'select'];
-const BOOLEAN_PREFERENCES = [
-    'nightCards',
-    'fourColor',
-    'highlight',
-    'autoSafe',
-    'stockRight',
-    'animations',
-    'winnableOnly',
-] as const;
+const DIFFICULTIES: readonly Difficulty[] = ['any', 'easy', 'medium', 'hard'];
 
 function encodePreferences(p: Preferences): Record<(typeof PREFERENCE_KEYS)[number], unknown> {
     return {
@@ -81,6 +83,7 @@ function encodePreferences(p: Preferences): Record<(typeof PREFERENCE_KEYS)[numb
         locale: p.locale,
         winnableOnly: p.winnableOnly,
         selectedMode: p.selectedMode,
+        difficulty: p.difficulty,
     };
 }
 
@@ -132,16 +135,56 @@ const isFiniteNumber = (value: unknown): value is number => typeof value === 'nu
 const isOneOf = <T extends string>(options: readonly T[], value: unknown): value is T =>
     typeof value === 'string' && (options as readonly string[]).includes(value);
 
-function isPreferences(value: unknown): value is Preferences {
-    if (!isRecord(value) || !hasExactKeys(value, PREFERENCE_KEYS)) return false;
-    return (
-        isOneOf(THEMES, value.theme) &&
-        isOneOf(CARD_BACKS, value.cardBack) &&
-        isOneOf(TAP_MODES, value.tapMode) &&
-        isOneOf(SUPPORTED_LOCALES, value.locale) &&
-        isOneOf(MODES, value.selectedMode) &&
-        BOOLEAN_PREFERENCES.every((key) => typeof value[key] === 'boolean')
-    );
+/** The preferences of a version 1 record: everything but the difficulty. */
+type PreferencesV1 = Omit<Preferences, 'difficulty'>;
+
+/** Reads the twelve version 1 preferences field by field; `null` when any value is not valid. */
+function readPreferencesV1(value: Record<string, unknown>): PreferencesV1 | null {
+    const { theme, nightCards, fourColor, cardBack, tapMode, highlight, autoSafe } = value;
+    const { stockRight, animations, locale, winnableOnly, selectedMode } = value;
+    if (
+        !isOneOf(THEMES, theme) ||
+        typeof nightCards !== 'boolean' ||
+        typeof fourColor !== 'boolean' ||
+        !isOneOf(CARD_BACKS, cardBack) ||
+        !isOneOf(TAP_MODES, tapMode) ||
+        typeof highlight !== 'boolean' ||
+        typeof autoSafe !== 'boolean' ||
+        typeof stockRight !== 'boolean' ||
+        typeof animations !== 'boolean' ||
+        !isOneOf(SUPPORTED_LOCALES, locale) ||
+        typeof winnableOnly !== 'boolean' ||
+        !isOneOf(MODES, selectedMode)
+    ) {
+        return null;
+    }
+    return {
+        theme,
+        nightCards,
+        fourColor,
+        cardBack,
+        tapMode,
+        highlight,
+        autoSafe,
+        stockRight,
+        animations,
+        locale,
+        winnableOnly,
+        selectedMode,
+    };
+}
+
+/** Version 1 to the current preferences: the difficulty did not exist, so it is the default, `any`. Total. */
+const upgradeV1 = (preferences: PreferencesV1): Preferences => ({ ...preferences, difficulty: 'any' });
+
+/** The preferences of a record of `version`: exactly that version's keys, every value valid; otherwise `null`. */
+function readPreferences(value: unknown, version: RecordVersion): Preferences | null {
+    if (!isRecord(value) || !hasExactKeys(value, version === 1 ? PREFERENCE_KEYS_V1 : PREFERENCE_KEYS)) return null;
+    const v1 = readPreferencesV1(value);
+    if (v1 === null) return null;
+    if (version === 1) return upgradeV1(v1);
+    const { difficulty } = value;
+    return isOneOf(DIFFICULTIES, difficulty) ? { ...v1, difficulty } : null;
 }
 
 /** Also `streak <= bestStreak`; `won <= played` is deliberately not checked (design D13). */
@@ -185,20 +228,22 @@ function decodeParsed(parsed: unknown): DecodeResult {
     if (!isRecord(parsed)) return { ok: false, reason: 'invalid' };
     const { version } = parsed;
     if (typeof version === 'number' && version > RECORD_VERSION) return { ok: false, reason: 'future' };
-    if (version !== RECORD_VERSION || !hasExactKeys(parsed, RECORD_KEYS, ['session'])) {
+    if ((version !== 1 && version !== 2) || !hasExactKeys(parsed, RECORD_KEYS, ['session'])) {
         return { ok: false, reason: 'invalid' };
     }
-    const { preferences, stats } = parsed;
-    if (!isPreferences(preferences) || !isStats(stats)) return { ok: false, reason: 'invalid' };
+    const preferences = readPreferences(parsed.preferences, version);
+    const { stats } = parsed;
+    if (preferences === null || !isStats(stats)) return { ok: false, reason: 'invalid' };
     if (!Object.hasOwn(parsed, 'session')) return { ok: true, record: { preferences, stats, session: null } };
-    const session = decodeSession(parsed.session);
+    const session = decodeSession(parsed.session, version);
     return session === null ? { ok: false, reason: 'invalid' } : { ok: true, record: { preferences, stats, session } };
 }
 
 /**
  * Reads a stored string. `null` (no key) is `empty`; text that is not JSON is `malformed`; a record of a newer format
- * is `future` and is never interpreted; anything else that is not exactly a valid v1 record is `invalid`. Total: this
- * function never throws.
+ * is `future` and is never interpreted; anything else that is not exactly a valid version 1 or version 2 record is
+ * `invalid`. A version 1 record decodes to the same value a version 2 record with the default difficulty would. Total:
+ * this function never throws.
  */
 export function decodeRecord(raw: string | null): DecodeResult {
     if (raw === null) return { ok: false, reason: 'empty' };

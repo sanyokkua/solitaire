@@ -24,6 +24,7 @@ import {
 import { MAX_STORED_STEPS } from '../../../../src/features/persistence/sessionCodec';
 import type { StatsState } from '../../../../src/features/stats/statsSlice';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
+import { V1_RECORD } from '../../../fixtures/storage';
 
 const DRAW: Command = { type: 'draw' };
 
@@ -63,6 +64,7 @@ function busyPreferences(): Preferences {
         locale: 'uk',
         winnableOnly: false,
         selectedMode: 'vegas',
+        difficulty: 'hard',
     };
 }
 
@@ -126,7 +128,7 @@ describe('storage constants', () => {
     it('names the record, its backup and its version', () => {
         expect(STORAGE_KEY).toBe('solitaire.local-state');
         expect(BACKUP_KEY).toBe('solitaire.local-state.unreadable');
-        expect(RECORD_VERSION).toBe(1);
+        expect(RECORD_VERSION).toBe(2);
         expect(MAX_STORED_STEPS).toBe(200);
     });
 });
@@ -283,6 +285,7 @@ describe('what is stored', () => {
             'locale',
             'winnableOnly',
             'selectedMode',
+            'difficulty',
         ]);
         expect(Object.keys(child(record, 'stats'))).toEqual(['modes', 'daily']);
         expect(Object.keys(child(record, 'stats', 'modes'))).toEqual(['draw1', 'draw3', 'vegas', 'daily']);
@@ -316,7 +319,7 @@ describe('what is stored', () => {
             game: { current: null, history: [], future: [], dailyKey: null, counted: false },
         });
         expect(JSON.parse(raw)).toEqual({
-            version: 1,
+            version: 2,
             preferences: defaultPreferences('en'),
             stats: defaultStats(),
         });
@@ -342,8 +345,9 @@ describe('outcomes for unreadable text', () => {
     });
 
     it('reads a newer version as future, whatever else it holds', () => {
-        expect(decodeRecord(JSON.stringify({ version: 2 }))).toEqual({ ok: false, reason: 'future' });
-        expect(decodeRecord(edited(validRaw(), (r) => (r.version = 2)))).toEqual({ ok: false, reason: 'future' });
+        expect(decodeRecord(JSON.stringify({ version: 3 }))).toEqual({ ok: false, reason: 'future' });
+        expect(decodeRecord(edited(validRaw(), (r) => (r.version = 3)))).toEqual({ ok: false, reason: 'future' });
+        expect(decodeRecord(edited(V1_RECORD, (r) => (r.version = 3)))).toEqual({ ok: false, reason: 'future' });
     });
 
     it('reads version 0, a missing version and a non-numeric version as invalid', () => {
@@ -355,7 +359,7 @@ describe('outcomes for unreadable text', () => {
                 }),
             ),
         ).toEqual({ ok: false, reason: 'invalid' });
-        expect(decodeRecord(edited(validRaw(), (r) => (r.version = '1')))).toEqual({ ok: false, reason: 'invalid' });
+        expect(decodeRecord(edited(validRaw(), (r) => (r.version = '2')))).toEqual({ ok: false, reason: 'invalid' });
     });
 
     it.each(['42', 'null', '[]', '{}', '"text"', 'true', '[1,2]'])('reads %s as invalid without throwing', (raw) => {
@@ -400,6 +404,14 @@ describe('invalid records', () => {
             },
         ],
         ['an unknown preference key', (r) => (child(r, 'preferences').sound = true)],
+        ['an unknown difficulty', (r) => (child(r, 'preferences').difficulty = 'extreme')],
+        ['a non-string difficulty', (r) => (child(r, 'preferences').difficulty = true)],
+        [
+            'a missing difficulty',
+            (r) => {
+                delete child(r, 'preferences').difficulty;
+            },
+        ],
         ['a negative count', (r) => (child(r, 'stats', 'modes', 'draw1').played = -1)],
         ['a fractional count', (r) => (child(r, 'stats', 'modes', 'draw1').won = 1.5)],
         ['a string count', (r) => (child(r, 'stats', 'modes', 'draw3').streak = '2')],
@@ -537,7 +549,7 @@ describe('invalid records', () => {
     });
 
     it('ignores a hidden __proto__ key rather than trusting it', () => {
-        const raw = validRaw().replace('{"version":1,', '{"__proto__":{"x":1},"version":1,');
+        const raw = validRaw().replace('{"version":2,', '{"__proto__":{"x":1},"version":2,');
         expect(decodeRecord(raw)).toEqual(invalid);
     });
 });
@@ -580,13 +592,94 @@ describe('decoding is total', () => {
     });
 
     it.each<[string, string, 'future' | 'invalid']>([
-        ['arrays as sections', '{"version":1,"preferences":[],"stats":[]}', 'invalid'],
+        ['arrays as sections', '{"version":2,"preferences":[],"stats":[]}', 'invalid'],
+        ['arrays as sections in version 1', '{"version":1,"preferences":[],"stats":[]}', 'invalid'],
         ['an infinite version', '{"version":1e999}', 'future'],
         ['nested arrays', '[[[[[[]]]]]]', 'invalid'],
-        ['an empty session and no sections', '{"version":1,"session":{}}', 'invalid'],
+        ['an empty session and no sections', '{"version":2,"session":{}}', 'invalid'],
         ['a negative infinite version', '{"version":-1e999}', 'invalid'],
         ['a null version', '{"version":null}', 'invalid'],
     ])('decodes %s to a failure without throwing', (_name, raw, reason) => {
         expect(decodeRecord(raw)).toEqual({ ok: false, reason });
+    });
+});
+
+describe('a version 1 record', () => {
+    const invalid = { ok: false, reason: 'invalid' } as const;
+    const v1Preferences = (): Loose => child(JSON.parse(V1_RECORD), 'preferences');
+
+    it('is pinned as version 1 with twelve preferences, three undo steps and one redo step', () => {
+        const record = JSON.parse(V1_RECORD) as Loose;
+        expect(record.version).toBe(1);
+        expect(Object.keys(v1Preferences())).toHaveLength(12);
+        expect(child(record, 'session').history).toHaveLength(3);
+        expect(child(record, 'session').future).toHaveLength(1);
+        expect(child(record, 'session').counted).toBe(true);
+    });
+
+    it('decodes and upgrades to the default difficulty, keeping everything else', () => {
+        const result = decodeRecord(V1_RECORD);
+
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        const stored = JSON.parse(V1_RECORD) as Loose;
+        expect(result.record.preferences).toEqual({ ...v1Preferences(), difficulty: 'any' });
+        expect(result.record.stats).toEqual(stored.stats);
+        expect(result.record.session?.history).toHaveLength(3);
+        expect(result.record.session?.future).toHaveLength(1);
+        expect(result.record.session?.counted).toBe(true);
+        expect(result.record.session?.current.moves).toBe(3);
+        expect(result.record.session?.current.undos).toBe(1);
+    });
+
+    it('is written back as version 2 with nothing lost and the difficulty last', () => {
+        const result = decodeRecord(V1_RECORD);
+        if (!result.ok || result.record.session === null) throw new Error('expected a decoded record');
+        const { preferences, stats, session } = result.record;
+
+        const written = encodeRecord({ preferences, stats, game: { ...session } });
+
+        expect(written).toBe(
+            V1_RECORD.replace('{"version":1,', '{"version":2,').replace(
+                /("selectedMode":"[a-z0-9]+")\}/,
+                '$1,"difficulty":"any"}',
+            ),
+        );
+        const again = decodeRecord(written);
+        expect(again).toEqual(result);
+    });
+
+    it('is invalid with a thirteenth preference key, even a valid difficulty', () => {
+        expect(decodeRecord(edited(V1_RECORD, (r) => (child(r, 'preferences').difficulty = 'any')))).toEqual(invalid);
+        expect(decodeRecord(edited(V1_RECORD, (r) => (child(r, 'preferences').sound = true)))).toEqual(invalid);
+    });
+
+    it('is invalid with a missing preference key', () => {
+        const raw = edited(V1_RECORD, (r) => {
+            delete child(r, 'preferences').locale;
+        });
+        expect(decodeRecord(raw)).toEqual(invalid);
+    });
+
+    it('is invalid with an unreadable game, as a version 2 record would be', () => {
+        const raw = edited(V1_RECORD, (r) => {
+            const stock = child(r, 'session', 'current').stock as number[];
+            stock[0] = stock.at(1) ?? -1;
+        });
+        expect(decodeRecord(raw)).toEqual(invalid);
+    });
+
+    it('is invalid with an extra key on the game in play or on a step', () => {
+        expect(decodeRecord(edited(V1_RECORD, (r) => (child(r, 'session', 'current').extra = 1)))).toEqual(invalid);
+        expect(decodeRecord(edited(V1_RECORD, (r) => (child(r, 'session', 'history', 0).extra = 1)))).toEqual(invalid);
+    });
+
+    it('decodes without a game', () => {
+        const raw = edited(V1_RECORD, (r) => {
+            delete r.session;
+        });
+        const result = decodeRecord(raw);
+        expect(result.ok && result.record.session).toBeNull();
+        expect(result.ok && result.record.preferences.difficulty).toBe('any');
     });
 });

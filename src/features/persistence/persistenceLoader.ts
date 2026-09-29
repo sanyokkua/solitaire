@@ -40,7 +40,8 @@ function withReadError(preferences: RootState['preferences'], readOnly: boolean)
  *
  * - No record: defaults, no notice. Language defaults come from `languages`.
  * - A valid record: its preferences, statistics and, if it holds one, the resumable game. `app` is not preloaded, so
- *   the route stays `home`.
+ *   the route stays `home`. A readable version 1 record counts as valid: the decoder upgrades it in memory, so it
+ *   takes this branch, gets no backup and no notice, and the writer's next save replaces it with version 2.
  * - A `malformed`, `invalid` or `future` record: defaults, and the raw string is kept in `BACKUP_KEY` first. If that
  *   key is empty or already holds the identical string the copy counts as made (`storage-read`); if it holds a
  *   different string, cannot be read or written, saving is switched off (`readOnly`, `storage-read-only`), so nothing

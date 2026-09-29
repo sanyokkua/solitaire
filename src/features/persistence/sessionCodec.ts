@@ -28,10 +28,13 @@ export interface StoredSession {
     readonly counted: boolean;
 }
 
+/** The record format a session was written in; it selects the key list of the stored game. */
+export type RecordVersion = 1 | 2;
+
 const SESSION_KEYS = ['current', 'history', 'future', 'dailyKey', 'counted'] as const;
 
-/** Every `GameState` field; a stored position must have exactly these keys. */
-const GAME_KEYS = [
+/** Every `GameState` field of a version 1 record; a stored position must have exactly these keys. */
+const GAME_KEYS_V1 = [
     'seed',
     'mode',
     'draw',
@@ -50,6 +53,11 @@ const GAME_KEYS = [
     'started',
     'status',
 ] as const;
+
+/** The stored game's keys in a version 2 record: the same as version 1 until the game gains a field. */
+const GAME_KEYS_V2 = GAME_KEYS_V1;
+
+const gameKeys = (version: RecordVersion): readonly string[] => (version === 1 ? GAME_KEYS_V1 : GAME_KEYS_V2);
 
 const CARD_KEYS = ['id', 'up'] as const;
 
@@ -83,11 +91,6 @@ function hasExactCardKeys(tableau: unknown): boolean {
                 Array.isArray(column) && column.every((card) => isRecord(card) && hasExactKeys(card, CARD_KEYS)),
         )
     );
-}
-
-/** A typed record view of a game state's own keys, with no unsafe cast (D15). */
-function gameStateRecord(state: GameState): Record<string, unknown> {
-    return Object.fromEntries(Object.entries(state));
 }
 
 const cloneColumn = (column: Column): Column => column.map((card) => ({ id: card.id, up: card.up }));
@@ -199,17 +202,18 @@ function decodeSteps(value: unknown, current: GameState): GameState[] | null {
 }
 
 /**
- * Accepts `value` only as a stored session: exactly the five known keys, a valid started and still-playing `current`,
- * a Daily date (only for a Daily deal) or `null`, a boolean `counted`, and valid step lists. `current` and every step
- * card have exactly their known keys. Total: never throws, returns `null` on any fault.
+ * Accepts `value` only as a stored session of the given record `version`: exactly the five known keys, a `current`
+ * with exactly that version's game keys that is a valid started and still-playing game, a Daily date (only for a
+ * Daily deal) or `null`, a boolean `counted`, and valid step lists. `current` and every step card have exactly their
+ * known keys. The key check runs on the raw record, before any upgrade or validation. Total: never throws, returns
+ * `null` on any fault.
  */
-export function decodeSession(value: unknown): StoredSession | null {
+export function decodeSession(value: unknown, version: RecordVersion): StoredSession | null {
     if (!isRecord(value) || !hasExactKeys(value, SESSION_KEYS)) return null;
     const { current, history, future, dailyKey, counted } = value;
+    if (!isRecord(current) || !hasExactKeys(current, gameKeys(version))) return null;
     if (!isValidGameState(current) || !current.started || current.status !== 'playing') return null;
-    if (!hasExactKeys(gameStateRecord(current), GAME_KEYS) || !hasExactCardKeys(current.tableau)) {
-        return null;
-    }
+    if (!hasExactCardKeys(current.tableau)) return null;
     if (typeof counted !== 'boolean' || !isDayKeyOrNull(dailyKey)) return null;
     if (dailyKey !== null && current.mode !== 'daily') return null;
     const stored = cloneGame(current);

@@ -2,7 +2,7 @@
 
 Application services and Redux slices built on top of the domain and solver layers.
 `deal/` landed in Phase 3 (Solver & deal service); `preferences/`, `stats/`, `game/` and `persistence/` landed in
-Phase 4 (State, persistence & timer). The `persistence/` layer includes the versioned codec (v1), storage gateway,
+Phase 4 (State, persistence & timer). The `persistence/` layer includes the versioned codec (version 2, reading version 1), storage gateway,
 loader for defensive decode and hydration, writer for debounced persistence, and reset thunks. `interaction/` (the
 runtime-only interaction state: selection, hint, announcements, dead ends and the input gate) landed with the Phase 6 change `add-board-interaction`.
 
@@ -189,7 +189,7 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
 - `preferences/locale.ts` — `Locale` and `SUPPORTED_LOCALES` re-exported from the `src/i18n/catalog.ts` registry (a
   new, data-only dependency from `features` to `i18n`), plus `resolveLocale(languages)`: the first browser-preferred
   language whose primary subtag is supported (`uk-UA` selects `uk`), otherwise English
-- `preferences/preferencesSlice.ts` — the twelve user preferences with the specification §6 defaults
+- `preferences/preferencesSlice.ts` — the thirteen user preferences (the last is `difficulty`: `any`, `easy`, `medium` or `hard`, default `any`) with the specification §6 defaults
   (`defaultPreferences(locale)`; only the language depends on the browser). `preferenceSet({ key, value })` changes one
   preference (a key/value mismatch fails typechecking), `preferencesReset(locale)` restores the defaults. Selectors
   `selectPreferences` and `selectPreference(state, key)` take the structural shape `{ preferences }`, so this slice
@@ -201,25 +201,28 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   throw. The default storage is `window.localStorage`, or none (every call fails) outside a browser or when reaching it
   throws, as in Safari private mode; tests inject `memoryStorage()` or `throwingStorage()` from
   `tests/fixtures/storage.ts`
-- `persistence/recordCodec.ts` — the v1 device record, pure. Exports `STORAGE_KEY` (`solitaire.local-state`),
-  `BACKUP_KEY` (`solitaire.local-state.unreadable`) and `RECORD_VERSION` (1).
+- `persistence/recordCodec.ts` — the version 2 device record, pure. Exports `STORAGE_KEY` (`solitaire.local-state`),
+  `BACKUP_KEY` (`solitaire.local-state.unreadable`) and `RECORD_VERSION` (2).
   `encodeRecord({ preferences, stats, game })` returns one JSON string whose objects are built field by field in a
   fixed order (`version`, `preferences`, `stats`, then `session`), so equal input always gives the identical string;
   `session` is present only for a started game that is still playing. `decodeRecord(raw)` never throws and returns
   `{ ok: true, record: { preferences, stats, session } }` or `{ ok: false, reason }`: `empty` (no stored value),
-  `malformed` (not JSON), `future` (a version above 1, never interpreted) or `invalid` (anything else that is not
-  exactly a valid v1 record). Every object must have exactly its known keys; the enum values, non-negative integer
+  `malformed` (not JSON), `future` (a version above 2, never interpreted) or `invalid` (anything else that is not
+  exactly a valid version 1 or 2 record). A version 1 record (twelve preferences, no `difficulty`) is decoded with its
+  own exact key set and upgraded by `upgradeV1`, which adds `difficulty: 'any'` and changes nothing else, so the loader
+  treats it as valid (no backup, no notice) and the next save writes version 2. Every object must have exactly its known keys; the enum values, non-negative integer
   counts (a mode's `streak` may not exceed its `bestStreak`), `bestTimeMs`, `bestScore` and the Daily list (at most `MAX_DAILY_COMPLETED`, 400, real, strictly ascending `YYYY-MM-DD` dates, the cap exported by `statsSlice.ts`) are
   checked, and a bad part rejects the whole record, with no salvage
 - `persistence/guards.ts` — the shape checks the codecs share when decoding untrusted storage: `isRecord`, `hasExactKeys`
   (required and optional keys; unknown keys fail) and `isDayKey` (a real UTC `YYYY-MM-DD` date)
-- `persistence/sessionCodec.ts` — the stored game, used by `recordCodec.ts`. Exports `MAX_STORED_STEPS` (200). `encodeSession` keeps the newest 200
+- `persistence/sessionCodec.ts` — the stored game, used by `recordCodec.ts`. Exports `MAX_STORED_STEPS` (200) and `RecordVersion` (`1 | 2`). `encodeSession` keeps the newest 200
   history steps and the nearest 200 future steps (the tail of each stack, since the next redo is last) as compact
   steps holding `tableau`, `stock`, `waste`, `foundations`, `score`, `moves`, `passes`, `elapsedMs`, `undos` and
-  `started` (the last three because a snapshot keeps the values it had when captured). `decodeSession` accepts exactly
+  `started` (the last three because a snapshot keeps the values it had when captured). `decodeSession(value, version)` accepts exactly
   `current`, `history`, `future`, `dailyKey` (a real date, and only for a Daily game, or `null`) and `counted`;
-  `current` must pass `isValidGameState`, have exactly the `GameState` keys and `{ id, up }` cards, and be started and
-  playing; each step is rebuilt into a full `GameState` (the constant fields
+  `current` must have exactly the `GameState` keys of that record version (checked on the raw record, before it is
+  validated; the version 1 and version 2 lists are the same for now), pass `isValidGameState`, have `{ id, up }` cards,
+  and be started and playing; each step is rebuilt into a full `GameState` (the constant fields
   copied from `current`, `status` `playing`) that must pass `isValidGameState` too, so a round trip is exact
 - `persistence/persistenceSlice.ts` — what the shell needs to know about saving: `{ readOnly, lastError }`, starting at
   `{ readOnly: false, lastError: null }` (`initialPersistenceState`). Read-only comes only from the loader's `preloadedState`, and stops saving for the

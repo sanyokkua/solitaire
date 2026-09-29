@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { oneMovePosition, SIX_OF_DIAMONDS } from '../fixtures/boardPositions';
-import { BACKUP_KEY } from '../../src/features/persistence/recordCodec';
+import { BACKUP_KEY, STORAGE_KEY } from '../../src/features/persistence/recordCodec';
+import { V1_RECORD } from '../fixtures/storage';
 import { cardOf, continueToGame } from './support/cards';
 import { MOVES_VALUE } from './support/game';
 import { stockSlot } from './support/play';
@@ -62,6 +63,35 @@ test.describe('Corrupt saved data', () => {
             .toBe(false);
         await stockSlot(page).click({ force: true });
         await expect(page.locator(MOVES_VALUE)).toHaveText('001');
+    });
+});
+
+test.describe('A version 1 record', () => {
+    test('is upgraded: the game resumes, no notice appears and the next save is version 2', async ({ page }) => {
+        await seedRaw(page, V1_RECORD);
+        await page.goto('/');
+
+        await expect(page.locator('.notice--storage')).toHaveCount(0);
+        expect(await page.evaluate((key) => window.localStorage.getItem(key), BACKUP_KEY)).toBeNull();
+        const version = () =>
+            page.evaluate(
+                (key) => (JSON.parse(window.localStorage.getItem(key) ?? 'null') as { version: number }).version,
+                STORAGE_KEY,
+            );
+        expect(await version()).toBe(1);
+
+        // The pinned record stores Ukrainian as the language, so the screen showing it is the preferences carried over.
+        await page.getByRole('button', { name: 'Продовжити гру' }).click();
+        await expect(page.locator('[data-card-id]')).toHaveCount(52);
+        await expect(page.locator(MOVES_VALUE)).toHaveText('003');
+
+        // A move saves the record again, now in the current format, and the game in it is the one that was resumed.
+        await stockSlot(page).click({ force: true });
+        await expect(page.locator(MOVES_VALUE)).toHaveText('004');
+        await expect.poll(version).toBe(2);
+        expect((await readStoredSession(page)).current.moves).toBe(4);
+        await expect(page.locator('.notice--storage')).toHaveCount(0);
+        expect(await page.evaluate((key) => window.localStorage.getItem(key), BACKUP_KEY)).toBeNull();
     });
 });
 

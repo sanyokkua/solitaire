@@ -5,6 +5,8 @@ import type { Locale } from './locale';
 export type Theme = 'light' | 'dark' | 'system';
 export type CardBack = 'harbour' | 'navy' | 'sky' | 'coral';
 export type TapMode = 'smart' | 'select';
+/** The hardness a winnable deal is asked for; `any` asks for no particular one. */
+export type Difficulty = 'any' | 'easy' | 'medium' | 'hard';
 
 export interface Preferences {
     readonly theme: Theme;
@@ -19,6 +21,7 @@ export interface Preferences {
     readonly locale: Locale;
     readonly winnableOnly: boolean;
     readonly selectedMode: Mode;
+    readonly difficulty: Difficulty;
 }
 
 /** One key with a value of that key's own type, so a mismatched pair fails typechecking. */
@@ -41,6 +44,7 @@ export function defaultPreferences(locale: Locale): Preferences {
         locale,
         winnableOnly: true,
         selectedMode: 'draw1',
+        difficulty: 'any',
     };
 }
 

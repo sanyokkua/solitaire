@@ -190,7 +190,7 @@ and the stylesheets select on them:
 | `cardBack` (`harbour`, `navy`, `sky`, `coral`)              | `data-back`           | the chosen back                                                    |
 | `animations` + device reduced-motion                        | `data-motion`         | `on` / `off`                                                       |
 
-Other preferences (`tapMode`, `highlight`, `autoSafe`, `stockRight`, `locale`, `winnableOnly`, `selectedMode`) are read
+Other preferences (`tapMode`, `highlight`, `autoSafe`, `stockRight`, `locale`, `winnableOnly`, `selectedMode`, `difficulty`) are read
 by components and thunks, not applied as attributes. `locale` is applied to `<html lang>` and the document title by
 the locale controller (see [i18n and PWA](i18n-and-pwa.md)).
 

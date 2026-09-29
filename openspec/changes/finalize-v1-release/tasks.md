@@ -494,7 +494,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 8. Deal provenance and the storage record v2
 
-- [ ] 8.1 Record v2 with a lossless v1 upgrade, and the Difficulty setting
+- [x] 8.1 Record v2 with a lossless v1 upgrade, and the Difficulty setting
     - **Implements:**
       - PR "Settings and their defaults" (Difficulty);
       - PE "One versioned record holds what the device keeps", "Stored data is decoded defensively" and "An older record is upgraded without loss" (preferences part; KS-PER-06);
