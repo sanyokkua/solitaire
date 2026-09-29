@@ -25,6 +25,7 @@
         "prepare": "husky",
         "validate:lifecycle-storage": "node scripts/validate-lifecycle-storage.mjs",
         "validate:artifact": "node scripts/validate-artifact.mjs",
+        "trace": "node scripts/trace-requirements.mjs",
         "validate": "npm run format:check && npm run lint && npm run typecheck && npm run validate:lifecycle-storage && vitest run tests/unit tests/component --coverage && npm run build && npm run validate:artifact"
     },
     "lint-staged": {

@@ -33,12 +33,14 @@ Documentation for Klondike Solitaire. Start with the [README](../README.md) for 
 
 ## Reference
 
-| Page                                                        | Contents                           |
-| ----------------------------------------------------------- | ---------------------------------- |
-| [scripts](reference/scripts.md)                             | All npm scripts                    |
-| [keyboard-and-controls](reference/keyboard-and-controls.md) | Shortcuts and input behaviour      |
-| [game-rules](reference/game-rules.md)                       | Implemented rules, modes, scoring  |
-| [storage-format](reference/storage-format.md)               | The `solitaire.local-state` record |
+| Page                                                        | Contents                                                         |
+| ----------------------------------------------------------- | ---------------------------------------------------------------- |
+| [scripts](reference/scripts.md)                             | All npm scripts                                                  |
+| [keyboard-and-controls](reference/keyboard-and-controls.md) | Shortcuts and input behaviour                                    |
+| [game-rules](reference/game-rules.md)                       | Implemented rules, modes, scoring                                |
+| [storage-format](reference/storage-format.md)               | The `solitaire.local-state` record                               |
+| [traceability](reference/traceability.md)                   | KS ids against requirements, tests and manual checks (generated) |
+| [manual-checks](reference/manual-checks.md)                 | Checks made by hand on real devices, with results                |
 
 ## Module READMEs
 

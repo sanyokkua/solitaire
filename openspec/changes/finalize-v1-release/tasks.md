@@ -712,7 +712,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** the Win sheet appears with the expected moves and score in each mode. Animations are off in these specs.
     - **Verify:** `rtk npx playwright test playModes playByTap playByDrag playByKeyboard --project=chromium --project=firefox --project=webkit --project=iphone-17-pro` passes.
 
-- [ ] 11.3 Traceability generator and guard, in report mode
+- [x] 11.3 Traceability generator and guard, in report mode
     - **Implements:** RF "Requirement traceability is generated and checked" (generation, stale and unknown checks); D17.
     - **Files:**
       - new `scripts/trace-requirements.mjs` (and its `.d.mts`): the matrix comes from the main specs `openspec/specs/**`; the active changes' `specs/**` only add known ids; it reads `// covers:` comments in `tests/**` and the table in `docs/reference/manual-checks.md`;
