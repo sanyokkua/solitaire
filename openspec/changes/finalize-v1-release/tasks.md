@@ -314,7 +314,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - with a failing save, the write notice appears and moves still apply.
     - **Verify:** `rtk npx playwright test storage --project=chromium --project=webkit` passes.
 
-- [ ] 5.2 Reload during a drag and during Finish
+- [x] 5.2 Reload during a drag and during Finish
     - **Implements:** RF "Edge cases are proven end to end" ("Reload in the middle of a drag", "Reload in the middle of Finish"); PE "Reopening restores the unfinished game exactly".
     - **Files:**
       - new `tests/e2e/resume.spec.ts`;
