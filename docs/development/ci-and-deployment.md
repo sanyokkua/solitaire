@@ -73,7 +73,7 @@ Reads every `tests/component/appLifecycle*.test.tsx` and fails when one names `l
 `Storage.prototype`, builds a bare `createStorageGateway()`, or calls `startApp(` without a `gateway`. It also fails if
 no such file exists.
 
-Other scripts: `scripts/generate-icons.mjs` regenerates the icons in `public/icons/` (not part of `validate`). See
+Other scripts: `scripts/generate-icons.mjs` regenerates `public/favicon.svg` and the icons in `public/icons/` (not part of `validate`). See
 [scripts reference](../reference/scripts.md).
 
 ## Git hooks (husky)

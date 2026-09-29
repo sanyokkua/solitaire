@@ -246,7 +246,7 @@
       - `tests/e2e/home.spec.ts:76`: the stamp's accessible name matches `/^App build: (Build \d+|Development build) · \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/`.
     - **Verify:** `rtk npx vitest run tests/unit/repo tests/component/buildStamp.test.tsx tests/component/sheets/about.test.tsx` and `rtk npx playwright test home --project=chromium` pass. After `GITHUB_RUN_NUMBER=7 rtk npm run build`, the preview's Home footer shows "Build 7".
 
-- [ ] 3.2 Card-fan pixel icon
+- [x] 3.2 Card-fan pixel icon
     - **Implements:** PW "The app is installable"; D14.
     - **Files:**
       - `scripts/generate-icons.mjs` (one rectangle list, emitted to SVG and PNG; it already emits `favicon.svg`) and the existing `scripts/generate-icons.d.mts`;

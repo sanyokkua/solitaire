@@ -78,6 +78,13 @@ dependency, and no third-party hosts (`scripts/validate-artifact.mjs` checks thi
   worker chunk is precached and `validate-artifact` fails if it is not.
 - `tests/unit/repo/manifest.test.ts` and `tests/unit/repo/icons.test.ts` check the manifest and the generated icons.
   Icons come from `scripts/generate-icons.mjs`.
+- Icons: the mark is a card fan, a checkered sky/navy card back behind a white card face showing a pixel "A" and a
+  spade, on the `#0b2545` background. `scripts/generate-icons.mjs` holds one list of rectangles on a 24 x 24 cell grid
+  and renders it twice: `public/favicon.svg` (`<rect>`s, `viewBox="0 0 24 24"`, `crispEdges`) and the PNGs
+  `icon-192`, `icon-512`, `apple-touch-icon` (180 px, linked from `index.html`) and `icon-maskable-512`. Each PNG uses
+  an integer scale, centred, with navy padding; the maskable icon uses the largest scale whose mark stays inside the
+  centred circle of 80 % of the icon (the W3C safe zone). `icons.test.ts` checks every output byte for byte against a
+  fresh render, the sizes, the safe zone and that the light card face is present.
 
 ### Runtime flow
 
