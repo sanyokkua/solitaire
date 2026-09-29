@@ -65,6 +65,7 @@ const GAME_BOXES = [
     '.game-topbar',
     '.game-chips',
     '.mode-chip',
+    '.deal-chip',
     '.game-hud',
     '.stat-display',
     '.game-face',
@@ -104,7 +105,9 @@ for (const config of [...DEVICE_CONFIGS, ...BASELINES]) {
 
         test('30 % longer text keeps Home, the Game screen and the sheets inside the screen', async ({ page }) => {
             await page.addInitScript(installPadding, GROWTH);
-            await seedRecord(page, { current: worstColumnState() });
+            await seedRecord(page, {
+                current: { ...worstColumnState(), verdict: 'win', attempts: 3, grade: 'medium' },
+            });
             await page.goto('/');
             await expect(page.locator('.cta-row .action-button--deal')).toBeVisible();
 

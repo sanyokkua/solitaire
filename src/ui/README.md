@@ -261,8 +261,12 @@ action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`a
   "Draw 3 · Standard", "Vegas", or "Daily · <date>" where the date is the game's own `dailyKey` (`formatDate`, short
   month, UTC, as Home's Daily tile) and a Daily game with a `null` key reads plain "Daily"; the text and accessible name
   are normal case and `layout.css` uppercases it. `DealChip` (`span.deal-chip`, `.is-random` for a random deal) is
-  "Winnable", "Winnable · N shuffles" (`verdict === 'win'`, `attempts` > 1, catalog plural) or "Random deal", with a
-  decorative check or dice `Icon` and the text in `span.deal-chip__text`. Both carry the full text as `title`, truncate
+  "Winnable · <grade>" (`verdict === 'win'` and a `grade`; the grade name is the shared `grade.*` key), "Winnable" (a
+  proven deal with no grade) or "Random deal", with a decorative check or dice `Icon` and the text in
+  `span.deal-chip__text`. The chip is a `role="group"` labelled by that text. The shuffle count is not in the text or
+  the name: when `verdict === 'win'` and `attempts` > 1 the chip carries "found after N shuffles" (`game.chip.deal.shuffleNote`,
+  catalog plural) as its `aria-describedby` description, in a hidden `.sr-only` span that adds no width, and its `title`
+  is the chip text, " — " and that note; otherwise the `title` is the chip text alone (the mode chip's `title` is its text). Both chips truncate
   with an ellipsis inside the slot (which keeps its reserved size), and at 460 px or narrower the deal chip shows only
   its icon by hiding `.deal-chip__text` visually (a clip, not `display: none`), so the text stays its accessible name.
   Keys are `game.chip.*`.

@@ -101,10 +101,12 @@ export const uk: Record<MessageKey, Message> = {
     'game.chip.mode.daily': 'Щоденна роздача',
     'game.chip.mode.dailyOn': 'Щоденна роздача · {date}',
     'game.chip.deal.winnable': 'Розв’язна',
-    'game.chip.deal.winnableShuffles': {
-        one: 'Розв’язна · {count} перетасування',
-        few: 'Розв’язна · {count} перетасування',
-        many: 'Розв’язна · {count} перетасувань',
+    'game.chip.deal.winnableGraded': 'Розв’язна · {grade}',
+    'game.chip.deal.shuffleNote': {
+        one: 'знайдено після {count} перетасування',
+        few: 'знайдено після {count} перетасувань',
+        many: 'знайдено після {count} перетасувань',
+        other: 'знайдено після {count} перетасувань',
     },
     'game.chip.deal.random': 'Випадкова роздача',
 
@@ -132,7 +134,7 @@ export const uk: Record<MessageKey, Message> = {
     'home.links.install': 'Установити застосунок',
     'home.hero.badge': 'Косинка · Роздача 1 і 3',
     'home.hero.pitch':
-        'Спокійний стіл і свіжа колода. Збери кожну масть від туза до короля: перетягуй, торкайся або грай з клавіатури. Роздачі з однією картою перевіряються ще до того, як ти їх побачиш, тож кожну можна виграти.',
+        'Спокійний стіл і свіжа колода. Збери кожну масть від туза до короля: перетягуй, торкайся або грай з клавіатури. Обери лише виграшні роздачі, і кожну буде перевірено ще до того, як ти її побачиш, тож її можна виграти.',
     'home.theme.switchToDark': 'Перемкнути на темну тему',
     'home.theme.switchToLight': 'Перемкнути на світлу тему',
     'home.section.choose': 'Оберіть гру',

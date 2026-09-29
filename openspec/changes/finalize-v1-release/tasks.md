@@ -658,7 +658,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `rtk npx playwright test --project=device-fit` (it includes the pseudo-locale);
       - the full `rtk npm run e2e`.
 
-- [ ] 10.2 The deal chip shows the grade
+- [x] 10.2 The deal chip shows the grade
     - **Implements:** GM "Mode and deal chips" (KS-DEAL-06, KS-DEAL-11).
     - **Files:** `src/ui/components/DealChip.tsx`, `src/ui/styles/layout.css` (only if the fit needs it), the catalogs (`game.chip.deal.*`), `src/ui/README.md`.
     - **Tests:** `tests/component/chips.test.tsx`:

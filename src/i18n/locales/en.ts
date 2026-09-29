@@ -98,7 +98,8 @@ export const en = {
     'game.chip.mode.daily': 'Daily',
     'game.chip.mode.dailyOn': 'Daily · {date}',
     'game.chip.deal.winnable': 'Winnable',
-    'game.chip.deal.winnableShuffles': { one: 'Winnable · {count} shuffle', other: 'Winnable · {count} shuffles' },
+    'game.chip.deal.winnableGraded': 'Winnable · {grade}',
+    'game.chip.deal.shuffleNote': { one: 'found after {count} shuffle', other: 'found after {count} shuffles' },
     'game.chip.deal.random': 'Random deal',
 
     'grade.easy': 'Easy',
@@ -125,7 +126,7 @@ export const en = {
     'home.links.install': 'Install app',
     'home.hero.badge': 'Klondike · Draw 1 & 3',
     'home.hero.pitch':
-        'A quiet table and a fresh deck. Build every suit from Ace to King — drag, tap or play from the keyboard. Draw 1 deals are checked before you see them, so each one can be won.',
+        'A quiet table and a fresh deck. Build every suit from Ace to King — drag, tap or play from the keyboard. Choose winnable deals and each one is checked before you see it, so it can be won.',
     'home.theme.switchToDark': 'Switch to dark theme',
     'home.theme.switchToLight': 'Switch to light theme',
     'home.section.choose': 'Choose a game',

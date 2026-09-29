@@ -195,11 +195,11 @@ The worker is started lazily by `src/features/deal/solverClient.ts#createSolverC
 
 Each `deal` first cancels every pending deal and hint (a busy worker is terminated).
 
-| Request                      | Where          | Seeds and budget                                                                    |
-| ---------------------------- | -------------- | ----------------------------------------------------------------------------------- |
-| `draw1` with `winnableOnly`  | worker         | 40 fresh `cryptoSeed` values (`MAX_ATTEMPTS`), 5,000 nodes each (`WINNABLE_BUDGET`) |
-| `daily` (any `winnableOnly`) | worker         | the 40 v1 candidate seeds of the UTC day, 20,000 nodes each (`DAILY_V1`)            |
-| everything else              | calling thread | one fresh seed, `random`, 1 attempt                                                 |
+| Request                                         | Where          | Seeds and budget                                                                                                                 |
+| ----------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `draw1`, `draw3` or `vegas` with `winnableOnly` | worker         | 40 fresh `cryptoSeed` values (`MAX_ATTEMPTS`), `winnableBudget(mode)` nodes each (5,000 for Draw 1, 20,000 for Draw 3 and Vegas) |
+| `daily` (any `winnableOnly`)                    | worker         | the 40 v1 candidate seeds of the UTC day, 20,000 nodes each (`DAILY_V1`)                                                         |
+| everything else                                 | calling thread | one fresh seed, `random`, 1 attempt                                                                                              |
 
 - Progress: `onProgress({ overlay, attempt })` for worker deals only; `overlay` turns true after 160 ms pending.
 - Fallback: if the worker fails or cannot start, the first candidate seed is dealt as `random`, 1 attempt (for Daily,
