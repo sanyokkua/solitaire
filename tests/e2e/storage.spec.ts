@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { oneMovePosition, SIX_OF_DIAMONDS } from '../fixtures/boardPositions';
-import { BACKUP_KEY, STORAGE_KEY } from '../../src/features/persistence/recordCodec';
+import { BACKUP_KEY } from '../../src/features/persistence/recordCodec';
 import { cardOf, continueToGame } from './support/cards';
-import { failSaves, seedRaw, seedRecord } from './support/seed';
+import { MOVES_VALUE } from './support/game';
+import { stockSlot } from './support/play';
+import { failSaves, readStoredSession, seedRaw, seedRecord } from './support/seed';
 
-const MOVES_VALUE = '.stat-display--moves .stat-display__value';
-const STOCK = ".slot[data-pile='stock']";
 const CORRUPT = '{not json';
 
 test.describe('Corrupt saved data', () => {
@@ -27,6 +27,28 @@ test.describe('Corrupt saved data', () => {
         await page.keyboard.press('Escape');
         await expect(page.locator('.modal-sheet')).toHaveCount(0);
 
+        // Statistics are the defaults too: nothing played in any of the four modes, no records, no Daily streak.
+        await page.getByRole('button', { name: 'Statistics' }).click();
+        const stats = page.getByRole('dialog', { name: 'Statistics' });
+        await expect(stats).toBeVisible();
+        const rows = {
+            Played: '0',
+            Won: '0',
+            'Win rate': '—',
+            'Best time': '—',
+            'Best score': '—',
+            'Best streak': '—',
+        };
+        for (const [label, value] of Object.entries(rows)) {
+            const cells = stats
+                .getByRole('row')
+                .filter({ has: page.getByRole('rowheader', { name: label, exact: true }) });
+            await expect(cells.getByRole('cell'), label).toHaveText([value, value, value, value]);
+        }
+        await expect(stats).toContainText('Daily streak: 0 (best 0)');
+        await page.keyboard.press('Escape');
+        await expect(page.locator('.modal-sheet')).toHaveCount(0);
+
         // A new game is dealt (the default Draw 1 winnable deal runs the real solver) and played.
         await page.getByRole('button', { name: 'Deal cards' }).click();
         await expect(page.locator('[data-card-id]')).toHaveCount(52, { timeout: 60_000 });
@@ -38,7 +60,7 @@ test.describe('Corrupt saved data', () => {
                     .evaluateAll((cards) => cards.some((c) => c.style.getPropertyValue('--d') !== '')),
             )
             .toBe(false);
-        await page.locator(STOCK).click({ force: true });
+        await stockSlot(page).click({ force: true });
         await expect(page.locator(MOVES_VALUE)).toHaveText('001');
     });
 });
@@ -56,11 +78,8 @@ test.describe('A failing save', () => {
         await expect(page.locator(MOVES_VALUE)).toHaveText('001');
 
         // The next move still applies, and nothing was ever written after the seed.
-        await page.locator(STOCK).click({ force: true });
+        await stockSlot(page).click({ force: true });
         await expect(page.locator(MOVES_VALUE)).toHaveText('002');
-        const stored = await page.evaluate((key) => window.localStorage.getItem(key), STORAGE_KEY);
-        expect(
-            (JSON.parse(stored ?? 'null') as { session: { current: { moves: number } } }).session.current.moves,
-        ).toBe(0);
+        expect((await readStoredSession(page)).current.moves).toBe(0);
     });
 });

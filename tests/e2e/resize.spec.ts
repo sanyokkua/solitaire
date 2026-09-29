@@ -3,7 +3,7 @@ import { dealFromSeed } from '../../src/domain/deal';
 import { encodeDealCode } from '../../src/domain/dealCode';
 import { drawThreeFanState } from '../fixtures/boardPositions';
 import { cardTarget, continueToGame, near } from './support/cards';
-import { expectClockCarriedOn, placement, placementOf, readGame } from './support/game';
+import { expectClockCarriedOn, MOVES_VALUE, placement, placementOf, readGame } from './support/game';
 import { seedRecord } from './support/seed';
 
 interface Sample {
@@ -156,7 +156,7 @@ test.describe('Re-layout on viewport change', () => {
         expect(root.scrollHeight).toBeLessThanOrEqual(root.innerHeight);
         expect(root.scrollWidth).toBeLessThanOrEqual(root.innerWidth);
         expect(root.innerWidth).toBe(360);
-        await expect(page.locator('.stat-display--moves .stat-display__value')).toHaveText('000');
+        await expect(page.locator(MOVES_VALUE)).toHaveText('000');
         expect(await placement(page)).toEqual(
             placementOf(dealFromSeed(seed, 'draw1', { verdict: 'random', attempts: 1 })),
         );

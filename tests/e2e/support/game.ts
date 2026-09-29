@@ -1,9 +1,15 @@
 import { expect, type Page } from '@playwright/test';
 import type { GameState } from '../../../src/domain/types';
 
+const hudValue = (kind: string) => `.stat-display--${kind} .stat-display__value`;
+/** The HUD's value elements: the move count, the score and the timer. */
+export const MOVES_VALUE = hudValue('moves');
+export const SCORE_VALUE = hudValue('score');
+export const TIMER_VALUE = hudValue('timer');
+
 /** The stats and cards a change of appearance or viewport must leave alone, plus the clock and score it lets carry on. */
 export async function readGame(page: Page) {
-    const text = (kind: string) => page.locator(`.stat-display--${kind} .stat-display__value`).textContent();
+    const text = (kind: string) => page.locator(hudValue(kind)).textContent();
     const [minutes = 0, seconds = 0] = ((await text('timer')) ?? '').split(':').map(Number);
     const takenAt = Date.now();
     return {

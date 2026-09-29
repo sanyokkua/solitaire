@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
+import axe from 'axe-core';
 import { expect, test, type Page } from '@playwright/test';
 import { drawThreeFanState, worstColumnState } from '../fixtures/boardPositions';
 import { WINNING_LINE, nearlyWonState, parseLine } from '../fixtures/deals';
@@ -17,9 +18,17 @@ const BLOCKING = new Set(['serious', 'critical']);
 /** Moderate rules that are enforced too. */
 const ENFORCED_MODERATE = new Set(['landmark-one-main']);
 
+/**
+ * The axe source with color-contrast told to judge single-character text. By default a failing one-character text (every
+ * card rank but 10) is reported as "incomplete" (`shortTextContent`) instead of a violation, so a low-contrast rank ink
+ * would pass. `ignoreLength: true` turns those into violations. `AxeBuilder` has no per-check options, so the check's
+ * default options are read back from the injected axe and only that one is changed.
+ */
+const AXE_SOURCE = `${axe.source};axe.configure({checks:[{id:'color-contrast',options:{...axe._audit.checks['color-contrast'].options,ignoreLength:true}}]});`;
+
 /** Fails with each blocking finding's rule id, impact and the selectors it hit, so a failure names what to fix. */
 async function expectNoBlockingViolations(page: Page): Promise<void> {
-    const { violations } = await new AxeBuilder({ page }).analyze();
+    const { violations } = await new AxeBuilder({ page, axeSource: AXE_SOURCE }).analyze();
     const blocking = violations
         .filter((violation) => BLOCKING.has(violation.impact ?? '') || ENFORCED_MODERATE.has(violation.id))
         .map(
@@ -70,7 +79,9 @@ for (const { name, theme, preferences: variantPreferences } of VARIANTS) {
         });
 
         if (nightCards) {
-            // The fan above shows every suit's ace; this K to A run shows both inks on every rank's index and pips.
+            // The fan above shows every suit's ace; this K to A run of both inks adds each rank's corner index and suit
+            // symbol in a column of overlapping cards. Axe leaves a text it cannot see whole (covered or under another
+            // card) as "incomplete", so what is judged is the uncovered corner ink and the top card's pips.
             test('Game, a king-to-ace run of both inks', async ({ page }) => {
                 await open(page, worstColumnState());
                 await continueToGame(page);

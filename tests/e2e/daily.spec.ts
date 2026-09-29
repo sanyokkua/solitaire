@@ -54,15 +54,17 @@ async function openStatistics(page: Page) {
     return sheet;
 }
 
-async function closeSheet(page: Page): Promise<void> {
-    await page.keyboard.press('Escape');
-    await expect(page.locator('.modal-sheet')).toHaveCount(0);
-}
-
 test.describe('Daily rollover at midnight UTC', () => {
-    test('the tile and the dealt Daily follow the UTC date across 00:00', async ({ page }) => {
+    test('the tile and the dealt Daily follow the UTC date across 00:00 and the streak still counts', async ({
+        page,
+    }) => {
+        // The Daily was won on the day before and on DAY: a run of two ending on the last date before the rollover.
+        const stats = statsReducer(undefined, { type: '@@INIT' });
+        await seedRecord(page, {
+            current: makeState(),
+            stats: { ...stats, daily: { completed: [DAY_BEFORE, DAY], bestStreak: 2 } },
+        });
         await setUtc(page, `${DAY}T23:59:59Z`);
-        await seedRecord(page, { current: makeState() });
         await page.goto('/');
 
         await expectDailyTile(page, DAY);
@@ -79,30 +81,28 @@ test.describe('Daily rollover at midnight UTC', () => {
         const after = await dealDaily(page);
         expect(after).not.toBe(before);
         expect(after).toBe(goldenCode(NEXT_DAY));
+
+        // Just after 00:00 UTC on the day after the last completed date, the run ending yesterday still counts.
+        await page.getByRole('button', { name: 'Back to Home' }).click();
+        await expect(page.getByRole('heading', { name: 'Solitaire' })).toBeVisible();
+        const sheet = await openStatistics(page);
+        await expect(sheet).toContainText('Daily streak: 2 (best 2)');
     });
 });
 
 test.describe('The daily streak', () => {
-    test('still counts the run ending on the previous date just after the rollover, then resets for a missed date', async ({
-        page,
-    }) => {
+    test('ends when a whole UTC date passes with no Daily completed, and the best streak stays', async ({ page }) => {
         const stats = statsReducer(undefined, { type: '@@INIT' });
         await seedRecord(page, {
             current: makeState(),
             stats: { ...stats, daily: { completed: [DAY_BEFORE, DAY], bestStreak: 2 } },
         });
 
-        // Just after 00:00 UTC on the day after the last completed date: the run ending yesterday still counts.
-        await setUtc(page, `${NEXT_DAY}T00:00:01Z`);
-        await page.goto('/');
-        await expectDailyTile(page, NEXT_DAY);
-        let sheet = await openStatistics(page);
-        await expect(sheet).toContainText('Daily streak: 2 (best 2)');
-        await closeSheet(page);
-
-        // A whole UTC date passes with no Daily completed: the current streak ends, the best one stays.
+        // NEXT_DAY passed with no Daily completed, so the run that ended on DAY no longer reaches today.
         await setUtc(page, `${AFTER_NEXT_DAY}T00:00:01Z`);
-        sheet = await openStatistics(page);
+        await page.goto('/');
+        await expectDailyTile(page, AFTER_NEXT_DAY);
+        const sheet = await openStatistics(page);
         await expect(sheet).toContainText('Daily streak: 0 (best 2)');
     });
 });

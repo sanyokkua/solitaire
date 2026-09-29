@@ -65,3 +65,16 @@ export async function failSaves(page: Page): Promise<void> {
         };
     });
 }
+
+/** The stored session, as far as a spec reads it: the move count in play and the undo and redo steps behind it. */
+export interface StoredSession {
+    readonly current: { readonly moves: number };
+    readonly history: readonly unknown[];
+    readonly future: readonly unknown[];
+}
+
+/** The `session` the app itself wrote to the record, read back from the browser's storage. */
+export async function readStoredSession(page: Page): Promise<StoredSession> {
+    const stored = await page.evaluate((key) => window.localStorage.getItem(key), STORAGE_KEY);
+    return (JSON.parse(stored ?? 'null') as { session: StoredSession }).session;
+}

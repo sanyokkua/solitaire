@@ -3,6 +3,7 @@ import { dealFromSeed } from '../../../src/domain/deal';
 import type { Command } from '../../../src/domain/types';
 import type { Preferences } from '../../../src/features/preferences/preferencesSlice';
 import { WINNING_LINE, parseLine } from '../../fixtures/deals';
+import { MOVES_VALUE } from './game';
 import { seedRecord } from './seed';
 import { horizontalKey, planCommand, verticalKey, type GesturePlan, type PileKey } from './lineGestures';
 
@@ -27,7 +28,6 @@ const CARD_STRIP: Position = { x: 12, y: 3 };
 /** Two taps on one card closer than this are a double tap (320 ms in the app, plus margin). */
 const DOUBLE_TAP_GUARD_MS = 350;
 const MAX_KEY_PRESSES = 16;
-const MOVES_VALUE = '.stat-display--moves .stat-display__value';
 
 /**
  * Seeds the recorded winning deal as a game in progress (Select and place, Smart move off, so a line command never
@@ -62,14 +62,15 @@ export async function playLine(page: Page, strategy: Strategy, options: PlayOpti
     }
 }
 
-async function settleAnimations(page: Page): Promise<void> {
+/** Waits until no card animation is running; the input gate ignores taps before. */
+export async function settleAnimations(page: Page): Promise<void> {
     await page.waitForFunction(() =>
         document.getAnimations().every((animation) => animation.playState !== 'running' && !animation.pending),
     );
 }
 
 /** The pile's stock slot; a draw or recycle is a click here whatever covers it (the stock cards hit the stock too). */
-function stockSlot(page: Page): Locator {
+export function stockSlot(page: Page): Locator {
     return page.locator('.slot[data-pile="stock"]');
 }
 

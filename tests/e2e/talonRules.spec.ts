@@ -1,16 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 import { draw3TalonState, vegasTalonState } from '../fixtures/boardPositions';
 import { continueToGame } from './support/cards';
-import { focusPile } from './support/play';
+import { MOVES_VALUE, SCORE_VALUE, TIMER_VALUE } from './support/game';
+import { focusPile, settleAnimations, stockSlot } from './support/play';
 import { seedRecord } from './support/seed';
 
 /** How the stock is activated: a click on its slot (the stock cards cover it, so the click is forced) or Enter on it. */
 type Activate = (page: Page) => Promise<void>;
 
-const stockSlot = (page: Page) => page.locator('.slot[data-pile="stock"]');
-const MOVES_VALUE = '.stat-display--moves .stat-display__value';
-const SCORE_VALUE = '.stat-display--score .stat-display__value';
-const TIMER_VALUE = '.stat-display--timer .stat-display__value';
 const NO_REDEALS = 'No redeals left';
 /** The transient notice; the same words are also in the screen-reader announcer, so the notices host scopes the match. */
 const noRedealsNotice = (page: Page) => page.locator('.notices .notice').filter({ hasText: NO_REDEALS });
@@ -28,7 +25,11 @@ const keyboard: Activate = async (page) => {
     await page.keyboard.press('Enter');
 };
 
-/** The score text, move text and whole seconds of the HUD as one synchronous reading, so a clock tick cannot split them. */
+/**
+ * The score text, move text and whole seconds of the HUD as one synchronous reading, so a clock tick cannot split them.
+ * `readGame` cannot stand in: it reads each value in its own round trip and parses the score as a number, while the
+ * Vegas Bank is text such as '-$52'.
+ */
 async function hud(page: Page) {
     return page.evaluate(
         ({ score, moves, timer }) => {
@@ -58,13 +59,6 @@ async function activateCounted(page: Page, activate: Activate, movesAfter: numbe
     await activate(page);
     await expect(page.locator(MOVES_VALUE)).toHaveText(String(movesAfter).padStart(3, '0'));
     await settleAnimations(page);
-}
-
-/** Waits until no card animation is running, as `playLine` does after each command; the input gate ignores taps before. */
-async function settleAnimations(page: Page): Promise<void> {
-    await page.waitForFunction(() =>
-        document.getAnimations().every((animation) => animation.playState !== 'running' && !animation.pending),
-    );
 }
 
 test.describe('The Vegas pass limit', () => {

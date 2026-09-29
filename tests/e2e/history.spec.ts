@@ -1,13 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 import { applyCommand } from '../../src/domain/engine';
 import type { GameState } from '../../src/domain/types';
-import { STORAGE_KEY } from '../../src/features/persistence/recordCodec';
 import { freshDrawOneState, SIX_OF_DIAMONDS, twoTargetsPosition } from '../fixtures/boardPositions';
 import { cardOf, continueToGame } from './support/cards';
-import { expectClockCarriedOn, placement, placementOf, readGame } from './support/game';
-import { seedRecord } from './support/seed';
+import { expectClockCarriedOn, MOVES_VALUE, placement, placementOf, readGame } from './support/game';
+import { settleAnimations } from './support/play';
+import { readStoredSession, seedRecord } from './support/seed';
 
-const MOVES_VALUE = '.stat-display--moves .stat-display__value';
 /** Stored steps kept on each side (KS-PERSIST): the newest undo steps and the nearest redo steps. */
 const STORED_STEPS = 200;
 /** Draws and recycles played: each one is a counted, undoable move. */
@@ -28,11 +27,8 @@ function afterDraws(start: GameState, draws: number): GameState {
 
 /** The stored session's step counts, read from the record the app itself wrote. */
 async function storedSteps(page: Page): Promise<{ history: number; future: number }> {
-    const stored = await page.evaluate((key) => window.localStorage.getItem(key), STORAGE_KEY);
-    const { session } = JSON.parse(stored ?? 'null') as {
-        session: { history: unknown[]; future: unknown[] };
-    };
-    return { history: session.history.length, future: session.future.length };
+    const { history, future } = await readStoredSession(page);
+    return { history: history.length, future: future.length };
 }
 
 /** Clicks the enabled toolbar button until it is disabled and returns how many clicks it took (bounded). */
@@ -120,6 +116,21 @@ test.describe('A rapid double tap', () => {
         await expect(page.locator(MOVES_VALUE)).toHaveText('000');
 
         const card = cardOf(page, SIX_OF_DIAMONDS);
+        // Record which card is under each pointer release (the board captures the pointer, so the event target is not the
+        // card): a second tap that hit an empty slot after the card glided away would otherwise pass without ever
+        // testing the double tap.
+        await page.evaluate(() => {
+            const releases: (string | null | undefined)[] = [];
+            (window as unknown as { releasedOn: typeof releases }).releasedOn = releases;
+            document.addEventListener(
+                'pointerup',
+                (event) => {
+                    const hit = document.elementFromPoint(event.clientX, event.clientY);
+                    releases.push(hit?.closest('[data-card-id]')?.getAttribute('data-card-id'));
+                },
+                true,
+            );
+        });
         if (testInfo.project.use.hasTouch === true) {
             // Two taps at the same spot in a row: `card.tap()` would wait for the moved card and tap it where it landed.
             const box = await card.boundingBox();
@@ -130,12 +141,15 @@ test.describe('A rapid double tap', () => {
         } else {
             await card.dblclick();
         }
+        const released = await page.evaluate(() => (window as unknown as { releasedOn: unknown[] }).releasedOn);
+        // Both taps hit the six itself, so the second one really came inside the double-tap window.
+        expect(released).toEqual([String(SIX_OF_DIAMONDS), String(SIX_OF_DIAMONDS)]);
 
         await expect(page.locator(MOVES_VALUE)).toHaveText('001');
         await expect(card).toHaveAttribute('data-pile', /^tableau:[12]$/);
         const pile = await card.getAttribute('data-pile');
-        // A second move would land later than the first: give it time to show up.
-        await page.waitForTimeout(500);
+        // A second move would land later than the first: let the animations run out, then look again.
+        await settleAnimations(page);
         await expect(page.locator(MOVES_VALUE)).toHaveText('001');
         await expect(card).toHaveAttribute('data-pile', pile ?? '');
     });

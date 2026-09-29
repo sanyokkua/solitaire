@@ -104,8 +104,9 @@ No in-process test reads or writes ambient browser storage. A test that saves or
 
 Playwright specs use the real browser storage of the built app. They seed a position with `seedRecord(page, ...)` from
 `tests/e2e/support/seed.ts` (a valid versioned record installed with `page.addInitScript` before first navigation,
-written only while the key is absent, so a reload exercises real resume). Positions live in
-`tests/fixtures/boardPositions.ts`.
+written only while the key is absent, so a reload exercises real resume). `seedRaw` installs unreadable text under the
+record key, `failSaves` makes every storage write throw, and `readStoredSession` reads back the session the app itself
+stored. Positions live in `tests/fixtures/boardPositions.ts`.
 
 ## Playwright
 
@@ -140,8 +141,17 @@ Chromium-only specs skip themselves in other projects: `visualParity`, `dealLate
   installed height) plus 3 baselines from `tests/fixtures/viewports.ts`, in English and Ukrainian.
   `tests/e2e/pseudoLocale.spec.ts` runs the same matrix with all visible text made 30% longer and checks for clipping
   and sideways scroll. Run: `npx playwright test --project=device-fit`.
-- `a11y`: `tests/e2e/a11y.spec.ts` runs axe (`@axe-core/playwright`) on Home, Game and the eight sheets in light and dark
-  themes; fails on serious or critical violations.
+- `a11y`: `tests/e2e/a11y.spec.ts` runs axe (`@axe-core/playwright`) on Home, Game and the eight sheets in three
+  passes: light theme, dark theme, and dark theme with night cards (which adds a king-to-ace run of both suit inks). It
+  fails on serious or critical violations. Color-contrast runs with `ignoreLength: true`, so a low-contrast
+  one-character card rank is a violation rather than an "incomplete" result; axe still leaves text it cannot see whole
+  (under another card) as "incomplete".
+- Edge cases of play, each run through the real app: `storage.spec.ts` (an unreadable saved record starts from the
+  defaults and keeps a backup; a failing save shows the notice and the game stays playable), `resume.spec.ts` (a reload
+  with the mouse held mid-drag, and in the middle of Finish), `talonRules.spec.ts` (the Vegas pass limit and the Draw 3
+  recycle penalty, by tap and keyboard), `history.spec.ts` (the 200-step undo and redo limit across a reload, and a
+  rapid double tap applying one move), `daily.spec.ts` (the Daily date and streak across midnight UTC) and the
+  "resize during the deal" case in `resize.spec.ts`.
 - `pwa`: `tests/e2e/pwa.spec.ts` covers offline cold start, offline reload and Continue, and the update flow against
   `tests/e2e/support/distServer.ts`.
 - `playByTap`, `playByDrag`, `playByKeyboard`: each plays a recorded winning line to a win by one input path.
