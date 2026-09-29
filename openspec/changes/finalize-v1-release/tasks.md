@@ -427,7 +427,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 7. Deal grading
 
-- [ ] 7.1 Hint candidates in priority order
+- [x] 7.1 Hint candidates in priority order
     - **Implements:** AST "Hint candidates in priority order"; D6.
     - **Files:** `src/domain/hint.ts` (`hintCandidates`; `findMove` becomes its first element), `src/domain/README.md`.
     - **Tests:** `tests/unit/domain/hint.test.ts`:

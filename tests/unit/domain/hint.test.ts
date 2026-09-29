@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { hint, type HintPriority } from '../../../src/domain/hint';
+import { findMove, hint, hintCandidates, type HintPriority } from '../../../src/domain/hint';
 import { cardId } from '../../../src/domain/cards';
-import type { CardId, PileRef, Suit, TableauCol } from '../../../src/domain/types';
-import { faceDown, faceUp, foundationsOf, frozenState, tableauOf, vegasAtLimit } from '../../fixtures/states';
+import { dealFromSeed } from '../../../src/domain/deal';
+import { applyCommand } from '../../../src/domain/engine';
+import type { CardId, GameState, PileRef, Suit, TableauCol } from '../../../src/domain/types';
+import { parseLine, WINNING_LINE } from '../../fixtures/deals';
+import {
+    exchangeHidden,
+    faceDown,
+    faceUp,
+    foundationsOf,
+    frozenState,
+    tableauOf,
+    vegasAtLimit,
+} from '../../fixtures/states';
 
 const HEARTS = 0;
 const DIAMONDS = 1;
@@ -292,5 +303,86 @@ describe('hint: purity', () => {
         const snapshot = JSON.stringify(state);
         expect(hint(state)).toEqual(hint(state));
         expect(JSON.stringify(state)).toBe(snapshot);
+    });
+});
+
+/** Every position along the recorded winning line, plus a few fresh deals: real positions of every kind. */
+function realPositions(): GameState[] {
+    const positions = [1, 2, 3, 49].map((seed) => dealFromSeed(seed, 'draw1'));
+    let state = dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode);
+    for (const command of parseLine(WINNING_LINE.line)) {
+        positions.push(state);
+        state = applyCommand(state, command).state;
+    }
+    return positions;
+}
+
+describe('hintCandidates', () => {
+    const positions = realPositions();
+
+    it('starts with the move findMove reports, over every real position', () => {
+        for (const state of positions) {
+            expect(findMove(state)).toEqual(hintCandidates(state)[0]);
+        }
+    });
+
+    it('lists only moves the engine accepts, each once', () => {
+        for (const state of positions) {
+            const candidates = hintCandidates(state);
+            for (const candidate of candidates) {
+                const { events } = applyCommand(state, candidate.command);
+                expect(events.some((event) => event.type === 'rejected')).toBe(false);
+            }
+            const keys = candidates.map((candidate) => JSON.stringify(candidate.command));
+            expect(new Set(keys).size).toBe(keys.length);
+        }
+    });
+
+    it('is ordered by priority', () => {
+        for (const state of positions) {
+            const priorities = hintCandidates(state).map((candidate) => candidate.priority);
+            expect(priorities).toEqual([...priorities].sort((a, b) => a - b));
+        }
+    });
+
+    it('lists the foundation move, the revealing run, then the waste top onto each column in order', () => {
+        const state = frozenState({
+            tableau: tableauOf(
+                faceUp(c(CLUBS, 1)),
+                [...faceDown(BURIED), ...faceUp(c(HEARTS, 5))],
+                faceUp(c(SPADES, 6)),
+                faceUp(c(CLUBS, 6)),
+            ),
+            waste: [c(DIAMONDS, 5)],
+        });
+        expect(hintCandidates(state).map(({ priority, command }) => [priority, command.from, command.to])).toEqual([
+            [1, col(0), home(CLUBS)],
+            [2, col(1), col(2)],
+            [2, col(1), col(3)],
+            [3, WASTE, col(2)],
+            [3, WASTE, col(3)],
+        ]);
+    });
+
+    it('lists every source of one priority in canonical order, columns before the waste', () => {
+        const state = frozenState({
+            tableau: tableauOf([], faceUp(c(HEARTS, 1)), [], faceUp(c(SPADES, 1))),
+            waste: [c(CLUBS, 1)],
+        });
+        expect(hintCandidates(state).map(({ command }) => command.from)).toEqual([col(1), col(3), WASTE]);
+    });
+
+    it('lists nothing for a won game or a position with no board move', () => {
+        expect(hintCandidates(frozenState({ foundations: foundationsOf(13, 13, 13, 13), status: 'won' }))).toEqual([]);
+        expect(hintCandidates(frozenState({ stock: [c(HEARTS, 9)] }))).toEqual([]);
+    });
+
+    it('does not change when hidden cards are exchanged among themselves', () => {
+        const [fresh] = positions;
+        expect(fresh).toBeDefined();
+        if (fresh !== undefined) expect(exchangeHidden(fresh, 7)).not.toEqual(fresh);
+        for (const state of positions) {
+            expect(hintCandidates(exchangeHidden(state, 7))).toEqual(hintCandidates(state));
+        }
     });
 });

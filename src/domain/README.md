@@ -14,7 +14,7 @@ The pure Klondike game engine (Phase 2 — Card engine).
   `passLimit`; reuses `isCardId` (cards.ts), `MODES` and `modeConfig` (deal.ts), and `isWon` and `passLimit` (rules.ts)
 - `scoring.ts` — `startingScore`, per-event and per-command deltas (`eventDelta`, `commandDelta`), the clamped `applyDelta`, `timePenalty`, `winBonus`, `undoCost`, `displayedScore`
 - `safeMoves.ts` — `isReady`, `isSafe`, `nextSafeMove`, and the shared source-card scan (`Source`, `sourceCards`)
-- `hint.ts` — the hint types (`Hint`, `MoveHint`, `MoveCommand`, `HintPriority`), `findMove` and `hint`
+- `hint.ts` — the hint types (`Hint`, `MoveHint`, `MoveCommand`, `HintPriority`), `hintCandidates` (every productive move, by priority, then canonical source, then destination; reads only what a player sees), `findMove` (its first entry) and `hint`
 - `deadEnd.ts` — `isDeadEnd` (no productive move, and no card in `reachableTops` could be played), and `advise` (`Advice`: the dead end when `isDeadEnd` holds, else `hint`; it lives here because `hint.ts` is imported by this module, so putting it in `hint.ts` would be a cycle)
 - `position.ts` — `positionKey`, a string over the piles (tableau ids with face states, stock, waste, foundations) that ignores score, moves, time, undos, passes and mode
 - `smartTap.ts` — `bestTarget`, the single destination of a smart tap
