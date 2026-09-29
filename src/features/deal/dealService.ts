@@ -147,7 +147,7 @@ export function createDealService(options: DealServiceOptions = {}): DealService
             report();
         }, overlayDelayMs);
         const outcome = await client
-            .findWinnable(plan.seeds, plan.budget, (started) => {
+            .findWinnable(plan.seeds, plan.budget, mode, (started) => {
                 attempt = started;
                 report();
             })

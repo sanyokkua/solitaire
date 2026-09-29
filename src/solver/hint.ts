@@ -1,19 +1,19 @@
 import type { Hint, MoveHint } from '../domain/hint';
 import { groupAt } from '../domain/rules';
 import type { GameState } from '../domain/types';
-import { solve } from './solver';
+import { search } from './search';
 
 /** A domain `Hint` without its heuristic priority: every domain `Hint` is assignable to it (D5). */
 export type SolverHint = Omit<MoveHint, 'priority'> | Exclude<Hint, MoveHint>;
 
 /**
- * The first command of the winning line from `solve(state, budget)` as a hint; `undefined` when the search does not
+ * The first command of the winning line from `search(state, budget)` as a hint; `undefined` when the search does not
  * prove a win (a loss, `unknown`, an unsupported position) or the position is already won. A draw is a recycle when
  * the stock is empty. Throws when the line's first move has no movable group at its source, or the command is an `autoFoundation`,
  * which no valid line contains.
  */
 export function solverHint(state: GameState, budget: number): SolverHint | undefined {
-    const first = solve(state, budget).line?.[0];
+    const first = search(state, budget).line?.[0];
     if (first === undefined) {
         return undefined;
     }

@@ -1,5 +1,6 @@
 import { dealFromSeed } from '../domain/deal';
-import { solve } from './solver';
+import type { Mode } from '../domain/types';
+import { search } from './search';
 
 /** The seed `findWinnable` selected, how it was judged, and how many candidates were tried (D4). */
 export interface WinnableResult {
@@ -9,8 +10,8 @@ export interface WinnableResult {
 }
 
 /**
- * Reject sampling over caller-supplied seeds (D4): each seed is dealt in Draw 1 and searched with `budget` nodes, in
- * order, and the first proven `win` is returned with its 1-based position as `attempts`. When none wins (a `loss` and
+ * Reject sampling over caller-supplied seeds (D4): each seed is dealt in `mode` and searched with `budget` nodes by the
+ * search that fits the mode (Draw 1 and Daily, or the ordered-talon search), in order, and the first proven `win` is returned with its 1-based position as `attempts`. When none wins (a `loss` and
  * `unknown` both fail an attempt) the last seed is returned as `random` with `attempts` equal to `seeds.length`.
  * `onAttempt(k)` is called just before attempt `k` is solved, so it never reports an attempt that is not then tried.
  * Returns the seed, not a state, so the caller deals it itself. Deterministic: no `Math.random`, no `crypto`. Throws a
@@ -19,6 +20,7 @@ export interface WinnableResult {
 export function findWinnable(
     seeds: readonly number[],
     budget: number,
+    mode: Mode,
     onAttempt?: (attempt: number) => void,
 ): WinnableResult {
     let last: number | undefined;
@@ -27,7 +29,7 @@ export function findWinnable(
         attempts++;
         last = seed;
         onAttempt?.(attempts);
-        if (solve(dealFromSeed(seed, 'draw1'), budget).verdict === 'win') {
+        if (search(dealFromSeed(seed, mode), budget).verdict === 'win') {
             return { seed, verdict: 'win', attempts };
         }
     }

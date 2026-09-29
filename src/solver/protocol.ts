@@ -1,10 +1,16 @@
-import type { GameState } from '../domain/types';
+import type { GameState, Mode } from '../domain/types';
 import { solverHint, type SolverHint } from './hint';
 import { findWinnable } from './winnable';
 
 /** What the worker is asked to do; each request carries everything it needs and an `id` its replies echo (D6). */
 export type SolverRequest =
-    | { readonly id: number; readonly type: 'findWinnable'; readonly seeds: readonly number[]; readonly budget: number }
+    | {
+          readonly id: number;
+          readonly type: 'findWinnable';
+          readonly seeds: readonly number[];
+          readonly budget: number;
+          readonly mode: Mode;
+      }
     | { readonly id: number; readonly type: 'hint'; readonly state: GameState; readonly budget: number };
 
 /** What the worker posts back: `progress` as each attempt starts (D4), then one final reply per request (D6). */
@@ -30,7 +36,7 @@ export function handleRequest(request: SolverRequest, post: (response: SolverRes
     const { id } = request;
     switch (request.type) {
         case 'findWinnable': {
-            const { seed, verdict, attempts } = findWinnable(request.seeds, request.budget, (attempt) => {
+            const { seed, verdict, attempts } = findWinnable(request.seeds, request.budget, request.mode, (attempt) => {
                 post({ id, type: 'progress', attempt });
             });
             post({ id, type: 'findWinnable', seed, verdict, attempts });

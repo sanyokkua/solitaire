@@ -121,7 +121,7 @@ describe('Daily v1 golden dates', () => {
     it.each(DAILY_GOLDEN)(
         'picks the pinned seed for $day',
         ({ day, seed, attempts }) => {
-            expect(findWinnable(dailySeeds(day), DAILY_V1.budget)).toEqual({ seed, verdict: 'win', attempts });
+            expect(findWinnable(dailySeeds(day), DAILY_V1.budget, 'daily')).toEqual({ seed, verdict: 'win', attempts });
             expect(decodeDealCode(encodeDealCode(seed, 'daily'))).toEqual({ seed, mode: 'daily' });
         },
         30_000,

@@ -400,7 +400,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** for every endgame, `solveOrdered` gives `win` exactly when brute force finds a win, and `loss` exactly when it finds none. `unknown` never occurs at the test budget.
     - **Verify:** `rtk npx vitest run tests/unit/solver` passes, and the suite takes under 10 s locally.
 
-- [ ] 6.4 One search entry for every mode
+- [x] 6.4 One search entry for every mode
     - **Implements:** SEL "Winnable selection by reject sampling" (mode), "Solver hint from the winning line" and "Background-thread message interface"; D2.
     - **Files:**
       - new `src/solver/search.ts` (routes Draw 1 and Daily to `solve`, Draw 3 and Vegas to `solveOrdered`);

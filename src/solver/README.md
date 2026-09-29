@@ -17,12 +17,14 @@ exactly the modules listed here plus this README):
   `move` commands that replay through `applyCommand` (never `autoFoundation`). A `{ t: 'd' }` step is one explicit
   draw (a recycle on an empty stock); the Draw 1 search leaves its draws implicit, and `expandLine` still brings a
   named talon card to the waste top.
-- `hint.ts` — the `SolverHint` type and `solverHint(state, budget)`, which turns the first command of the winning
+- `hint.ts` — the `SolverHint` type and `solverHint(state, budget)`, which turns the first command of the `search` winning
   line into a move, draw or recycle hint, or `undefined` when the search does not prove a win, the position is unsupported or it is already won.
-- `winnable.ts` — `findWinnable(seeds, budget, onAttempt?)`, which deals each candidate seed in Draw 1 in order and
-  returns the first proven win with its attempt number, or the last seed as `random`; it reports each attempt just
+- `search.ts` — `search(state, budget)`, the one entry to the solver for every mode: a position that draws three cards
+  (Draw 3, Vegas) goes to `solveOrdered`, one that draws a single card (Draw 1, Daily) to `solve`.
+- `winnable.ts` — `findWinnable(seeds, budget, mode, onAttempt?)`, which deals each candidate seed in `mode`, in order,
+  searches it with `search` and returns the first proven win with its attempt number, or the last seed as `random`; it reports each attempt just
   before solving it and throws a `RangeError` for an empty list.
-- `protocol.ts` — the `SolverRequest` and `SolverResponse` message types (`findWinnable`, `hint`, and the `progress`
+- `protocol.ts` — the `SolverRequest` and `SolverResponse` message types (`findWinnable`, which carries the `mode` its seeds are dealt in, `hint`, and the `progress`
   posted as each selection attempt starts; every reply echoes its request `id`) and `handleRequest(request, post)`,
   which runs one request and posts its messages. It keeps no state between requests.
 - `solver.worker.ts` — the module Web Worker entry point, a three-line binding: it hands each message it receives to

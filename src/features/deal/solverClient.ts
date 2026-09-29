@@ -3,7 +3,7 @@
  * `src/solver` through the worker URL and the message protocol's types only, so no solver code loads on the input
  * thread. Every method resolves with a discriminated result and none ever rejects.
  */
-import type { GameState } from '../../domain/types';
+import type { GameState, Mode } from '../../domain/types';
 import type { SolverHint } from '../../solver/hint';
 import type { SolverRequest, SolverResponse } from '../../solver/protocol';
 import type { WinnableResult } from '../../solver/winnable';
@@ -25,12 +25,13 @@ export type SolverHintOutcome =
 
 export interface SolverClient {
     /**
-     * Cancels every pending request, then asks the worker to try `seeds` in order at `budget` nodes each. `onProgress`
-     * receives the attempt number as each attempt starts, in order, until the request settles. No timeout.
+     * Cancels every pending request, then asks the worker to deal `seeds` in `mode`, in order, and try each at `budget`
+     * nodes. `onProgress` receives the attempt number as each attempt starts, in order, until the request settles. No timeout.
      */
     readonly findWinnable: (
         seeds: readonly number[],
         budget: number,
+        mode: Mode,
         onProgress?: (attempt: number) => void,
     ) => Promise<FindWinnableOutcome>;
     /**
@@ -205,13 +206,14 @@ export function createSolverClient(createWorker: () => WorkerLike = defaultCreat
     function findWinnable(
         seeds: readonly number[],
         budget: number,
+        mode: Mode,
         onProgress?: (attempt: number) => void,
     ): Promise<FindWinnableOutcome> {
         cancel();
         return new Promise((resolve) => {
             const id = nextId++;
             pending.set(id, { kind: 'deal', resolve, onProgress });
-            dispatch({ id, type: 'findWinnable', seeds, budget });
+            dispatch({ id, type: 'findWinnable', seeds, budget, mode });
         });
     }
 

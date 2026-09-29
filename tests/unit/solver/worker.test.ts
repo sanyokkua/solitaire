@@ -55,8 +55,9 @@ describe('solver.worker round-trip', () => {
             type: 'findWinnable',
             seeds,
             budget: FIND_BUDGET,
+            mode: 'draw1',
         });
-        const direct = findWinnable(seeds, FIND_BUDGET);
+        const direct = findWinnable(seeds, FIND_BUDGET, 'draw1');
 
         expect(direct.attempts).toBe(2);
         expect(messages).toEqual([
@@ -87,9 +88,33 @@ describe('solver.worker round-trip', () => {
         });
 
         worker.terminate();
-        worker.postMessage({ id: REQUEST_ID, type: 'findWinnable', seeds: [WIN_SEED], budget: FIND_BUDGET });
+        worker.postMessage({
+            id: REQUEST_ID,
+            type: 'findWinnable',
+            seeds: [WIN_SEED],
+            budget: FIND_BUDGET,
+            mode: 'draw1',
+        });
         await new Promise((resolve) => setTimeout(resolve, SILENCE_MS));
 
         expect(received).toEqual([]);
+    });
+});
+
+describe('solver.worker in Draw 3', () => {
+    it('answers a Draw 3 findWinnable request with the direct result', async () => {
+        const seeds = [1, 10, 8];
+        const messages = await roundTrip(startWorker(), {
+            id: REQUEST_ID,
+            type: 'findWinnable',
+            seeds,
+            budget: FIND_BUDGET,
+            mode: 'draw3',
+        });
+        expect(messages.at(-1)).toEqual({
+            id: REQUEST_ID,
+            type: 'findWinnable',
+            ...findWinnable(seeds, FIND_BUDGET, 'draw3'),
+        });
     });
 });

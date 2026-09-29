@@ -50,7 +50,7 @@ test('winnable search latency (informational, KS-PERF-02)', async ({ bench }) =>
     let call = 0;
 
     const result = await bench(`findWinnable(${String(BATCH_SIZE)} seeds, ${String(NODE_BUDGET)} nodes)`, () => {
-        findWinnable(batches[call++ % batches.length] ?? [], NODE_BUDGET);
+        findWinnable(batches[call++ % batches.length] ?? [], NODE_BUDGET, 'draw1');
     }).run({ iterations: MIN_ITERATIONS });
 
     const samples = result.latency.samples;

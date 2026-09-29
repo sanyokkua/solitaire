@@ -74,7 +74,7 @@ sequenceDiagram
     Nav->>Store: close sheet, route game
     Nav->>Start: startGame(mode)
     Start->>Svc: deal(mode, winnableOnly, onProgress)
-    Svc->>Client: cancel pending, findWinnable(seeds, budget)
+    Svc->>Client: cancel pending, findWinnable(seeds, budget, mode)
     Client->>W: findWinnable request
     loop each candidate seed
         W-->>Client: progress(attempt)

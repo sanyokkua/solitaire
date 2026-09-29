@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { Mode } from '../../../src/domain/types';
 import { findWinnable } from '../../../src/solver/winnable';
 import { corpusSeeds } from '../../fixtures/solverCorpus';
 
@@ -10,9 +11,9 @@ const [LOSS_SEED = 0] = corpusSeeds('loss');
 const [UNKNOWN_SEED = 0] = corpusSeeds('unknown');
 
 /** Runs `findWinnable` and records every `onAttempt` number, in order. */
-function run(seeds: readonly number[], budget = BUDGET) {
+function run(seeds: readonly number[], budget = BUDGET, mode: Mode = 'draw1') {
     const attempts: number[] = [];
-    const result = findWinnable(seeds, budget, (attempt) => attempts.push(attempt));
+    const result = findWinnable(seeds, budget, mode, (attempt) => attempts.push(attempt));
     return { result, attempts };
 }
 
@@ -55,17 +56,53 @@ describe('findWinnable', () => {
     });
 
     it('works without an attempt callback', () => {
-        expect(findWinnable([LOSS_SEED, WIN_SEED], BUDGET)).toEqual({ seed: WIN_SEED, verdict: 'win', attempts: 2 });
+        expect(findWinnable([LOSS_SEED, WIN_SEED], BUDGET, 'draw1')).toEqual({
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 2,
+        });
     });
 
     it('refuses an empty seed list', () => {
         const onAttempt = vi.fn();
-        expect(() => findWinnable([], BUDGET, onAttempt)).toThrow(RangeError);
+        expect(() => findWinnable([], BUDGET, 'draw1', onAttempt)).toThrow(RangeError);
         expect(onAttempt).not.toHaveBeenCalled();
     });
 
     it('is deterministic', () => {
         const seeds = [LOSS_SEED, UNKNOWN_SEED, WIN_SEED];
-        expect(findWinnable(seeds, BUDGET)).toEqual(findWinnable(seeds, BUDGET));
+        expect(findWinnable(seeds, BUDGET, 'draw1')).toEqual(findWinnable(seeds, BUDGET, 'draw1'));
+    });
+});
+
+describe('findWinnable in Draw 3, Vegas and Daily', () => {
+    // Pinned with the ordered-talon search at 5,000 nodes: Draw 3 seed 1 is unknown, 10 is a loss, 8 a win; Vegas seed
+    // 9 is a loss, 21 a win, and Draw 3's winner 8 is unknown in Vegas.
+    it('deals and searches each candidate in Draw 3', () => {
+        expect(run([1, 10, 8], BUDGET, 'draw3')).toEqual({
+            result: { seed: 8, verdict: 'win', attempts: 3 },
+            attempts: [1, 2, 3],
+        });
+    });
+
+    it('deals and searches each candidate in Vegas', () => {
+        expect(run([9, 21], BUDGET, 'vegas')).toEqual({
+            result: { seed: 21, verdict: 'win', attempts: 2 },
+            attempts: [1, 2],
+        });
+    });
+
+    it('judges the same seed by the rules of the mode it is dealt in', () => {
+        expect(findWinnable([8], BUDGET, 'draw3').verdict).toBe('win');
+        expect(findWinnable([8], BUDGET, 'vegas')).toEqual({ seed: 8, verdict: 'random', attempts: 1 });
+    });
+
+    it('falls back to the last seed as random when no Draw 3 candidate is proven', () => {
+        expect(findWinnable([1, 10], BUDGET, 'draw3')).toEqual({ seed: 10, verdict: 'random', attempts: 2 });
+    });
+
+    it('treats Daily as Draw 1', () => {
+        const seeds = [LOSS_SEED, UNKNOWN_SEED, WIN_SEED];
+        expect(findWinnable(seeds, BUDGET, 'daily')).toEqual(findWinnable(seeds, BUDGET, 'draw1'));
     });
 });

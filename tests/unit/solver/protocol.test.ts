@@ -27,11 +27,17 @@ function hintRequest(id: number, state = midgameState(MIDGAME ?? { seed: 0, k: 0
 }
 
 describe('handleRequest findWinnable', () => {
-    const request: SolverRequest = { id: 7, type: 'findWinnable', seeds: [LOSS_SEED, WIN_SEED], budget: BUDGET };
+    const request: SolverRequest = {
+        id: 7,
+        type: 'findWinnable',
+        seeds: [LOSS_SEED, WIN_SEED],
+        budget: BUDGET,
+        mode: 'draw1',
+    };
 
     it('posts progress as each attempt starts, then one reply, all with the request id', () => {
         const posted = run(request);
-        const direct = findWinnable([LOSS_SEED, WIN_SEED], BUDGET);
+        const direct = findWinnable([LOSS_SEED, WIN_SEED], BUDGET, 'draw1');
         expect(posted).toEqual([
             { id: 7, type: 'progress', attempt: 1 },
             { id: 7, type: 'progress', attempt: 2 },
@@ -41,7 +47,13 @@ describe('handleRequest findWinnable', () => {
     });
 
     it('posts no progress for an attempt that is not tried', () => {
-        const posted = run({ id: 1, type: 'findWinnable', seeds: [WIN_SEED, LOSS_SEED], budget: BUDGET });
+        const posted = run({
+            id: 1,
+            type: 'findWinnable',
+            seeds: [WIN_SEED, LOSS_SEED],
+            budget: BUDGET,
+            mode: 'draw1',
+        });
         expect(posted.filter((message) => message.type === 'progress')).toEqual([
             { id: 1, type: 'progress', attempt: 1 },
         ]);
@@ -78,6 +90,7 @@ describe('handleRequest independence', () => {
             type: 'findWinnable',
             seeds: [LOSS_SEED, WIN_SEED],
             budget: BUDGET,
+            mode: 'draw1',
         };
         expect(run(structuredClone(findRequest))).toEqual(run(findRequest));
         const hint = hintRequest(5);
@@ -86,16 +99,40 @@ describe('handleRequest independence', () => {
 
     it('gives replies that differ only in id when a request is posted twice with another between', () => {
         const first = run(hintRequest(1));
-        run({ id: 2, type: 'findWinnable', seeds: [LOSS_SEED, WIN_SEED], budget: BUDGET });
+        run({ id: 2, type: 'findWinnable', seeds: [LOSS_SEED, WIN_SEED], budget: BUDGET, mode: 'draw1' });
         const second = run(hintRequest(3));
         expect(first[0]?.id).toBe(1);
         expect(second[0]?.id).toBe(3);
         expect(withoutId(second)).toEqual(withoutId(first));
 
-        const find = (id: number) => run({ id, type: 'findWinnable', seeds: [LOSS_SEED, WIN_SEED], budget: BUDGET });
+        const find = (id: number) =>
+            run({ id, type: 'findWinnable', seeds: [LOSS_SEED, WIN_SEED], budget: BUDGET, mode: 'draw1' });
         const a = find(10);
         run(hintRequest(11));
         const b = find(12);
         expect(withoutId(b)).toEqual(withoutId(a));
+    });
+});
+
+describe('handleRequest in Draw 3 and Vegas', () => {
+    it('deals a findWinnable request in its mode, posting progress then the direct result', () => {
+        const seeds = [1, 10, 8];
+        const posted = run({ id: 3, type: 'findWinnable', seeds, budget: 5000, mode: 'draw3' });
+        const direct = findWinnable(seeds, 5000, 'draw3');
+        expect(direct).toEqual({ seed: 8, verdict: 'win', attempts: 3 });
+        expect(posted).toEqual([
+            { id: 3, type: 'progress', attempt: 1 },
+            { id: 3, type: 'progress', attempt: 2 },
+            { id: 3, type: 'progress', attempt: 3 },
+            { id: 3, type: 'findWinnable', ...direct },
+        ]);
+    });
+
+    it('answers a hint request by the search that fits the position own mode', () => {
+        for (const state of [dealFromSeed(8, 'draw3'), dealFromSeed(21, 'vegas')]) {
+            const posted = run({ id: 5, type: 'hint', state, budget: BUDGET });
+            expect(posted).toEqual([{ id: 5, type: 'hint', hint: solverHint(state, BUDGET) }]);
+            expect(solverHint(state, BUDGET)).toBeDefined();
+        }
     });
 });

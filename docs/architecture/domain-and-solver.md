@@ -109,11 +109,13 @@ them for display. Numbers are listed in [game-rules.md](../reference/game-rules.
   `unknown`. A `loss` means "no win found", not "unwinnable" (see the [solver README](../../src/solver/README.md)).
 - The search sees face-down cards. A `win` carries a line of player commands (draws and moves, never
   `autoFoundation`) that replays through `applyCommand`.
-- `src/solver/winnable.ts#findWinnable(seeds, budget, onAttempt?)` deals each seed in Draw 1 and returns the first
-  proven win with its 1-based attempt number; if none wins it returns the last seed as `random` with
+- `src/solver/search.ts#search(state, budget)` is the one entry for every mode: a position that draws three cards goes
+  to `solveOrdered` (below), one that draws a single card to `solve`.
+- `src/solver/winnable.ts#findWinnable(seeds, budget, mode, onAttempt?)` deals each seed in `mode`, searches it with
+  `search`, and returns the first proven win with its 1-based attempt number; if none wins it returns the last seed as `random` with
   `attempts = seeds.length`. It throws `RangeError` for an empty list and uses no randomness.
-- `src/solver/hint.ts#solverHint` turns the first command of the winning line into a hint (`move`, `draw` or
-  `recycle`), or `undefined` when no win is proven.
+- `src/solver/hint.ts#solverHint` turns the first command of the `search` winning line into a hint (`move`, `draw` or
+  `recycle`), or `undefined` when no win is proven. The position's own mode picks the search.
 
 ### Ordered-talon search (Draw 3 and Vegas)
 
@@ -155,7 +157,7 @@ built to make a `loss` a proof.
 
 | Direction | Message        | Fields                                                |
 | --------- | -------------- | ----------------------------------------------------- |
-| request   | `findWinnable` | `id`, `seeds`, `budget`                               |
+| request   | `findWinnable` | `id`, `seeds`, `budget`, `mode`                       |
 | request   | `hint`         | `id`, `state`, `budget`                               |
 | response  | `progress`     | `id`, `attempt` (posted as each attempt starts)       |
 | response  | `findWinnable` | `id`, `seed`, `verdict`, `attempts`                   |

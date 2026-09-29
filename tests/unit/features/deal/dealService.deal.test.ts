@@ -70,7 +70,7 @@ function noonUtc(day: string): Date {
 describe('deal service: provenance per mode', () => {
     it('deals a winnable Draw 1 game from the seed the selection picked, with its verdict and attempts', async () => {
         const seeds = drawnSeeds(FIXED, MAX_ATTEMPTS);
-        const expected = findWinnable(seeds, WINNABLE_BUDGET);
+        const expected = findWinnable(seeds, WINNABLE_BUDGET, 'draw1');
         expect(expected.attempts).toBeGreaterThan(1);
         const service = track(
             createDealService({
@@ -370,7 +370,7 @@ describe('deal service: a newer request wins', () => {
         const first = service.deal({ mode: 'draw1', winnableOnly: true }, onFirstProgress);
 
         expect(await first).toEqual({ status: 'cancelled' });
-        const expected = findWinnable(seedsAfter(FIXED, MAX_ATTEMPTS, MAX_ATTEMPTS), WINNABLE_BUDGET);
+        const expected = findWinnable(seedsAfter(FIXED, MAX_ATTEMPTS, MAX_ATTEMPTS), WINNABLE_BUDGET, 'draw1');
         expect(await second).toEqual({
             status: 'dealt',
             state: dealFromSeed(expected.seed, 'draw1', { verdict: expected.verdict, attempts: expected.attempts }),
