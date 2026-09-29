@@ -90,6 +90,8 @@ function fakeHarness(): DealHarness {
     return {
         service: {
             deal: fake.deal,
+            prefetch: fake.prefetch,
+            pause: fake.pause,
             dispose: fake.dispose,
             hint: (state) => {
                 fake.deferHints = state.status !== 'won';
@@ -182,6 +184,21 @@ describe('fakeDealService beyond the contract', () => {
         service.progress(0, { overlay: true, attempt: 4 });
 
         expect(seen).toEqual([4]);
+    });
+
+    it('records every prefetch choice and counts the pauses', () => {
+        const service = fakeDealService();
+
+        service.prefetch({ mode: 'draw3', winnableOnly: true });
+        service.pause();
+        service.prefetch({ mode: 'daily', winnableOnly: false });
+        service.pause();
+
+        expect(service.prefetches).toEqual([
+            { mode: 'draw3', winnableOnly: true },
+            { mode: 'daily', winnableOnly: false },
+        ]);
+        expect(service.pauses).toBe(2);
     });
 
     it('answers a hint with none', async () => {

@@ -37,8 +37,10 @@ export interface ThunkExtra {
 }
 
 /**
- * A deal service that creates the real one (and so its solver worker) on first use, so a store that never deals
- * never starts a worker. `dispose` disposes the real service only if it was created, then forgets it. `now` feeds
+ * A deal service that creates the real one (and so its solver workers) on first use, so a store that never deals,
+ * hints or prefetches never starts a worker. `prefetch` creates it like `deal` and `hint`; `pause` only reaches one
+ * that exists, since a service that was never created has nothing to pause. `dispose` disposes the real service only
+ * if it was created, then forgets it. `now` feeds
  * `createDealService`'s own clock (D8), so the Daily deal it selects reads whatever `now` resolves to at call time,
  * not at the moment this lazy wrapper was built. `create` is the seam tests use to count and observe creation.
  */
@@ -48,6 +50,12 @@ function lazyDealService(now: () => Date, create: (options: { now: () => Date })
     return {
         deal: (request, onProgress) => service().deal(request, onProgress),
         hint: (state) => service().hint(state),
+        prefetch: (choice) => {
+            service().prefetch(choice);
+        },
+        pause: () => {
+            created?.pause();
+        },
         dispose: () => {
             created?.dispose();
             created = undefined;

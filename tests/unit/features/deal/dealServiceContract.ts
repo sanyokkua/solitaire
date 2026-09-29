@@ -177,6 +177,34 @@ export function dealServiceContract(name: string, makeHarness: () => DealHarness
             });
         });
 
+        describe('prefetch and pause', () => {
+            it('accepts every choice and a pause without throwing', () => {
+                expect(() => {
+                    harness.service.pause();
+                    harness.service.prefetch({ mode: 'draw1', winnableOnly: false });
+                    harness.service.prefetch({ mode: 'daily', winnableOnly: true });
+                    harness.service.pause();
+                }).not.toThrow();
+            });
+
+            it('still deals while paused', async () => {
+                harness.service.pause();
+                const outcome = harness.service.deal(WINNABLE_DRAW_ONE);
+                harness.settleDeal(0, WINNABLE_DRAW_ONE);
+
+                expect(await outcome).toEqual({ status: 'dealt', state: settledState('draw1') });
+            });
+
+            it('ignores prefetch and pause once disposed', () => {
+                harness.service.dispose();
+
+                expect(() => {
+                    harness.service.prefetch({ mode: 'draw1', winnableOnly: true });
+                    harness.service.pause();
+                }).not.toThrow();
+            });
+        });
+
         describe('hint', () => {
             it.each<HintSource>(['solver', 'heuristic'])(
                 'answers a pending hint with the %s outcome once it is settled',

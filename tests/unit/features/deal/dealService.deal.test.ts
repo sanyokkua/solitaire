@@ -15,10 +15,18 @@ import {
 } from '../../../../src/features/deal/budgets';
 import { createDealService, type DealProgress, type DealService } from '../../../../src/features/deal/dealService';
 import type { WorkerLike } from '../../../../src/features/deal/solverClient';
+import type { SolverResponse } from '../../../../src/solver/protocol';
 import { findWinnable } from '../../../../src/solver/winnable';
 import { DAILY_GOLDEN } from '../../../fixtures/dailyGolden';
 import { corpusSeeds } from '../../../fixtures/solverCorpus';
-import { mulberry32SeedSource, realFactory, scriptedSeedSource, stubAt, stubFactory } from '../../../fixtures/workers';
+import {
+    mulberry32SeedSource,
+    realFactory,
+    recordingFactory,
+    scriptedSeedSource,
+    stubAt,
+    stubFactory,
+} from '../../../fixtures/workers';
 
 /** Chosen so the first 40 seeds need 2 attempts and the next 40 need 4: selection is not trivially the first seed. */
 const FIXED = 1;
@@ -345,6 +353,43 @@ describe('deal service: provenance per mode', () => {
             }),
             dayKey: '2027-01-01',
         });
+    });
+});
+
+describe('deal service: the verdict cache', () => {
+    it('answers a second Daily request in a session from the cache, searching none of its candidates again', async () => {
+        const day = '2026-09-24';
+        const golden = dailyGoldenFor(day);
+        const factory = recordingFactory();
+        const service = track(
+            createDealService({ createWorker: factory.create, now: () => noonUtc(day), overlayDelayMs: HUGE_DELAY_MS }),
+        );
+        const request = { mode: 'daily', winnableOnly: true, target: 'any' } as const;
+        const expected = {
+            status: 'dealt',
+            state: dealFromSeed(golden.seed, 'daily', {
+                verdict: 'win',
+                attempts: golden.attempts,
+                grade: golden.grade,
+            }),
+            dayKey: day,
+        };
+        const outcomesIn = (replies: readonly SolverResponse[]) =>
+            replies.flatMap((reply) => (reply.type === 'outcome' ? [reply.outcome] : []));
+
+        expect(await service.deal(request)).toEqual(expected);
+        const [log] = factory.logs;
+        if (log === undefined) {
+            throw new Error('no worker was started');
+        }
+        const searched = outcomesIn(log.replies);
+        expect(searched).toHaveLength(golden.attempts);
+        const repliesBefore = log.replies.length;
+
+        expect(await service.deal(request)).toEqual(expected);
+        expect(factory.logs).toHaveLength(1);
+        expect(log.posted.at(-1)).toMatchObject({ type: 'findWinnable', known: searched });
+        expect(outcomesIn(log.replies.slice(repliesBefore))).toEqual([]);
     });
 });
 

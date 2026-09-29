@@ -46,7 +46,7 @@ export interface DealPoolOptions {
     /** The pool's own solver client, never the player's; the pool owns it and disposes it. */
     readonly client: SolverClient;
     /** The entropy source of fresh seeds; defaults to the global `crypto`. */
-    readonly seedSource?: SeedSource;
+    readonly seedSource?: SeedSource | undefined;
 }
 
 export interface DealPool {

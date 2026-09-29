@@ -8,27 +8,43 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
 
 - `deal/daily.ts` — UTC day key and daily v1 seed list
 - `deal/solverClient.ts` — lazy solver Web Worker client: request ids, cancellation (`cancel`, and `cancelHints` for hints alone) and timeout rules, malformed replies fail the client, never-rejecting results; its `hint` settles as a `SolverHintOutcome` (`ok`, `cancelled`, `timeout`, `busy` or `failed`), distinct from the deal service's `HintOutcome`
-- `deal/dealService.ts` — `createDealService`: `deal({ mode, winnableOnly, target }, onProgress?)`, `hint(state)` and
-  `dispose()`. `target` is the grade wanted (`any`, `easy`, `medium` or `hard`, the Difficulty preference). `deal()` with
-  the switch on deals Draw 1, Draw 3 and Vegas through the solver worker (40 fresh seeds at the mode's budget from
-  `winnableBudget(mode)`, selecting `{ target, gradeLimit: GRADE_LIMIT }`), and Daily (the UTC day's v1 candidates at
-  20,000 nodes, always for `any`, whatever the switch or the Difficulty says) the same way. A request with the switch off
-  is dealt at once on the input thread from one fresh seed, `random`, 1 attempt, ungraded, and `target` is ignored. The
-  state is `dealFromSeed(seed, mode, { verdict, attempts, grade })`, where `grade` is the grade of the deal the search
-  selected (the closest one, labelled with its own grade, when `target` is not found), so its deal code reproduces it
-  without the solver. `onProgress({ overlay, attempt })` reports each attempt as it starts; `overlay` turns true once the
-  request has been pending 160 ms (one timer per request, cleared on settle). Every `deal()` cancels pending requests
-  first and settles as `{ status: 'cancelled' }` when a newer one replaces it; if the worker fails, the first seed
-  (Draw 1, Draw 3, Vegas) or `dailySeed(day, 1)` (Daily) is dealt as `random`, 1 attempt, ungraded, in every mode. A dealt Daily deal also carries `dayKey`, the UTC
-  `YYYY-MM-DD` its candidate seeds were derived from (worker-verified or the worker-failure fallback alike); every other
-  mode omits `dayKey`. `hint(state)` settles as `{ status: 'hint', source, hint }`,
-  `{ status: 'none' }` (won, or no move at all) or `{ status: 'cancelled' }` (a newer hint, any deal or `dispose()`
-  replaced it). Every position that is not won, in every mode, asks the solver (3,000 nodes, 150 ms) and takes its first
-  line move; no proof, a timeout, a failure or a pending deal falls back to the domain heuristic. `dispose()` cancels everything and terminates the worker.
+- `deal/dealService.ts` — `createDealService`: `deal({ mode, winnableOnly, target }, onProgress?)`, `hint(state)`,
+  `prefetch({ mode, winnableOnly })`, `pause()` and `dispose()`. `target` is the grade wanted (`any`, `easy`, `medium`
+  or `hard`, the Difficulty preference). It builds two solver clients from the same `createWorker` factory, the
+  player's and the pool's (passed to `createDealPool`, which owns it), and one `createVerdictCache()`. `deal()` with the
+  switch on first takes Draw 1, Draw 3 and Vegas deals from the pool: a pooled deal of the target's grade (the oldest
+  of any grade for `any`) is dealt at once as `dealFromSeed(seed, mode, { verdict: 'win', attempts, grade })`, with the
+  attempts recorded when it was found (1 for a spare), no progress report, no overlay timer and no worker request.
+  Otherwise it searches on the player's worker (40 fresh seeds at the mode's budget from `winnableBudget(mode)`,
+  selecting `{ target, gradeLimit: GRADE_LIMIT }`), and Daily (the UTC day's v1 candidates at 20,000 nodes, always for
+  `any`, whatever the switch or the Difficulty says, and never from the pool) the same way. Every search sends the
+  cache's `known(mode, budget, seeds)` verdicts and records each `outcome` the worker reports, so a second Daily
+  request in a session searches none of the candidates again; the spares of a Draw 1, Draw 3 or Vegas search are
+  deposited in the pool. A request with the switch off is dealt at once on the input thread from one fresh seed,
+  `random`, 1 attempt, ungraded, and `target` is ignored. The state is `dealFromSeed(seed, mode, { verdict, attempts,
+grade })`, where `grade` is the grade of the deal the search selected (the closest one, labelled with its own grade,
+  when `target` is not found), so its deal code reproduces it without the solver. `onProgress({ overlay, attempt })`
+  reports each attempt of a search as it starts; `overlay` turns true once the request has been pending 160 ms (one
+  timer per request, cleared on settle). Every `deal()` cancels the player's pending requests first (never the pool's
+  fill) and settles as `{ status: 'cancelled' }` when a newer one replaces it; if the worker fails, the first seed
+  (Draw 1, Draw 3, Vegas) or `dailySeed(day, 1)` (Daily) is dealt as `random`, 1 attempt, ungraded, in every mode. The
+  pool starts no fill while a request that may search is pending: every `deal()` sets `setBusy(mode is Daily or the
+switch is on)` before it takes from the pool, a pooled deal clears it at once, and a search clears it when it settles
+  only if it is still the current request, so a superseded search never ends the pause of a newer one. A dealt Daily
+  deal also carries `dayKey`, the UTC `YYYY-MM-DD` its candidate seeds were derived from (worker-verified or the
+  worker-failure fallback alike); every other mode omits `dayKey`. `hint(state)` settles as `{ status: 'hint', source,
+hint }`, `{ status: 'none' }` (won, or no move at all) or `{ status: 'cancelled' }` (a newer hint, any deal or
+  `dispose()` replaced it). Every position that is not won, in every mode, asks the solver on the player's worker only
+  (3,000 nodes, 150 ms), so a hint never waits behind a pool fill, and takes its first line move; no proof, a timeout,
+  a failure or a pending deal falls back to the domain heuristic. `prefetch(choice)` sets the pool's choice and resumes
+  filling (Daily or the switch off fills nothing); `pause()` starts no new fill until the next `prefetch`, leaving the
+  fill in flight. A failed pool worker affects only the pool. `dispose()` cancels everything and terminates both
+  workers; `prefetch` and `pause` do nothing afterwards.
 - `deal/verdictCache.ts` — `createVerdictCache(limit = 256)`: an in-memory least-recently-used map from mode, budget and seed to the
   worker's `Outcome` (verdict, and grade for a win). `known(mode, budget, seeds)` returns the entries held for exactly those seeds
   (a read counts as a use); `record(mode, budget, outcome)` stores one, dropping the least recently used at the limit. An entry at
-  another mode or budget never matches; nothing is stored. Not yet used by the deal service.
+  another mode or budget never matches; nothing is stored. The deal service sends `known` with every search and records
+  every outcome its worker reports.
 - `deal/dealPool.ts` — `createDealPool({ client, seedSource? })`: the graded-spare pool, in memory only, over its own
   `SolverClient` (which it owns and disposes). Proven, graded deals are kept per mode (Draw 1, Draw 3, Vegas) and grade,
   at most `POOL_PER_GRADE` (2) each, oldest first. `take(mode, target)` removes and returns the oldest `{ seed, grade,
@@ -41,7 +57,8 @@ GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (tie
   and `setBusy(busy)` stop new fills without cancelling the one in flight, whose deals are pooled under the mode it was
   started for. A fill that pools nothing or fails ends the filling until the next `take`, `setChoice`, `resume` or
   `setBusy(false)`; a failure keeps every pooled deal and the next fill starts a new worker. `dispose()` ends the fill
-  in flight and ignores later calls. Not yet used by the deal service.
+  in flight and ignores later calls. The deal service builds it over its second client and drives it (`take`,
+  `deposit`, `setBusy`, and `setChoice`/`resume`/`pause` through `prefetch` and `pause`).
 - `deal/budgets.ts` — the node budgets and the attempt cap: `WINNABLE_BUDGET` (Draw 1, 5,000), `DRAW3_WINNABLE_BUDGET` and
   `VEGAS_WINNABLE_BUDGET` (the ordered-talon search, 20,000 each), `MAX_ATTEMPTS` (40 candidates) and `HINT_BUDGET`
   (3,000); `winnableBudget(mode)` picks the winnable budget for Draw 1, Draw 3 and Vegas, and `GRADE_LIMIT` caps the proven candidates graded in search of the requested grade. Daily has its own pinned pair in `daily.ts`. The Draw 3 and Vegas values come from the per-mode benchmark
@@ -283,7 +300,7 @@ GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (tie
   A failed remove does not stop the reset. Nothing is written until the player's next change
 
 The store hands every thunk a `ThunkExtra` (`src/app/thunkExtra.ts`): `dealService` (created lazily, so a store that
-never deals never starts the solver worker), `now` (`performance.now`), `delay` (`setTimeout`), `today`
+never deals, hints or prefetches never starts a solver worker; `pause()` never creates it), `now` (`performance.now`), `delay` (`setTimeout`), `today`
 (`new Date()`), `gateway` (a storage gateway over the browser's local storage), `saver` (a `SavePort`, unconnected
 until `startApp` wires it to the real writer) and `languages` (`navigator.languages` by default). The store has six
 slices: `app`, `preferences`, `stats`, `game`, `interaction` and `persistence`. `createAppStore({ preloadedState, deps })` starts

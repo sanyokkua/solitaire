@@ -58,9 +58,10 @@ Notes:
 ## New deal
 
 `src/features/game/sessionThunks.ts#startGame` reads `winnableOnly` and the Difficulty (sent as `target`, the grade
-wanted), asks the deal service, and installs the result. With the switch on, Draw 1, Draw 3 and Vegas use the worker, at
-the mode's budget, and so does Daily (always for `any`); with the switch off the request is dealt at once on the calling
-thread.
+wanted), asks the deal service, and installs the result. With the switch on, Draw 1, Draw 3 and Vegas are served at
+once from the graded-spare pool when it holds a deal of the target grade, and otherwise use the player's worker, at the
+mode's budget; Daily always uses the worker (always for `any`) and never the pool; with the switch off the request is
+dealt at once on the calling thread.
 
 ```mermaid
 sequenceDiagram
@@ -72,22 +73,33 @@ sequenceDiagram
     participant W as Solver worker
     participant Store as Redux store
 
+    participant Pool as Deal pool
+
     UI->>Nav: choose mode
     Nav->>Store: close sheet, route game
     Nav->>Start: startGame(mode)
     Start->>Svc: deal(mode, winnableOnly, target, onProgress)
-    Svc->>Client: cancel pending, findWinnable(seeds, budget, mode, selection)
-    Client->>W: findWinnable request
-    loop each candidate seed
-        W-->>Client: progress(attempt)
-        Client-->>Svc: attempt
-        Svc-->>Start: onProgress(overlay, attempt)
-        Start->>Store: dealingProgressed
-        Note over W: solve(deal, budget), grade each win, until the target grade (or GRADE_LIMIT wins)
+    Svc->>Client: cancel pending (the pool's own client is left alone)
+    Svc->>Pool: setBusy(true), take(mode, target)
+    alt pool hit (switch on, not Daily)
+        Pool-->>Svc: seed, grade, attempts
+        Svc->>Pool: setBusy(false)
+        Svc-->>Start: dealt(dealFromSeed(seed, mode, win, attempts, grade)), no progress
+    else pool miss, or Daily
+        Svc->>Client: findWinnable(seeds, budget, mode, selection, known from the verdict cache)
+        Client->>W: findWinnable request
+        loop each candidate seed not already known
+            W-->>Client: progress(attempt), outcome(seed verdict)
+            Client-->>Svc: attempt, outcome (recorded in the verdict cache)
+            Svc-->>Start: onProgress(overlay, attempt)
+            Start->>Store: dealingProgressed
+            Note over W: solve(deal, budget), grade each win, until the target grade (or GRADE_LIMIT wins)
+        end
+        W-->>Client: findWinnable reply (seed, verdict, attempts, grade, spares)
+        Client-->>Svc: ok
+        Svc->>Pool: deposit(spares) (not Daily), setBusy(false) if still current
+        Svc-->>Start: dealt(dealFromSeed(seed, mode, verdict, attempts, grade))
     end
-    W-->>Client: findWinnable reply (seed, verdict, attempts, grade, spares)
-    Client-->>Svc: ok
-    Svc-->>Start: dealt(dealFromSeed(seed, mode, verdict, attempts, grade))
     alt not cancelled, epoch and start id unchanged
         Start->>Store: streakBroken for replaced started game
         Start->>Store: installed(state, dayKey)
@@ -99,8 +111,15 @@ sequenceDiagram
 
 Notes:
 
-- `overlay` in the progress report becomes true after 160 ms, which is when the dealing overlay shows.
-- A new `deal` cancels the pending one and terminates a busy worker; the older start delivers nothing.
+- `overlay` in the progress report becomes true after 160 ms, which is when the dealing overlay shows. A pooled deal
+  reports no progress and starts no overlay timer.
+- A new `deal` cancels the pending one and terminates a busy player worker; the older start delivers nothing. It never
+  cancels the pool's fill, which runs on a worker of its own.
+- The pool starts no fill while a request that may search is pending; a superseded search does not end the pause of the
+  newer one. `prefetch(choice)` and `pause()` set what the pool fills and when (the controller that calls them lands
+  with task 9.6).
+- Every search sends the verdict cache's entries for its seeds as `known`, so a repeated Daily request searches none of
+  its candidates again.
 - If the worker fails, the first candidate seed is dealt unverified and ungraded (`random`, 1 attempt, no grade), in every mode.
 - A requested grade that is not found within `GRADE_LIMIT` proven candidates deals the closest one, labelled with its own grade.
 - With the switch off, every mode skips the worker: one `cryptoSeed`, `dealFromSeed`, `installed`; the Difficulty is ignored.

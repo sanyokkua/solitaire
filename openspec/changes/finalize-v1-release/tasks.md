@@ -594,7 +594,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** new `tests/unit/features/deal/verdictCache.test.ts`: a recorded outcome is returned for its mode, budget and seed and for nothing else; a different budget or mode misses; the least recently used entry goes first at the limit; a read counts as a use; `known` returns only the seeds asked for.
     - **Verify:** `rtk npx vitest run tests/unit/features/deal` passes.
 
-- [ ] 9.5 The deal service serves from the pool and the cache
+- [x] 9.5 The deal service serves from the pool and the cache
     - **Implements:** DS "Instant deals from a pre-verified pool" (delivery, timing), "A small in-memory verdict cache" and "A newer request wins" (the pool is never cancelled); KS-PERF-02 (warm deals).
     - **Files:**
       - `src/features/deal/dealService.ts` (a second `SolverClient` for the pool, built with the same `createSolverClient(createWorker)` and passed to `createDealPool`; `prefetch(choice)`, `pause()`; delivery from the pool with no progress reports; every search request carries the cache's `known` verdicts and records each `outcome` in the cache; the spares of a live search are deposited in the pool; a delivered spare has attempts 1);

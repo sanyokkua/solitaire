@@ -35,6 +35,27 @@ describe('assembleThunkExtra', () => {
         expect(createDealService).toHaveBeenCalledTimes(1);
     });
 
+    it('creates the real deal service for a prefetch and forwards the choice', () => {
+        const extra = assembleThunkExtra({}, createDealService);
+
+        extra.dealService.prefetch({ mode: 'vegas', winnableOnly: true });
+
+        expect(createDealService).toHaveBeenCalledTimes(1);
+        expect(real.prefetches).toEqual([{ mode: 'vegas', winnableOnly: true }]);
+    });
+
+    it('never creates the real deal service for a pause, and forwards one to a created service', () => {
+        const extra = assembleThunkExtra({}, createDealService);
+
+        extra.dealService.pause();
+        expect(createDealService).not.toHaveBeenCalled();
+
+        void extra.dealService.deal(REQUEST);
+        extra.dealService.pause();
+        expect(createDealService).toHaveBeenCalledTimes(1);
+        expect(real.pauses).toBe(1);
+    });
+
     it('never creates the real deal service when it is disposed before use', () => {
         const extra = assembleThunkExtra({}, createDealService);
 
