@@ -437,7 +437,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - permuting face-down tableau cards among themselves, and the stock order, leaves the candidates unchanged.
     - **Verify:** `rtk npx vitest run tests/unit/domain` passes.
 
-- [ ] 7.2 Seeded playouts and grading
+- [x] 7.2 Seeded playouts and grading
     - **Implements:** GRD "Seeded playouts that see only face-up cards" and "Grading v1 turns playout wins into a grade" (mechanism, with the parameters and table of the GRD parameters table); D6.
     - **Files:** new `src/solver/grading.ts` (`GRADING_V1` holding the D6 parameters, `fmix32`, `playoutSeed`, `playout`, `gradeDeal`), `src/solver/README.md`.
     - **Tests:** new `tests/unit/solver/grading.test.ts`:
