@@ -50,7 +50,28 @@ describe('isDeadEnd', () => {
         const waste = [c(HEARTS, 1), c(SPADES, 9)];
         expect(isDeadEnd(vegasAtLimit({ waste }))).toBe(true);
         expect(isDeadEnd(frozenState({ waste }))).toBe(false);
+        // AST "The pass limit can create a dead end": on pass 2 the one recycle left turns the waste back over in the
+        // same groups of three, so it brings back only S9 on top and the buried ace stays out of reach.
+        expect(isDeadEnd(vegasAtLimit({ passes: 2, waste }))).toBe(true);
+    });
+
+    it('is a dead end on the last Vegas pass but not the one before, when a recycle would bring a card up', () => {
+        // Waste bottom-up S9 S8 H1 D9. Recycled and drawn in threes, S9 S8 H1 turn first, so the ace tops the waste.
+        const waste = [c(SPADES, 9), c(SPADES, 8), c(HEARTS, 1), c(DIAMONDS, 9)];
         expect(isDeadEnd(vegasAtLimit({ passes: 2, waste }))).toBe(false);
+        expect(isDeadEnd(vegasAtLimit({ passes: 3, waste }))).toBe(true);
+    });
+
+    it('is a dead end in Draw 3 when the only playable stock card is one the grouping never leaves on top', () => {
+        // Stock top-down: H1 S9 D9. One draw turns all three, leaving D9 on top; recycling repeats that exactly.
+        const stock = [c(DIAMONDS, 9), c(SPADES, 9), c(HEARTS, 1)];
+        expect(isDeadEnd(frozenState({ mode: 'draw3', draw: 3, stock }))).toBe(true);
+        expect(isDeadEnd(frozenState({ stock }))).toBe(false);
+    });
+
+    it('is not a dead end in Draw 3 when the playable card is one a draw leaves on top', () => {
+        const stock = [c(HEARTS, 1), c(SPADES, 9), c(DIAMONDS, 9)];
+        expect(isDeadEnd(frozenState({ mode: 'draw3', draw: 3, stock }))).toBe(false);
     });
 
     it('is not a dead end with a waste King, an empty column and recycling refused', () => {

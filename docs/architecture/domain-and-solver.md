@@ -86,8 +86,8 @@ them for display. Numbers are listed in [game-rules.md](../reference/game-rules.
     4. a partial run to a column, exposing a card its foundation is ready for;
     5. a run sitting on a face-down card, to an empty column.
 - `src/domain/hint.ts#hint` falls back to `draw` (stock not empty) or `recycle`, else `undefined`.
-- `src/domain/deadEnd.ts#isDeadEnd`: not won, no productive move, and the talon either has no playable card or cannot
-  be turned over. `src/domain/deadEnd.ts#advise` returns `dead-end` or the hint.
+- `src/domain/deadEnd.ts#isDeadEnd`: not won, no productive move, and none of the cards `src/domain/talon.ts#reachableTops`
+  lists (the talon cards drawing can bring to the waste top, within the draw count and the pass limit) could be played. `src/domain/deadEnd.ts#advise` returns `dead-end` or the hint.
 - `src/domain/safeMoves.ts#nextSafeMove` returns the first `autoFoundation` command that is safe (ace and two always;
   otherwise both opposite-colour foundations are within one rank).
 - `src/domain/smartTap.ts#bestTarget` is the single destination of a smart tap: foundation, then first non-empty

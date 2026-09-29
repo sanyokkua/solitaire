@@ -25,8 +25,8 @@ Source: `src/domain/rules.ts`, `src/domain/engine.ts`.
 - Moving a group off a column turns up the newly exposed face-down card.
 - Draw takes 1 or 3 cards from the stock to the waste (fewer if the stock has fewer). With an empty stock, draw
   recycles the waste back into the stock if the pass limit allows; otherwise the command is refused. A recycle restores
-  the stock exactly as the pass began, so in Draw 3 the cards are always turned in the same groups of three and only
-  the last card of each group ever lies on the waste top (`src/domain/talon.ts#reachableTops`).
+  the stock exactly as the pass began, so in Draw 3 the cards are turned in the same groups of three on every pass
+  after the first, and only the last card of each group lies on the waste top (`src/domain/talon.ts#reachableTops`).
 - A game is won when all four foundations hold 13 cards.
 
 ## Modes
@@ -117,7 +117,9 @@ started (first accepted command) and is not won. Source: `src/features/game/cloc
 - **Hint**: solver's first winning-line move in Draw 1 and Daily when it answers in time, otherwise the heuristic
   priorities in [domain-and-solver.md](../architecture/domain-and-solver.md#hints-safe-moves-dead-end-finish).
   Hints cost nothing.
-- **Dead end**: reported once per position when no productive move remains and the stock and waste cannot help.
+- **Dead end**: reported once per position when no productive move remains and no stock or waste card that drawing can
+  bring to the waste top could be played. In Draw 3 a card the groups of three never leave on top cannot help, and in
+  Vegas neither can a card only a recycle past the pass limit would reach.
 - **Finish**: available when every tableau card is face up; plays the remaining cards home through ordinary commands,
   so draws and recycles are scored and pass-limited as usual.
 

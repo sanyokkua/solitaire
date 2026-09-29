@@ -8,14 +8,14 @@ The pure Klondike game engine (Phase 2 — Card engine).
 - `deal.ts` — `orderedDeck`, Fisher–Yates `shuffle`, `MODES` (the four game modes, the one list the validator, the record codec and the statistics sheet share), `modeConfig`, `dealFromSeed()` (records the seed reduced to unsigned 32 bits)
 - `rules.ts` — `canDrop`, `legalTargets`, `isMovable`, `groupAt`, `canRecycle`, `passLimit`, `isWon`, guarded pile accessors
 - `engine.ts` — `applyCommand(state, cmd) → { state, events }`; a draw is one `stepTalon`
-- `talon.ts` — `stepTalon(stock, waste, draw)`, the one draw-or-recycle rule (it knows no pass limit), and `reachableTops(state)`, the stock and waste cards that drawing alone can bring to the waste top, each once and in draw order, within the pass limit (Draw 3 reaches only the top card of each group of three; the dead end and the searches use it)
+- `talon.ts` — `stepTalon(stock, waste, draw)`, the one draw-or-recycle rule (it knows no pass limit), and `reachableTops(state)`, the stock and waste cards that drawing alone can bring to the waste top, each once and in draw order, within the pass limit (Draw 3 reaches only the top card of each group of three; the dead end uses it)
 - `validate.ts` — `isValidGameState(value): value is GameState`, the total, never-throwing shape and
   invariant check reused by the Phase 4 persistence decoder (design D13); rejects a pass count past the mode's
   `passLimit`; reuses `isCardId` (cards.ts), `MODES` and `modeConfig` (deal.ts), and `isWon` and `passLimit` (rules.ts)
 - `scoring.ts` — `startingScore`, per-event and per-command deltas (`eventDelta`, `commandDelta`), the clamped `applyDelta`, `timePenalty`, `winBonus`, `undoCost`, `displayedScore`
 - `safeMoves.ts` — `isReady`, `isSafe`, `nextSafeMove`, and the shared source-card scan (`Source`, `sourceCards`)
 - `hint.ts` — the hint types (`Hint`, `MoveHint`, `MoveCommand`, `HintPriority`), `findMove` and `hint`
-- `deadEnd.ts` — `isDeadEnd`, and `advise` (`Advice`: the dead end when `isDeadEnd` holds, else `hint`; it lives here because `hint.ts` is imported by this module, so putting it in `hint.ts` would be a cycle)
+- `deadEnd.ts` — `isDeadEnd` (no productive move, and no card in `reachableTops` could be played), and `advise` (`Advice`: the dead end when `isDeadEnd` holds, else `hint`; it lives here because `hint.ts` is imported by this module, so putting it in `hint.ts` would be a cycle)
 - `position.ts` — `positionKey`, a string over the piles (tableau ids with face states, stock, waste, foundations) that ignores score, moves, time, undos, passes and mode
 - `smartTap.ts` — `bestTarget`, the single destination of a smart tap
 - `finish.ts` — `FinishPlan`, `finishPlan`

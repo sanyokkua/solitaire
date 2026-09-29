@@ -288,7 +288,7 @@
       - `tests/unit/domain/engine.draw.test.ts` and `rules.stock.test.ts` pass unchanged.
     - **Verify:** `rtk npx vitest run tests/unit/domain tests/unit/repo/domainPurity.test.ts` passes.
 
-- [ ] 4.3 The dead end follows the reachable talon
+- [x] 4.3 The dead end follows the reachable talon
     - **Implements:** AST "Dead-end detection" and "One advice for a position" (KS-AST-06).
     - **Files:** `src/domain/deadEnd.ts` (uses `reachableTops`), `src/domain/README.md`, `docs/reference/game-rules.md`.
     - **Tests:**
