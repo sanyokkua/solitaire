@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { setRoute, sheetOpened } from '../../../../src/app/appSlice';
+import { dealingEnded, dealingProgressed, setRoute, sheetOpened } from '../../../../src/app/appSlice';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { GameState, Mode } from '../../../../src/domain/types';
 import { busySet, installed } from '../../../../src/features/game/gameSlice';
@@ -251,6 +251,18 @@ describe('canPause', () => {
         store.dispatch(busySet(true));
 
         expect(canPause(store.getState())).toBe(false);
+    });
+
+    it('fails while the dealing overlay is showing and holds again once dealing ends', () => {
+        const { store } = setup(startedGame(1, 'draw1'));
+        store.dispatch(setRoute('game'));
+        store.dispatch(dealingProgressed({ overlay: true, attempt: 1 }));
+
+        expect(canPause(store.getState())).toBe(false);
+
+        store.dispatch(dealingEnded());
+
+        expect(canPause(store.getState())).toBe(true);
     });
 });
 

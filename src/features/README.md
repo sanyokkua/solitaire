@@ -170,7 +170,8 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   Draw 1, Draw 3, Vegas and Daily). `played(mode)` counts a game, `won({ mode, elapsedMs, score })` adds a win, grows
   the streak and keeps the fastest time and highest score (negative Vegas banks included), `streakBroken(mode)` zeroes
   one mode's streak and keeps its best, `statsReset()` restores fresh initial state. Selectors `selectModeStats` and
-  `selectWinRate` take the structural shape `{ stats }`. The `daily` block records Daily completions:
+  `selectWinRate` take the structural shape `{ stats }`; `winRateOf(modeStats)` is the win rate of one mode record
+  (the Statistics sheet uses it directly). The `daily` block records Daily completions:
   `dailyCompleted(dayKey)` adds a UTC `YYYY-MM-DD` once (a repeat is a no-op, an earlier date lands in sorted
   position), raises `daily.bestStreak` to the consecutive run containing it, then keeps only the newest 400 dates — the
   stored best survives the trim. `selectDailyStreak(state, todayKey)` is the run of consecutive days ending today or

@@ -36,10 +36,11 @@ they are large.
 | `pwa`         | `src/app/thunkExtra.ts#inertPwaPort`                              | apply update, prompt install; inert unless `main.tsx` supplies real gateways |
 | `languages`   | `navigator.languages`                                             | first-run language (`resolveLocale`)                                         |
 
-`src/app/thunkExtra.ts#assembleThunkExtra(overrides)` is the one place these are assembled; `createAppStore({
+`src/app/thunkExtra.ts#assembleThunkExtra(overrides, create?)` is the one place these are assembled; `createAppStore({
 preloadedState, deps })` and `startApp` both call it. Every override wins over its default. Unless the caller injected
-its own `dealService`, it builds the lazy default once, reading the final merged `today` at call time. Tests may also
-pass `createDealService` to observe or replace how the default service is built.
+its own `dealService`, it builds the lazy default once, reading the final merged `today` at call time. Its optional
+second argument is the factory the default service is built through (default `createDealService`); tests pass one to
+observe creation, and it is not part of `createAppStore`'s `deps`.
 
 ## Thunks by file
 

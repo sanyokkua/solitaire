@@ -42,10 +42,7 @@ export interface ThunkExtra {
  * `createDealService`'s own clock (D8), so the Daily deal it selects reads whatever `now` resolves to at call time,
  * not at the moment this lazy wrapper was built. `create` is the seam tests use to count and observe creation.
  */
-function lazyDealService(
-    now: () => Date,
-    create: (options: { now: () => Date }) => DealService = createDealService,
-): DealService {
+function lazyDealService(now: () => Date, create: (options: { now: () => Date }) => DealService): DealService {
     let created: DealService | undefined;
     const service = (): DealService => (created ??= create({ now }));
     return {
@@ -58,21 +55,19 @@ function lazyDealService(
     };
 }
 
-/** What a caller may replace: any dependency, plus the factory the default lazy deal service builds through. */
-export interface ThunkExtraOverrides extends Partial<ThunkExtra> {
-    /** Builds the real deal service on first use; ignored when `dealService` is supplied. Defaults to `createDealService`. */
-    readonly createDealService?: (options: { now: () => Date }) => DealService;
-}
-
 /**
  * The one place the thunk dependencies are assembled (D15), used by `createAppStore` and `startApp`. The production
  * defaults are `performance.now`, a `setTimeout` delay, `today: () => new Date()`, a gateway over the browser's local
  * storage, an unconnected save port, an inert PWA port and `navigator.languages`; every override wins over its
  * default. Unless `dealService` is overridden, the default one is a lazy service whose clock reads the final, merged
  * `today` at call time (D8), so an injected `today` drives the Daily deal date and is not shadowed by a captured one.
+ * `create` builds the real deal service on first use and defaults to `createDealService`; it is a second parameter,
+ * not an override, so it is the seam tests use to observe creation and never part of the store's options.
  */
-export function assembleThunkExtra(overrides: ThunkExtraOverrides = {}): ThunkExtra {
-    const { createDealService: create, ...supplied } = overrides;
+export function assembleThunkExtra(
+    supplied: Partial<ThunkExtra> = {},
+    create: (options: { now: () => Date }) => DealService = createDealService,
+): ThunkExtra {
     const extra: ThunkExtra = {
         now: performance.now.bind(performance),
         delay: (ms) =>

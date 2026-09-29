@@ -4,7 +4,7 @@ import { MODES } from '../../domain/deal';
 import type { Mode } from '../../domain/types';
 import { closeSheet } from '../../features/game/navigationThunks';
 import { resetStatistics } from '../../features/persistence/resetThunks';
-import { selectDailyStreak, selectWinRate, type ModeStats, type StatsState } from '../../features/stats/statsSlice';
+import { selectDailyStreak, winRateOf, type ModeStats } from '../../features/stats/statsSlice';
 import { useTranslate } from '../../i18n/useTranslate';
 import { useToday } from '../useToday';
 import { ConfirmAction } from '../components/ConfirmAction';
@@ -22,7 +22,7 @@ interface Row {
         | 'stats.row.bestTime'
         | 'stats.row.bestScore'
         | 'stats.row.bestStreak';
-    readonly format: (stats: ModeStats, mode: Mode, root: { readonly stats: StatsState }) => string;
+    readonly format: (stats: ModeStats, mode: Mode) => string;
 }
 
 const ROWS: readonly Row[] = [
@@ -30,8 +30,7 @@ const ROWS: readonly Row[] = [
     { labelKey: 'stats.row.won', format: (stats) => String(stats.won) },
     {
         labelKey: 'stats.row.winRate',
-        format: (stats, mode, root) =>
-            stats.played === 0 ? MISSING : `${String(Math.round(selectWinRate(root, mode) * 100))}%`,
+        format: (stats) => (stats.played === 0 ? MISSING : `${String(Math.round(winRateOf(stats) * 100))}%`),
     },
     {
         labelKey: 'stats.row.bestTime',
@@ -66,8 +65,7 @@ const ROWS: readonly Row[] = [
 export function StatsSheet() {
     const t = useTranslate();
     const dispatch = useAppDispatch();
-    const statsState = useAppSelector((state) => state.stats);
-    const { modes } = statsState;
+    const modes = useAppSelector((state) => state.stats.modes);
     const dailyBestStreak = useAppSelector((state) => state.stats.daily.bestStreak);
     const today = useToday();
     const dailyStreak = useAppSelector((state) => selectDailyStreak(state, today));
@@ -96,7 +94,7 @@ export function StatsSheet() {
                             <tr key={row.labelKey}>
                                 <th scope="row">{t(row.labelKey)}</th>
                                 {MODES.map((mode) => (
-                                    <td key={mode}>{row.format(modes[mode], mode, { stats: statsState })}</td>
+                                    <td key={mode}>{row.format(modes[mode], mode)}</td>
                                 ))}
                             </tr>
                         ))}

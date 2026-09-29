@@ -16,7 +16,7 @@ describe('assembleThunkExtra', () => {
     });
 
     it('does not create the real deal service until it is used', () => {
-        const extra = assembleThunkExtra({ createDealService });
+        const extra = assembleThunkExtra({}, createDealService);
 
         expect(createDealService).not.toHaveBeenCalled();
 
@@ -27,7 +27,7 @@ describe('assembleThunkExtra', () => {
     });
 
     it('creates the real deal service for a hint too, and only once', async () => {
-        const extra = assembleThunkExtra({ createDealService });
+        const extra = assembleThunkExtra({}, createDealService);
 
         await extra.dealService.hint(makeState());
         void extra.dealService.deal(REQUEST);
@@ -36,7 +36,7 @@ describe('assembleThunkExtra', () => {
     });
 
     it('never creates the real deal service when it is disposed before use', () => {
-        const extra = assembleThunkExtra({ createDealService });
+        const extra = assembleThunkExtra({}, createDealService);
 
         extra.dealService.dispose();
         extra.dealService.dispose();
@@ -46,7 +46,7 @@ describe('assembleThunkExtra', () => {
     });
 
     it('disposes the real deal service that was created, then creates a new one on next use', () => {
-        const extra = assembleThunkExtra({ createDealService });
+        const extra = assembleThunkExtra({}, createDealService);
         void extra.dealService.deal(REQUEST);
 
         extra.dealService.dispose();
@@ -87,7 +87,7 @@ describe('assembleThunkExtra', () => {
             pwa: { ...inertPwaPort(), promptInstall: () => Promise.resolve('accepted' as const) },
             dealService: fakeDealService(),
         };
-        const extra = assembleThunkExtra({ ...overrides, createDealService });
+        const extra = assembleThunkExtra(overrides, createDealService);
 
         expect(extra.now()).toBe(42);
         expect(extra.today()).toEqual(new Date(Date.UTC(2026, 8, 20)));
@@ -108,7 +108,7 @@ describe('the default deal service clock (D8)', () => {
     });
 
     it('feeds the assembled today into the lazy deal service', () => {
-        const extra = assembleThunkExtra({ createDealService });
+        const extra = assembleThunkExtra({}, createDealService);
 
         void extra.dealService.deal(REQUEST);
 
@@ -118,26 +118,11 @@ describe('the default deal service clock (D8)', () => {
 
     it('reads an injected today at call time, not when the extra was assembled', () => {
         let current = new Date(Date.UTC(2026, 8, 20));
-        const extra = assembleThunkExtra({ today: () => current, createDealService });
+        const extra = assembleThunkExtra({ today: () => current }, createDealService);
 
         void extra.dealService.deal(REQUEST);
 
         const passedNow = createDealService.mock.calls.at(-1)?.[0].now;
-        expect(passedNow?.()).toEqual(current);
-
-        current = new Date(Date.UTC(2026, 8, 21));
-        expect(passedNow?.()).toEqual(current);
-    });
-
-    it('createAppStore feeds the default deal service an injected today, read at call time', () => {
-        let current = new Date(Date.UTC(2026, 8, 20));
-        const store = createAppStore({ deps: { today: () => current, createDealService } });
-        const extra = store.dispatch((_dispatch, _getState, injected) => injected);
-
-        void extra.dealService.deal(REQUEST);
-
-        const passedNow = createDealService.mock.calls.at(-1)?.[0].now;
-        expect(passedNow).toBeTypeOf('function');
         expect(passedNow?.()).toEqual(current);
 
         current = new Date(Date.UTC(2026, 8, 21));
@@ -146,13 +131,9 @@ describe('the default deal service clock (D8)', () => {
 
     it('createAppStore uses an injected deal service exactly as given, bypassing the default entirely', () => {
         const dealService = fakeDealService();
-        const store = createAppStore({ deps: { dealService, today: () => new Date(), createDealService } });
+        const store = createAppStore({ deps: { dealService } });
         const extra = store.dispatch((_dispatch, _getState, injected) => injected);
 
         expect(extra.dealService).toBe(dealService);
-
-        void extra.dealService.deal(REQUEST);
-
-        expect(createDealService).not.toHaveBeenCalled();
     });
 });

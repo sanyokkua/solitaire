@@ -5,7 +5,7 @@ import { persistenceReducer } from '../features/persistence/persistenceSlice';
 import { preferencesReducer } from '../features/preferences/preferencesSlice';
 import { statsReducer } from '../features/stats/statsSlice';
 import { appReducer } from './appSlice';
-import { assembleThunkExtra, type ThunkExtraOverrides } from './thunkExtra';
+import { assembleThunkExtra, type ThunkExtra } from './thunkExtra';
 
 const rootReducer = combineReducers({
     app: appReducer,
@@ -25,7 +25,7 @@ export interface AppStoreOptions {
     /** State to start from, e.g. the loaded persistent record; missing slices start at their defaults. */
     preloadedState?: Partial<RootState>;
     /** Replacements for the thunk dependencies (deal service, clock, timer, date); the rest keep their defaults. */
-    deps?: ThunkExtraOverrides;
+    deps?: Partial<ThunkExtra>;
 }
 
 export function createAppStore(options: AppStoreOptions = {}) {

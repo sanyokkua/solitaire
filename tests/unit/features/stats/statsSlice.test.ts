@@ -4,6 +4,7 @@ import {
     played,
     selectModeStats,
     selectWinRate,
+    winRateOf,
     statsReducer,
     statsReset,
     streakBroken,
@@ -210,5 +211,16 @@ describe('selectors', () => {
             won({ mode: 'draw1', elapsedMs: 1, score: 1 }),
         );
         expect(selectWinRate({ stats: half }, 'draw1')).toBe(0.5);
+    });
+
+    it('winRateOf takes a mode record: 0 with no games, won over played otherwise', () => {
+        expect(winRateOf(initial().modes.draw1)).toBe(0);
+        const half = reduce(
+            initial(),
+            played('draw1'),
+            played('draw1'),
+            won({ mode: 'draw1', elapsedMs: 1, score: 1 }),
+        );
+        expect(winRateOf(half.modes.draw1)).toBe(0.5);
     });
 });
