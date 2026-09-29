@@ -43,6 +43,20 @@
     letter-spacing: -0.02em;
 }
 
+.modal-sheet__header h2.modal-sheet__title--pixel {
+    flex: 1;
+    font-family: var(--font-pixel);
+    font-size: clamp(0.85rem, 5vw, 1.15rem);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0;
+    text-align: center;
+    padding-bottom: 0.3rem; /* room for the 4px shadow above the badge */
+    text-shadow:
+        2px 2px 0 var(--color-word-shadow-1),
+        4px 4px 0 var(--color-word-shadow-2);
+}
+
 .modal-sheet__close {
     flex: 0 0 auto;
 }
@@ -168,6 +182,14 @@
 
 .outcome-sheet {
     text-align: center;
+}
+
+.outcome-grade {
+    margin: 0 auto 0.5rem;
+    color: var(--color-text); /* on-surface-muted is 4.3:1 on some surfaces, so the grade takes the body colour */
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.5;
 }
 
 .outcome-description {

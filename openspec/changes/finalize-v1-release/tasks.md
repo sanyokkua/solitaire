@@ -668,7 +668,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - the icon-only chip keeps the full text as its name.
     - **Verify:** `rtk npx vitest run tests/component/chips.test.tsx` and `rtk npx playwright test --project=device-fit` pass.
 
-- [ ] 10.3 The Win sheet shows the grade
+- [x] 10.3 The Win sheet shows the grade
     - **Implements:** SH "Win sheet"; IN "Win summary".
     - **Files:**
       - `src/features/interaction/interactionSlice.ts:12-19` (`WinSummary.grade`);

@@ -32,6 +32,8 @@ function isFocusable(element: Element | null): element is HTMLElement {
 export interface ModalSheetProps {
     /** The sheet's visible heading, read as its accessible name. */
     readonly heading: string;
+    /** An extra class on the heading, for a sheet whose title has its own look (the Win sheet's pixel title). */
+    readonly headingClassName?: string;
     /** Focused once, when the sheet opens. */
     readonly initialFocusRef: RefObject<HTMLElement | null>;
     /** `false` for the Win sheet only: no close button, and Escape/the backdrop do nothing (SH "Escape and the backdrop close a sheet"). */
@@ -56,6 +58,7 @@ export interface ModalSheetProps {
  */
 export function ModalSheet({
     heading,
+    headingClassName,
     initialFocusRef,
     dismissable = true,
     wide = false,
@@ -135,7 +138,9 @@ export function ModalSheet({
                 onKeyDown={onKeyDown}
             >
                 <div className="modal-sheet__header">
-                    <h2 id={headingId}>{heading}</h2>
+                    <h2 id={headingId} className={headingClassName}>
+                        {heading}
+                    </h2>
                     {dismissable && (
                         <button
                             type="button"

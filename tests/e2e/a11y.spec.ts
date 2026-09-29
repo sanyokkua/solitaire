@@ -115,11 +115,16 @@ for (const { name, theme, preferences: variantPreferences } of VARIANTS) {
         });
 
         test('the win sheet', async ({ page }) => {
-            await open(page, nearlyWonState(), { tapMode: 'select', autoSafe: false });
+            await open(
+                page,
+                { ...nearlyWonState(), verdict: 'win', grade: 'hard' },
+                { tapMode: 'select', autoSafe: false },
+            );
             await continueToGame(page);
             const commands = parseLine(WINNING_LINE.line);
             await playLine(page, 'tap', { commands: commands.slice(-1), movesBefore: WINNING_LINE.moves - 1 });
             await expect(page.getByRole('heading', { name: 'You win!' })).toBeVisible({ timeout: 4000 });
+            await expect(page.getByText('Hard deal')).toBeVisible();
             await expectNoBlockingViolations(page);
         });
     });

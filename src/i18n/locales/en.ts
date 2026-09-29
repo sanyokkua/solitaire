@@ -257,6 +257,9 @@ export const en = {
     'win.summary': 'All 52 cards are home.',
     'win.summaryBonus': 'All 52 cards are home, plus a {bonus}-point time bonus.',
     'win.bestTime': 'New best time',
+    'win.grade.easy': 'Easy deal',
+    'win.grade.medium': 'Medium deal',
+    'win.grade.hard': 'Hard deal',
     'win.menu': 'Menu',
     'win.dealAgain': 'Deal again',
 

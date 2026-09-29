@@ -85,6 +85,7 @@ export function commitCommand(cmd: Command, options: CommitOptions): AppThunk<Co
             dispatch(
                 winRecorded({
                     mode: next.mode,
+                    grade: next.grade,
                     score,
                     elapsedMs: next.elapsedMs,
                     moves: next.moves,

@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
 import { cardId } from '../../../../src/domain/cards';
+import { dealFromSeed } from '../../../../src/domain/deal';
 import { winBonus } from '../../../../src/domain/scoring';
 import type { Command, GameState } from '../../../../src/domain/types';
 import { installed } from '../../../../src/features/game/gameSlice';
 import { play } from '../../../../src/features/game/gameThunks';
+import { restart } from '../../../../src/features/game/sessionThunks';
 import { selectWinSummary } from '../../../../src/features/interaction/selectors';
 import { encodeRecord } from '../../../../src/features/persistence/recordCodec';
 import { won } from '../../../../src/features/stats/statsSlice';
+import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
 import { faceUp, foundationsOf, makeState, tableauOf } from '../../../fixtures/states';
 import { testStore } from '../../../support/testStore';
 
@@ -99,6 +102,38 @@ describe('win summary', () => {
         const vegas = setup(almostWonVegas({ elapsedMs: 45_000 }));
         await vegas.dispatch(play(SEND_HOME));
         expect(selectWinSummary(vegas.getState())?.timeBonus).toBe(0);
+    });
+
+    it('records the grade the game was dealt with', async () => {
+        const store = setup(almostWon({ mode: 'draw3', draw: 3, verdict: 'win', grade: 'hard' }));
+
+        await store.dispatch(play(SEND_HOME));
+
+        expect(selectWinSummary(store.getState())?.grade).toBe('hard');
+    });
+
+    it('records no grade for an ungraded game', async () => {
+        const store = setup(almostWon());
+
+        await store.dispatch(play(SEND_HOME));
+
+        expect(selectWinSummary(store.getState())?.grade).toBeNull();
+    });
+
+    it('keeps the grade after a restart, through a whole won game', async () => {
+        const graded = dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode, {
+            verdict: 'win',
+            attempts: 1,
+            grade: 'medium',
+        });
+        const store = setup(graded);
+        store.dispatch(restart());
+        expect(store.getState().game.current?.grade).toBe('medium');
+
+        for (const command of parseLine(WINNING_LINE.line)) await store.dispatch(play(command));
+
+        expect(store.getState().game.current?.status).toBe('won');
+        expect(selectWinSummary(store.getState())?.grade).toBe('medium');
     });
 
     it('is cleared by a new deal', async () => {

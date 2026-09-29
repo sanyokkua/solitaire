@@ -82,8 +82,10 @@ snapshots; they never apply game rules.
 - `sheets/WinSheet.tsx` — `WinSheet`, registered in `SheetHost` as `win` (5.8, D4, SH "Win sheet"). Opened by
   `useWinSheet` (`board/useWinSheet.ts`, below), 2,400 ms after the win (at once with reduced motion). Reads
   `selectWinSummary` (`features/interaction/selectors.ts`) and renders nothing while it is `null`. Follows the
-  mockup's `.outcome-sheet`: the heading `t('win.heading')` ("You win!"), a "New best time" badge
-  (`.best-badge`, `t('win.bestTime')`) shown only when `winSummary.newBestTime`, a one-line summary that names the
+  mockup's `.outcome-sheet`: the heading `t('win.heading')` ("You win!", set in the pixel typeface with the Home wordmark's stepped shadow: `ModalSheet`'s
+  `headingClassName` prop puts `modal-sheet__title--pixel` on the `<h2>`, and no other sheet passes it), a "New best time" badge
+  (`.best-badge`, `t('win.bestTime')`) shown only when `winSummary.newBestTime`, the deal's grade as a `.outcome-grade` line
+  ("Easy deal", "Medium deal" or "Hard deal", `win.grade.*`) only when `winSummary.grade` is not `null`, a one-line summary that names the
   Standard time bonus (`t('win.summaryBonus', { bonus })`) or, for Vegas, the plain `t('win.summary')` with no bonus
   line, and an `.outcome-stats` grid of three `.outcome-stat` tiles — Score (Bank in Vegas, `formatBank`/`formatScore`
   as `Hud` formats them), Time (`formatTime`) and Moves (`formatMoves`). Two `.modal-sheet__actions` buttons: Menu

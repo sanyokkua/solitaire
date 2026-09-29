@@ -85,6 +85,7 @@ const SHEET_SETUPS: Record<SheetId, Setup> = {
         store.dispatch(
             winRecorded({
                 mode: 'draw1',
+                grade: 'medium',
                 score: 235,
                 elapsedMs: 120_000,
                 moves: 42,

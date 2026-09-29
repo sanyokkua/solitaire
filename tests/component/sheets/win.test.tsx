@@ -4,12 +4,16 @@ import { App } from '../../../src/App';
 import { setRoute, sheetOpened, systemMotionChanged } from '../../../src/app/appSlice';
 import type { AppStore } from '../../../src/app/store';
 import { cardId } from '../../../src/domain/cards';
+import { dealFromSeed } from '../../../src/domain/deal';
 import type { GameState, Mode } from '../../../src/domain/types';
 import { cleared, installed } from '../../../src/features/game/gameSlice';
 import { play } from '../../../src/features/game/gameThunks';
+import { restart } from '../../../src/features/game/sessionThunks';
 import { goHome } from '../../../src/features/game/navigationThunks';
 import { winRecorded, type WinSummary } from '../../../src/features/interaction/interactionSlice';
+import { preferenceSet } from '../../../src/features/preferences/preferencesSlice';
 import type { StatsState } from '../../../src/features/stats/statsSlice';
+import { WINNING_LINE, parseLine } from '../../fixtures/deals';
 import { gameOf } from '../../fixtures/games';
 import { faceUp, foundationsOf, makeState, tableauOf } from '../../fixtures/states';
 import { installBoardHarness, SIZE } from '../../support/boardHarness';
@@ -182,6 +186,7 @@ const STANDARD_SUMMARY: WinSummary = {
     moves: 42,
     timeBonus: 5833,
     newBestTime: true,
+    grade: null,
 };
 
 const VEGAS_SUMMARY: WinSummary = {
@@ -191,6 +196,7 @@ const VEGAS_SUMMARY: WinSummary = {
     moves: 30,
     timeBonus: 0,
     newBestTime: false,
+    grade: null,
 };
 
 describe('WinSheet content', () => {
@@ -269,6 +275,60 @@ describe('WinSheet content', () => {
         fireEvent.click(screen.getByRole('dialog').parentElement ?? document.body);
 
         expect(store.getState().app.sheet).toBe('win');
+    });
+});
+
+describe('WinSheet grade and title', () => {
+    it('shows "Hard deal" for a hard grade', () => {
+        mountWon({ ...STANDARD_SUMMARY, mode: 'draw3', grade: 'hard' });
+
+        expect(within(screen.getByRole('dialog')).getByText('Hard deal')).toBeInTheDocument();
+    });
+
+    it('shows nothing about a grade for an ungraded game', () => {
+        mountWon(STANDARD_SUMMARY);
+
+        expect(within(screen.getByRole('dialog')).queryByText(/ deal$/)).not.toBeInTheDocument();
+    });
+
+    it('shows the grade of a restarted graded game that is then won', async () => {
+        vi.useFakeTimers();
+        const { store } = mountApp(
+            dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode, { verdict: 'win', attempts: 1, grade: 'easy' }),
+        );
+        act(() => {
+            store.dispatch(restart());
+        });
+        for (const command of parseLine(WINNING_LINE.line)) {
+            await act(() => store.dispatch(play(command)).then(() => undefined));
+        }
+        advance(2400);
+
+        expect(store.getState().game.current?.status).toBe('won');
+        expect(within(screen.getByRole('dialog')).getByText('Easy deal')).toBeInTheDocument();
+    });
+
+    it('shows the grade in Ukrainian', () => {
+        const { store } = mountWon({ ...STANDARD_SUMMARY, grade: 'medium' });
+        act(() => {
+            store.dispatch(preferenceSet({ key: 'locale', value: 'uk' }));
+        });
+
+        expect(within(screen.getByRole('dialog')).getByText('Середня роздача')).toBeInTheDocument();
+    });
+
+    it('sets the Win title in the pixel typeface, and no other sheet title', () => {
+        const { store } = mountWon(STANDARD_SUMMARY);
+        expect(screen.getByRole('heading', { name: 'You win!' })).toHaveClass('modal-sheet__title--pixel');
+
+        act(() => {
+            store.dispatch(sheetOpened('help'));
+        });
+        expect(screen.getByRole('heading', { name: 'How to play' })).not.toHaveClass('modal-sheet__title--pixel');
+        act(() => {
+            store.dispatch(sheetOpened('settings'));
+        });
+        expect(screen.getByRole('heading', { name: 'Settings' })).not.toHaveClass('modal-sheet__title--pixel');
     });
 });
 

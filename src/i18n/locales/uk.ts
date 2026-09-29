@@ -269,6 +269,9 @@ export const uk: Record<MessageKey, Message> = {
     'win.summary': 'Усі 52 карти вдома.',
     'win.summaryBonus': 'Усі 52 карти вдома, плюс бонус за час {bonus} очок.',
     'win.bestTime': 'Новий найкращий час',
+    'win.grade.easy': 'Легка роздача',
+    'win.grade.medium': 'Середня роздача',
+    'win.grade.hard': 'Складна роздача',
     'win.menu': 'Меню',
     'win.dealAgain': 'Нова роздача',
 

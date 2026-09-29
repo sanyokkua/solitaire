@@ -2,9 +2,18 @@ import { useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { selectWinSummary } from '../../features/interaction/selectors';
 import { dealNewGame, goHome } from '../../features/game/navigationThunks';
+import type { Grade } from '../../domain/types';
+import type { MessageKey } from '../../i18n/locales/en';
 import { useTranslate } from '../../i18n/useTranslate';
 import { formatBank, formatMoves, formatScore, formatTime } from '../format';
 import { ModalSheet } from './ModalSheet';
+
+/** The catalog key of the deal-grade line, one full string per grade (word order and gender differ by language). */
+const GRADE_TEXT = {
+    easy: 'win.grade.easy',
+    medium: 'win.grade.medium',
+    hard: 'win.grade.hard',
+} as const satisfies Record<Grade, MessageKey>;
 
 /**
  * The Win sheet (D4, SH "Win sheet"), registered in `SheetHost` as `win`. Opened by `useWinSheet`, beside `useCascade`
@@ -34,6 +43,7 @@ export function WinSheet() {
     return (
         <ModalSheet
             heading={t('win.heading')}
+            headingClassName="modal-sheet__title--pixel"
             initialFocusRef={dealAgainRef}
             dismissable={false}
             onDismiss={() => undefined}
@@ -43,6 +53,7 @@ export function WinSheet() {
         >
             <div className="outcome-sheet">
                 {summary.newBestTime && <span className="best-badge">{t('win.bestTime')}</span>}
+                {summary.grade !== null && <p className="outcome-grade">{t(GRADE_TEXT[summary.grade])}</p>}
                 <p className="outcome-description">
                     {vegas ? t('win.summary') : t('win.summaryBonus', { bonus: summary.timeBonus })}
                 </p>
