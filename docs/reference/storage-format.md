@@ -47,17 +47,20 @@ Exactly these thirteen keys, in this order (`PREFERENCE_KEYS`). Defaults are fro
 
 ### Versions and the upgrade
 
-| Version | Written by                         | Difference                                                      |
-| ------- | ---------------------------------- | --------------------------------------------------------------- |
-| 1       | the first release                  | twelve preference keys: no `difficulty`                         |
-| 2       | the current app (`RECORD_VERSION`) | thirteen preference keys: `difficulty` is added as the last one |
+| Version | Written by                         | Difference                                                                                                        |
+| ------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 1       | the first release                  | twelve preference keys (no `difficulty`); seventeen game keys (no `grade`)                                        |
+| 2       | the current app (`RECORD_VERSION`) | thirteen preference keys (`difficulty` last); eighteen game keys (`grade` right after `attempts`); same step keys |
 
 The decoder reads both. A readable version 1 record is upgraded in memory and without loss: every value is kept and
-`difficulty` is set to `any` (`recordCodec.ts#upgradeV1`), and the stored game is decoded with the version 1 game keys
-(`sessionCodec.ts#decodeSession` takes the record version). Because it decodes, the loader treats it as a valid
+`difficulty` is set to `any` (`recordCodec.ts#upgradeV1`), and the stored game is checked against the version 1 game
+keys on the raw record and then given `grade: null` (`sessionCodec.ts#upgradeV1`; `decodeSession` takes the record
+version), before the validity check that requires a grade. A version 1 game never recorded a grade, so it gets none;
+its steps read the game's grade like every other step. Because it decodes, the loader treats it as a valid
 record: there is no backup copy and no notice. The record stays version 1 in storage until the next save, which
 writes it as version 2; a version 1 record is never written again. Each version is checked against its own exact key
-set, so a version 1 record with a `difficulty` key and a version 2 record without one are both `invalid`.
+set, so a version 1 record with a `difficulty` key or a game with a `grade` key, and a version 2 record without
+`difficulty` or whose game has no `grade`, are all `invalid`.
 
 ### `stats`
 
@@ -79,15 +82,17 @@ Exactly the keys `current`, `history`, `future`, `dailyKey`, `counted`.
 
 | Key        | Content                                                                                          |
 | ---------- | ------------------------------------------------------------------------------------------------ |
-| `current`  | the full `GameState` (all 17 fields, see `src/domain/types.ts#GameState`), started and `playing` |
+| `current`  | the full `GameState` (all 18 fields, see `src/domain/types.ts#GameState`), started and `playing` |
 | `history`  | undo steps, oldest first; at most the newest 200                                                 |
 | `future`   | redo steps; at most the nearest 200 (the next redo is the last element)                          |
 | `dailyKey` | `YYYY-MM-DD` or `null`; non-null only for a `daily` game                                         |
 | `counted`  | boolean: the game is already in the statistics                                                   |
 
 A step is compact: only `tableau`, `stock`, `waste`, `foundations`, `score`, `moves`, `passes`, `elapsedMs`,
-`undos`, `started`. The constant fields (`seed`, `mode`, `draw`, `scoring`, `verdict`, `attempts`) are copied from
-`current` on decode, and `status` is always `playing`, so every step belongs to the same deal by construction. Each
+`undos`, `started`. The constant fields (`seed`, `mode`, `draw`, `scoring`, `verdict`, `attempts`, `grade`) are
+copied from `current` on decode, and `status` is always `playing`, so every step belongs to the same deal by
+construction; a step that carries a `grade` key of its own is `invalid`. `grade` is `easy`, `medium`, `hard` or `null`,
+and only a `win` game may have one. Each
 decoded step must pass `src/domain/validate.ts#isValidGameState` (52 distinct cards, consistent piles).
 
 Runtime-only values (`busy`, `epoch`, the clock anchor, interaction state, notices) are never stored.

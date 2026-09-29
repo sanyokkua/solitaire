@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dealFromSeed } from '../../../src/domain/deal';
-import { GRADES, GRADING_V1, gradeDeal, gradeOf } from '../../../src/solver/grading';
+import { GRADES } from '../../../src/domain/deal';
+import { GRADING_V1, gradeDeal, gradeOf } from '../../../src/solver/grading';
 import { CALIBRATION, GOLDEN, type GradedMode } from '../../fixtures/gradingGolden';
 
 const MODES: readonly GradedMode[] = ['draw1', 'draw3', 'vegas'];

@@ -140,6 +140,39 @@ describe('isValidGameState', () => {
             expect(isValidGameState({ ...dealFromSeed(WINNING_LINE.seed, mode), passes: 50 })).toBe(true);
         });
 
+        describe('the grade', () => {
+            const won = { verdict: 'win', attempts: 1 } as const;
+
+            it('accepts no grade for a proven-winnable deal and for a random one', () => {
+                expect(isValidGameState({ ...base, ...won, grade: null })).toBe(true);
+                expect(isValidGameState({ ...base, verdict: 'random', grade: null })).toBe(true);
+            });
+
+            it.each(['easy', 'medium', 'hard'] as const)('accepts a %s grade on a proven-winnable deal', (grade) => {
+                expect(isValidGameState({ ...base, ...won, grade })).toBe(true);
+            });
+
+            it('accepts a graded proven-winnable deal at every fixture', () => {
+                for (const { seed, mode } of DEAL_FIXTURES) {
+                    expect(isValidGameState(dealFromSeed(seed, mode, { verdict: 'win', grade: 'medium' }))).toBe(true);
+                }
+            });
+
+            it('rejects a grade with the verdict random', () => {
+                expect(isValidGameState({ ...base, verdict: 'random', grade: 'medium' })).toBe(false);
+            });
+
+            it.each(['', 'expert', 'Medium', 1, undefined, true, {}])('rejects the unknown grade %j', (grade) => {
+                expect(isValidGameState({ ...base, ...won, grade })).toBe(false);
+            });
+
+            it('rejects a state with no grade key', () => {
+                const withoutGrade: Record<string, unknown> = { ...base };
+                delete withoutGrade.grade;
+                expect(isValidGameState(withoutGrade)).toBe(false);
+            });
+        });
+
         it('rejects an unknown status', () => {
             expect(isValidGameState({ ...base, status: 'paused' })).toBe(false);
         });

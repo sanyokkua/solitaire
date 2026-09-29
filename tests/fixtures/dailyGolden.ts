@@ -9,7 +9,7 @@
  * changed a published Daily, so fix the code and do not edit this table. The `grade` column is different: no reference
  * grades a deal, so it is grading v1's own output, pinned so that a Daily deal keeps its grade.
  */
-import type { Grade } from '../../src/solver/grading';
+import type { Grade } from '../../src/domain/types';
 
 export interface DailyGolden {
     readonly day: string;

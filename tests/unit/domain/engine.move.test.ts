@@ -433,6 +433,7 @@ describe('fields the engine does not own', () => {
                 scoring: 'vegas',
                 verdict: 'win',
                 attempts: 7,
+                grade: 'hard',
                 elapsedMs: 12_345,
                 ...over,
             }),
@@ -444,6 +445,7 @@ describe('fields the engine does not own', () => {
         scoring: s.scoring,
         verdict: s.verdict,
         attempts: s.attempts,
+        grade: s.grade,
         elapsedMs: s.elapsedMs,
     });
 

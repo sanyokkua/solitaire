@@ -520,7 +520,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/e2e/storage.spec.ts` gains "A version 1 record is upgraded": a seeded v1 record resumes its game, and the stored value becomes v2.
     - **Verify:** `rtk npx vitest run tests/unit/features` and `rtk npx playwright test storage --project=chromium` pass.
 
-- [ ] 8.2 The grade as game provenance, in the domain and the session record together
+- [x] 8.2 The grade as game provenance, in the domain and the session record together
     - **Implements:**
       - DG "A deal records its provenance";
       - GE "A game state can be checked for validity" (the grade clauses);

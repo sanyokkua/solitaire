@@ -12,6 +12,7 @@ export function makeState(partial: Partial<GameState> = {}): GameState {
         scoring: 'standard',
         verdict: 'random',
         attempts: 1,
+        grade: null,
         tableau: [[], [], [], [], [], [], []],
         stock: [],
         waste: [],

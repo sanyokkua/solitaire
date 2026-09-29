@@ -13,7 +13,7 @@
  * version. Change these tables only on purpose, by re-running the calibration.
  */
 import type { Mode } from '../../src/domain/types';
-import type { Grade } from '../../src/solver/grading';
+import type { Grade } from '../../src/domain/types';
 
 export type GradedMode = Exclude<Mode, 'daily'>;
 

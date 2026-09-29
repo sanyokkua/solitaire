@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
-import { dealFromSeed } from '../../../src/domain/deal';
+import { GRADES, dealFromSeed } from '../../../src/domain/deal';
 import { applyCommand } from '../../../src/domain/engine';
 import { mulberry32 } from '../../../src/domain/prng';
 import type { Command, GameState, Mode } from '../../../src/domain/types';
 import {
     fmix32,
-    GRADES,
     GRADING_V1,
     gradeDeal,
     gradeOf,

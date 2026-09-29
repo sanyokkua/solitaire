@@ -161,6 +161,47 @@ describe('round trip', () => {
         });
     });
 
+    it('keeps the grade of a graded game on the game and on every step', () => {
+        const first = dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode, {
+            verdict: 'win',
+            attempts: 3,
+            grade: 'medium',
+        });
+        const played = playSteps(first, parseLine(WINNING_LINE.line).slice(0, 8));
+        const session = undo(undo(played));
+
+        const stored = decodedSession(encodeRecord(inputFor(session)));
+
+        expect(stored.current.grade).toBe('medium');
+        expect(stored.history).toHaveLength(6);
+        expect(stored.future).toHaveLength(2);
+        expect([...stored.history, ...stored.future].every((step) => step.grade === 'medium')).toBe(true);
+        expect(stored).toEqual({ ...session, dailyKey: null, counted: true });
+    });
+
+    it('writes the grade only on the game, never on a step', () => {
+        const first = dealFromSeed(WINNING_LINE.seed, 'draw1', { verdict: 'win', grade: 'hard' });
+        const session = undo(playSteps(first, parseLine(WINNING_LINE.line).slice(0, 4)));
+
+        const record = JSON.parse(encodeRecord(inputFor(session))) as Loose;
+
+        expect(child(record, 'session', 'current').grade).toBe('hard');
+        expect(child(record, 'session', 'history', 0)).not.toHaveProperty('grade');
+        expect(child(record, 'session', 'future', 0)).not.toHaveProperty('grade');
+    });
+
+    it('is invalid when a version 2 step carries a grade key', () => {
+        const raw = edited(validRaw(), (r) => (child(r, 'session', 'history', 0).grade = null));
+        expect(decodeRecord(raw)).toEqual({ ok: false, reason: 'invalid' });
+    });
+
+    it('is invalid when a version 2 game has no grade key', () => {
+        const raw = edited(validRaw(), (r) => {
+            delete child(r, 'session', 'current').grade;
+        });
+        expect(decodeRecord(raw)).toEqual({ ok: false, reason: 'invalid' });
+    });
+
     it('restores a session built by the real reducers on a fractional clock', () => {
         const commands = parseLine(WINNING_LINE.line).slice(0, 12);
         let game = gameReducer(
@@ -640,13 +681,35 @@ describe('a version 1 record', () => {
         const written = encodeRecord({ preferences, stats, game: { ...session } });
 
         expect(written).toBe(
-            V1_RECORD.replace('{"version":1,', '{"version":2,').replace(
-                /("selectedMode":"[a-z0-9]+")\}/,
-                '$1,"difficulty":"any"}',
-            ),
+            V1_RECORD.replace('{"version":1,', '{"version":2,')
+                .replace(/("selectedMode":"[a-z0-9]+")\}/, '$1,"difficulty":"any"}')
+                .replace('"attempts":1,"tableau"', '"attempts":1,"grade":null,"tableau"'),
         );
         const again = decodeRecord(written);
         expect(again).toEqual(result);
+    });
+
+    it('upgrades its game and every step to no grade', () => {
+        const result = decodeRecord(V1_RECORD);
+        if (!result.ok || result.record.session === null) throw new Error('expected a decoded record');
+        const { current, history, future } = result.record.session;
+
+        expect([current, ...history, ...future].map((state) => state.grade)).toEqual([null, null, null, null, null]);
+        expect(history).toHaveLength(3);
+        expect(future).toHaveLength(1);
+    });
+
+    it('is invalid when its game carries a grade key', () => {
+        expect(decodeRecord(edited(V1_RECORD, (r) => (child(r, 'session', 'current').grade = null)))).toEqual(invalid);
+    });
+
+    it('is invalid when a step carries a grade key', () => {
+        expect(decodeRecord(edited(V1_RECORD, (r) => (child(r, 'session', 'history', 0).grade = null)))).toEqual(
+            invalid,
+        );
+        expect(decodeRecord(edited(V1_RECORD, (r) => (child(r, 'session', 'future', 0).grade = null)))).toEqual(
+            invalid,
+        );
     });
 
     it('is invalid with a thirteenth preference key, even a valid difficulty', () => {

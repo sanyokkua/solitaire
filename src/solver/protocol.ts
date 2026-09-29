@@ -1,6 +1,5 @@
-import type { GameState, Mode } from '../domain/types';
+import type { GameState, Grade, Mode } from '../domain/types';
 import { solverHint, type SolverHint } from './hint';
-import type { Grade } from './grading';
 import { findWinnable, type Outcome, type Selection, type Spare } from './winnable';
 
 /** What the worker is asked to do; each request carries everything it needs and an `id` its replies echo (D6). */

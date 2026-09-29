@@ -1,6 +1,6 @@
-import { dealFromSeed } from '../domain/deal';
-import type { Mode } from '../domain/types';
-import { GRADES, gradeDeal, type Grade, type GradeTarget } from './grading';
+import { GRADES, dealFromSeed } from '../domain/deal';
+import type { Grade, Mode } from '../domain/types';
+import { gradeDeal, type GradeTarget } from './grading';
 import { search } from './search';
 
 /** A proven-winnable candidate that selection graded but did not select. */

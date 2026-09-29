@@ -33,7 +33,7 @@ import {
     VEGAS_WINNABLE_BUDGET,
     WINNABLE_BUDGET,
 } from '../../src/features/deal/budgets';
-import type { Grade } from '../../src/solver/grading';
+import type { Grade } from '../../src/domain/types';
 import { search } from '../../src/solver/search';
 import { findWinnable } from '../../src/solver/winnable';
 

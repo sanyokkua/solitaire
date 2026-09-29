@@ -15,10 +15,10 @@
  * parameters, to paste into that fixture.
  */
 import { test } from 'vitest';
-import { dealFromSeed } from '../../src/domain/deal';
-import type { Mode } from '../../src/domain/types';
+import { GRADES, dealFromSeed } from '../../src/domain/deal';
+import type { Grade, Mode } from '../../src/domain/types';
 import { DRAW3_WINNABLE_BUDGET, VEGAS_WINNABLE_BUDGET, WINNABLE_BUDGET } from '../../src/features/deal/budgets';
-import { GRADES, GRADING_V1, gradeDeal, type Grade, type GradingParams } from '../../src/solver/grading';
+import { GRADING_V1, gradeDeal, type GradingParams } from '../../src/solver/grading';
 import { search } from '../../src/solver/search';
 
 type GradedMode = Exclude<Mode, 'daily'>;

@@ -2,13 +2,8 @@ import { applyCommand } from '../domain/engine';
 import { hintCandidates } from '../domain/hint';
 import { mulberry32 } from '../domain/prng';
 import { canRecycle, isWon } from '../domain/rules';
-import type { Command, GameState, Mode } from '../domain/types';
+import type { Command, GameState, Grade, Mode } from '../domain/types';
 import { search } from './search';
-
-export type Grade = 'easy' | 'medium' | 'hard';
-
-/** Easiest first: the distance between two grades is the difference of their positions. */
-export const GRADES: readonly Grade[] = ['easy', 'medium', 'hard'];
 
 /** What a caller asks selection for: a specific grade, or whichever proven deal comes first. */
 export type GradeTarget = 'any' | Grade;

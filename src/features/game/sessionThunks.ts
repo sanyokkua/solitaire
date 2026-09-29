@@ -62,7 +62,7 @@ export function startGame({ mode }: { readonly mode: Mode }): AppThunk<Promise<v
 }
 
 /**
- * Replays the current deal from the start (D10): the same seed, mode, verdict and attempts, so the layout is identical,
+ * Replays the current deal from the start (D10): the same seed, mode, verdict, attempts and grade, so the layout is identical,
  * with no moves, time, undo charges or history. It is dealt on the spot, not by the deal service, and reads no
  * preference, so changed settings never alter a game already in play; the day key of a Daily deal is kept. The
  * replaced game's streak is broken if it was started and unwon. Allowed while a safe-card chain or finish is running:
@@ -76,6 +76,7 @@ export function restart(): AppThunk {
         const state = dealFromSeed(current.seed, current.mode, {
             verdict: current.verdict,
             attempts: current.attempts,
+            grade: current.grade,
         });
         dispatch(breakStreakOf(current));
         dispatch(installed({ state, dailyKey }));
@@ -95,7 +96,7 @@ export function continueGame(): AppThunk {
 /**
  * Plays a deal code (D5, GS "Dealing from a deal code"): trims whitespace and ignores case. An invalid code changes
  * nothing and reports `{ ok: false }`. A valid one breaks the replaced game's streak (as any deal replacement does),
- * installs `dealFromSeed(seed, mode)` marked `random` with one attempt and no Daily date, shows Game, and reports
+ * installs `dealFromSeed(seed, mode)` marked `random` with one attempt, no grade and no Daily date, shows Game, and reports
  * `{ ok: true }`. Installing bumps the game epoch, so any in-flight `startGame` discards its own result through its
  * existing guard when it resolves; `dealingEnded()` here reopens the input gate at once instead of waiting for that
  * stale start's own cleanup to run.
@@ -106,7 +107,7 @@ export function playDealCode(code: string): AppThunk<{ readonly ok: boolean }> {
         if (decoded === null) return { ok: false };
 
         dispatch(breakStreakOf(getState().game.current));
-        const state = dealFromSeed(decoded.seed, decoded.mode, { verdict: 'random', attempts: 1 });
+        const state = dealFromSeed(decoded.seed, decoded.mode, { verdict: 'random', attempts: 1, grade: null });
         dispatch(installed({ state, dailyKey: null }));
         dispatch(dealingEnded());
         dispatch(setRoute('game'));

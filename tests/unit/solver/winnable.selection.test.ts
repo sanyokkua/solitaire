@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as GradingModule from '../../../src/solver/grading';
-import { gradeDeal, type Grade } from '../../../src/solver/grading';
+import type { Grade } from '../../../src/domain/types';
+import { gradeDeal } from '../../../src/solver/grading';
 import { findWinnable, type Outcome, type Selection } from '../../../src/solver/winnable';
 import { corpusSeeds } from '../../fixtures/solverCorpus';
 

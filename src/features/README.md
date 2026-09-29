@@ -92,13 +92,13 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   (Daily) or `null`. `dealingEnded()` runs at the end only if the start is still the latest for that deal service (a
   per-service start id in a `WeakMap`), so a superseded start never clears a newer start's progress; a rejection
   propagates after that cleanup. `restart()` replays the current deal on the spot with
-  `dealFromSeed(seed, mode, { verdict, attempts })`, so the layout is identical and nothing played carries over; it
+  `dealFromSeed(seed, mode, { verdict, attempts, grade })`, so the layout is identical, the grade is kept and nothing played carries over; it
   reads no preference, keeps `dailyKey`, breaks the streak by the same rule, is allowed while `busy` (the install bumps
   the epoch and stops the sequence), and does nothing without a game. `continueGame()` shows the Game screen (`setRoute('game')`) only while
   `selectResumable` holds (a started game that is still playing) and does nothing otherwise; it touches nothing but the
   route, so it never replaces the game or breaks a streak. `playDealCode(code)` (D5) trims and case-folds the code through
   `domain/dealCode.ts`'s `decodeDealCode`; an invalid code changes nothing and reports `{ ok: false }`, a valid one
-  breaks the replaced game's streak, installs `dealFromSeed(seed, mode, { verdict: 'random', attempts: 1 })` with
+  breaks the replaced game's streak, installs `dealFromSeed(seed, mode, { verdict: 'random', attempts: 1, grade: null })` (a code carries no provenance) with
   `dailyKey: null`, ends any in-flight start's dealing progress (`dealingEnded()` — the epoch bump already makes that
   start discard its own result), shows Game and reports `{ ok: true }`
 - `game/navigationThunks.ts` — the intent thunks that own every route and sheet change (D3): the UI dispatches these,
@@ -209,7 +209,7 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   `{ ok: true, record: { preferences, stats, session } }` or `{ ok: false, reason }`: `empty` (no stored value),
   `malformed` (not JSON), `future` (a version above 2, never interpreted) or `invalid` (anything else that is not
   exactly a valid version 1 or 2 record). A version 1 record (twelve preferences, no `difficulty`) is decoded with its
-  own exact key set and upgraded by `upgradeV1`, which adds `difficulty: 'any'` and changes nothing else, so the loader
+  own exact key set and upgraded by `upgradeV1`, which adds `difficulty: 'any'` (and `sessionCodec.ts` gives its game `grade: null`) and changes nothing else, so the loader
   treats it as valid (no backup, no notice) and the next save writes version 2. Every object must have exactly its known keys; the enum values, non-negative integer
   counts (a mode's `streak` may not exceed its `bestStreak`), `bestTimeMs`, `bestScore` and the Daily list (at most `MAX_DAILY_COMPLETED`, 400, real, strictly ascending `YYYY-MM-DD` dates, the cap exported by `statsSlice.ts`) are
   checked, and a bad part rejects the whole record, with no salvage
@@ -221,9 +221,10 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   `started` (the last three because a snapshot keeps the values it had when captured). `decodeSession(value, version)` accepts exactly
   `current`, `history`, `future`, `dailyKey` (a real date, and only for a Daily game, or `null`) and `counted`;
   `current` must have exactly the `GameState` keys of that record version (checked on the raw record, before it is
-  validated; the version 1 and version 2 lists are the same for now), pass `isValidGameState`, have `{ id, up }` cards,
-  and be started and playing; each step is rebuilt into a full `GameState` (the constant fields
-  copied from `current`, `status` `playing`) that must pass `isValidGameState` too, so a round trip is exact
+  validated; version 2 adds `grade` right after `attempts`; a version 1 game is then upgraded with `grade: null`),
+  pass `isValidGameState`, have `{ id, up }` cards, and be started and playing; each step is rebuilt into a full
+  `GameState` (the constant fields, `grade` among them, copied from `current`, `status` `playing`; a step with a `grade`
+  key is refused) that must pass `isValidGameState` too, so a round trip is exact
 - `persistence/persistenceSlice.ts` — what the shell needs to know about saving: `{ readOnly, lastError }`, starting at
   `{ readOnly: false, lastError: null }` (`initialPersistenceState`). Read-only comes only from the loader's `preloadedState`, and stops saving for the
   session; `writeFailed()` sets `lastError` to `'write'`, and `writeSucceeded()` clears it only if it is `'write'`, so a

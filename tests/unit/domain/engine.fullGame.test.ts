@@ -42,12 +42,12 @@ describe('a complete game played through commands alone', () => {
 
     it('never changes the clock, undo charges, seed, mode, rules or provenance at any step of the line', () => {
         const owned = (state: GameState) => {
-            const { elapsedMs, undos, seed, mode, draw, scoring, verdict, attempts } = state;
-            return { elapsedMs, undos, seed, mode, draw, scoring, verdict, attempts };
+            const { elapsedMs, undos, seed, mode, draw, scoring, verdict, attempts, grade } = state;
+            return { elapsedMs, undos, seed, mode, draw, scoring, verdict, attempts, grade };
         };
         // A non-default clock, undo count and provenance, so resetting them to their defaults would be caught.
         let state = deepFreeze({
-            ...dealFromSeed(seed, mode, { verdict: 'win', attempts: 3 }),
+            ...dealFromSeed(seed, mode, { verdict: 'win', attempts: 3, grade: 'medium' }),
             elapsedMs: 12_345,
             undos: 4,
         });

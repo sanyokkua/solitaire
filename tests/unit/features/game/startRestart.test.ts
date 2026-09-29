@@ -347,6 +347,30 @@ describe('restart', () => {
         expect(fakeOf(env).requests).toEqual([]);
     });
 
+    it('keeps the grade of a proven-winnable game', async () => {
+        const original = dealFromSeed(21, 'vegas', { verdict: 'win', attempts: 3, grade: 'hard' });
+        const env = setup(original, null);
+        env.store.dispatch(setRoute('game'));
+        await env.store.dispatch(play({ type: 'draw' }));
+
+        env.store.dispatch(restart());
+
+        expect(current(env).grade).toBe('hard');
+        expect(current(env)).toEqual(original);
+    });
+
+    it('keeps a game without a grade ungraded', async () => {
+        const original = dealFromSeed(21, 'draw1', { verdict: 'win', attempts: 3 });
+        const env = setup(original, null);
+        env.store.dispatch(setRoute('game'));
+        await env.store.dispatch(play({ type: 'draw' }));
+
+        env.store.dispatch(restart());
+
+        expect(current(env).grade).toBeNull();
+        expect(current(env)).toEqual(original);
+    });
+
     it('ignores the changed settings and the selected mode', () => {
         const original = startedGame(21, 'draw1');
         const env = setup(original);

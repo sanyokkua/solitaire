@@ -31,8 +31,8 @@ exactly the modules listed here plus this README):
   (one random value per candidate it walks past, none for the last, which it always takes; one value first for an
   unforced draw when a draw or recycle is also legal), draws or recycles when it has nothing to play, and stops at a win,
   a dead end, a stall (the talon repeats with no board move) or the step cap. Changing the parameters, the rules or the
-  thresholds is a new grading version. `Grade`, `GRADES`, `GradeTarget` and the `Judge` seam (tests script the solver
-  with it) live here.
+  thresholds is a new grading version. `GradeTarget` and the `Judge` seam (tests script the solver with it) live here; the
+  `Grade` type and the `GRADES` list belong to the domain (`domain/types.ts`, `domain/deal.ts`), because a game records its grade.
 - `winnable.ts` — `findWinnable(seeds, budget, mode, options?)`, which deals each candidate seed in `mode`, in order,
   searches it with `search` (unless `options.known` already says how the seed fares) and grades each proven win. With
   the target `any` (the default) it returns the first proven win; with a grade it returns the first win of that grade,
