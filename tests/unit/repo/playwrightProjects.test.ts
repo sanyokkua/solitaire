@@ -3,17 +3,23 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { devices } from '@playwright/test';
 import config from '../../../playwright.config';
+import { FULL_GAME_PROJECTS } from '../../e2e/support/projects';
 
 const DEVICE_FIT_SPECS = ['**/deviceFit.spec.ts', '**/pseudoLocale.spec.ts'];
 /** Specs that run in the `chromium` project only; tasks that add one append it here. */
 const CHROMIUM_ONLY_SPECS: string[] = [
     'tests/e2e/visualParity.spec.ts',
     'tests/e2e/dealLatency.spec.ts',
+    'tests/e2e/pwa.spec.ts',
+    'tests/e2e/a11y.spec.ts',
+];
+
+/** Specs that play a whole winning line; each skips itself outside `FULL_GAME_PROJECTS`. */
+const FULL_GAME_SPECS: string[] = [
     'tests/e2e/playByTap.spec.ts',
     'tests/e2e/playByDrag.spec.ts',
     'tests/e2e/playByKeyboard.spec.ts',
-    'tests/e2e/pwa.spec.ts',
-    'tests/e2e/a11y.spec.ts',
+    'tests/e2e/playModes.spec.ts',
 ];
 
 /** Whether a spec's source skips itself outside the `chromium` project. */
@@ -52,5 +58,18 @@ describe('Playwright projects', () => {
 
     it.each(CHROMIUM_ONLY_SPECS)('%s skips itself outside the chromium project', (spec) => {
         expect(hasChromiumGuard(readFileSync(spec, 'utf8'))).toBe(true);
+    });
+
+    it('plays whole games in the three desktop engines and one touch phone, all of them projects', () => {
+        expect(FULL_GAME_PROJECTS).toEqual(['chromium', 'firefox', 'webkit', 'iphone-17-pro']);
+        const names = projects.map((project) => project.name);
+        for (const name of FULL_GAME_PROJECTS) expect(names).toContain(name);
+    });
+
+    it.each(FULL_GAME_SPECS)('%s skips every whole-game test outside the full-game projects', (spec) => {
+        const source = readFileSync(spec, 'utf8');
+        const games = source.match(/skipOutsideFullGameProjects\(testInfo\)/g) ?? [];
+        expect(games.length).toBeGreaterThan(0);
+        expect(hasChromiumGuard(source)).toBe(false);
     });
 });

@@ -698,7 +698,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** every line, including `WINNING_LINE`, replays through `applyCommand` to a won state, with the recorded moves, score and passes, without the solver.
     - **Verify:** `rtk npx vitest run tests/unit/fixtures` passes.
 
-- [ ] 11.2 Full-game wins in every mode through real input
+- [x] 11.2 Full-game wins in every mode through real input
     - **Implements:** RF "Input is proven end to end".
     - **Files:**
       - new `tests/e2e/playModes.spec.ts`:

@@ -7,29 +7,26 @@ import {
     SIX_OF_DIAMONDS,
     twoTargetsPosition,
 } from '../fixtures/boardPositions';
+import { WINNING_LINE } from '../fixtures/deals';
 import { cardOf, continueToGame } from './support/cards';
-import { focusPile, playLine, seedWinningGame } from './support/play';
+import { expectWon, focusPile, playLine, seedWinningGame, skipOutsideFullGameProjects } from './support/play';
 import { seedRecord } from './support/seed';
 
-const ANNOUNCER = '[aria-live="polite"].sr-only';
 const MOVES_VALUE = '.stat-display--moves .stat-display__value';
 
 test.describe('Playing by keyboard', () => {
     test('the whole recorded line, played by arrow keys and Enter, wins the game', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'the 117-command line is played once, in Desktop Chrome');
+        skipOutsideFullGameProjects(testInfo);
         test.setTimeout(180_000);
         await seedWinningGame(page);
         await continueToGame(page);
 
         await playLine(page, 'keyboard');
 
-        await expect(page.locator(ANNOUNCER)).toContainText('You win');
-        await expect(page.locator(MOVES_VALUE)).toHaveText('117');
-        await expect(page.getByRole('heading', { name: 'You win!' })).toBeVisible({ timeout: 4000 });
+        await expectWon(page, WINNING_LINE);
     });
 
-    test('Space with nothing focused draws from the stock', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'keyboard input is exercised once, in Desktop Chrome');
+    test('Space with nothing focused draws from the stock', async ({ page }) => {
         await seedWinningGame(page);
         await continueToGame(page);
         await page.evaluate(() => {
@@ -41,8 +38,7 @@ test.describe('Playing by keyboard', () => {
         await expect(page.locator(MOVES_VALUE)).toHaveText('001');
     });
 
-    test('undo, redo, hint, pick-up and Escape work from the keyboard', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'keyboard input is exercised once, in Desktop Chrome');
+    test('undo, redo, hint, pick-up and Escape work from the keyboard', async ({ page }) => {
         await seedRecord(page, { current: oneMovePosition(), preferences: { tapMode: 'select', autoSafe: false } });
         await continueToGame(page);
         const six = cardOf(page, SIX_OF_DIAMONDS);
@@ -78,8 +74,7 @@ test.describe('Playing by keyboard', () => {
         await expect(six).toHaveAttribute('aria-pressed', 'false');
     });
 
-    test('H hints a productive move and marks its card', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'keyboard input is exercised once, in Desktop Chrome');
+    test('H hints a productive move and marks its card', async ({ page }) => {
         await seedRecord(page, { current: aceHomePosition(), preferences: { tapMode: 'select', autoSafe: false } });
         await continueToGame(page);
 
@@ -91,8 +86,7 @@ test.describe('Playing by keyboard', () => {
 
     test('a picked-up card is placed on the column the arrows chose, not the one Smart move prefers', async ({
         page,
-    }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'keyboard input is exercised once, in Desktop Chrome');
+    }) => {
         await seedRecord(page, { current: twoTargetsPosition(), preferences: { autoSafe: false } });
         await continueToGame(page);
         const six = cardOf(page, SIX_OF_DIAMONDS);

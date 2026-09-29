@@ -1,11 +1,16 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { dealFromSeed } from '../../../src/domain/deal';
+import { timePenalty, winBonus } from '../../../src/domain/scoring';
 import type { Command } from '../../../src/domain/types';
 import type { Preferences } from '../../../src/features/preferences/preferencesSlice';
-import { WINNING_LINE, parseLine } from '../../fixtures/deals';
+import { formatBank, formatMoves } from '../../../src/ui/format';
+import { WINNING_LINE, parseLine, type WinningLine } from '../../fixtures/deals';
 import { MOVES_VALUE } from './game';
 import { seedRecord } from './seed';
 import { horizontalKey, planCommand, verticalKey, type GesturePlan, type PileKey } from './lineGestures';
+import { FULL_GAME_PROJECTS } from './projects';
+
+const ANNOUNCER = '[aria-live="polite"].sr-only';
 
 export type Strategy = 'tap' | 'drag' | 'keyboard';
 
@@ -29,15 +34,63 @@ const CARD_STRIP: Position = { x: 12, y: 3 };
 const DOUBLE_TAP_GUARD_MS = 350;
 const MAX_KEY_PRESSES = 16;
 
+/** The preferences a line needs to replay without diverging: Select and place, no automatic moves, no animation. */
+export const LINE_PREFERENCES: Partial<Preferences> = { tapMode: 'select', autoSafe: false, animations: false };
+
+/** Skips the calling test outside the projects that play whole games; call it first in the test body. */
+export function skipOutsideFullGameProjects(testInfo: TestInfo): void {
+    test.skip(
+        !FULL_GAME_PROJECTS.includes(testInfo.project.name),
+        'a whole game is played in the three desktop engines and one touch phone',
+    );
+}
+
 /**
- * Seeds the recorded winning deal as a game in progress (Select and place, Smart move off, so a line command never
- * diverges); call it before `page.goto`, then `continueToGame`.
+ * Seeds a winning deal (the Draw 1 line by default) as a game in progress (Select and place, Smart move off, so a line
+ * command never diverges; animations off); call it before `page.goto`, then `continueToGame`.
  */
-export async function seedWinningGame(page: Page, preferences: Partial<Preferences> = {}): Promise<void> {
+export async function seedWinningGame(
+    page: Page,
+    preferences: Partial<Preferences> = {},
+    line: WinningLine = WINNING_LINE,
+): Promise<void> {
     await seedRecord(page, {
-        current: { ...dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode), started: true },
-        preferences: { tapMode: 'select', autoSafe: false, ...preferences },
+        current: { ...dealFromSeed(line.seed, line.mode), started: true },
+        preferences: { ...LINE_PREFERENCES, ...preferences },
     });
+}
+
+/**
+ * Asserts the game was won by `line`: the announcer says so, the HUD counts the line's moves and the Win sheet shows the
+ * same moves and the score the line ends on. Vegas shows the bank as stored; a Standard game shows the stored score less
+ * the time penalty plus the win bonus for the play time the sheet itself shows, so the score is checked exactly whatever
+ * the run took.
+ */
+export async function expectWon(page: Page, line: WinningLine): Promise<void> {
+    await expect(page.locator(ANNOUNCER)).toContainText('You win');
+    await expect(page.locator(MOVES_VALUE)).toHaveText(String(line.moves));
+    const sheet = page.getByRole('dialog', { name: 'You win!' });
+    await expect(sheet).toBeVisible({ timeout: 4000 });
+
+    const stats = await sheet
+        .locator('.outcome-stat')
+        .evaluateAll((tiles) =>
+            Object.fromEntries(
+                tiles.map((tile) => [
+                    tile.querySelector('span')?.textContent ?? '',
+                    tile.querySelector('strong')?.textContent ?? '',
+                ]),
+            ),
+        );
+    expect(stats.Moves).toBe(formatMoves(line.moves));
+    if (line.mode === 'vegas') {
+        expect(stats.Bank).toBe(formatBank(line.score));
+        return;
+    }
+    const [minutes = 0, seconds = 0] = (stats.Time ?? '').split(':').map(Number);
+    const elapsedMs = (minutes * 60 + seconds) * 1000;
+    const expected = Math.max(0, line.score - timePenalty(elapsedMs, 'standard')) + winBonus(elapsedMs, 'standard');
+    expect(Number(stats.Score)).toBe(expected);
 }
 
 /**

@@ -80,7 +80,7 @@ These fail when architectural or configuration rules are broken.
 | `tests/unit/repo/icons.test.ts`                 | Generated icons; the maskable mark stays inside the safe zone.                                                                                                                                                                                                                                                                                                                    |
 | `tests/unit/repo/validateArtifact.test.ts`      | The four checks of `scripts/validate-artifact.mjs`, run against the mini trees in `tests/fixtures/dist/` (a `good` tree and broken variants).                                                                                                                                                                                                                                     |
 | `tests/unit/repo/lifecycleStorageGuard.test.ts` | `scripts/validate-lifecycle-storage.mjs`, one rule at a time, against scratch repositories.                                                                                                                                                                                                                                                                                       |
-| `tests/unit/repo/playwrightProjects.test.ts`    | The `device-fit` project owns `deviceFit.spec.ts` and `pseudoLocale.spec.ts`; every other project ignores them; each Chromium-only spec carries its `test.skip(testInfo.project.name !== 'chromium'` guard.                                                                                                                                                                       |
+| `tests/unit/repo/playwrightProjects.test.ts`    | The `device-fit` project owns `deviceFit.spec.ts` and `pseudoLocale.spec.ts`; every other project ignores them; each Chromium-only spec carries its `test.skip(testInfo.project.name !== 'chromium'` guard and each whole-game spec its `skipOutsideFullGameProjects` guard.                                                                                                      |
 
 `tests/unit/repo/purityScanner.ts` is the shared scanner (strips comments, finds imports and identifiers).
 
@@ -141,8 +141,10 @@ Configured in `playwright.config.ts`:
 | `galaxy-s25`        | Galaxy S24 descriptor, viewport 360x780 | Same set.                                            |
 | `device-fit`        | Desktop Chrome                          | Only `deviceFit.spec.ts` and `pseudoLocale.spec.ts`. |
 
-Chromium-only specs skip themselves in other projects: `visualParity`, `dealLatency`, `playByTap`, `playByDrag`,
-`playByKeyboard`, `pwa`, `a11y` (list in `tests/unit/repo/playwrightProjects.test.ts`).
+Chromium-only specs skip themselves in other projects: `visualParity`, `dealLatency`, `pwa`, `a11y` (list in
+`tests/unit/repo/playwrightProjects.test.ts`). The whole-game tests of `playByTap`, `playByDrag`, `playByKeyboard` and
+`playModes` run in `chromium`, `firefox`, `webkit` and `iphone-17-pro` (`FULL_GAME_PROJECTS` in
+`tests/e2e/support/projects.ts`) and skip themselves in the other projects.
 
 ### Notable specs
 
@@ -164,6 +166,7 @@ Chromium-only specs skip themselves in other projects: `visualParity`, `dealLate
 - `pwa`: `tests/e2e/pwa.spec.ts` covers offline cold start, offline reload and Continue, and the update flow against
   `tests/e2e/support/distServer.ts`.
 - `playByTap`, `playByDrag`, `playByKeyboard`: each plays a recorded winning line to a win by one input path.
+- `playModes`: Draw 3 by keyboard, Vegas by drag and the Daily deal (dealt from Home on its golden date) by tap, each to a win.
 - `visualParity`: writes screenshots to `test-results/visual-parity/`; CI uploads them as an artifact for manual review.
 - `dealLatency`: informational; asserts only that the player's solver worker started. The deal pool is held, so every
   measured deal is a cold search.
