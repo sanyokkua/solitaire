@@ -8,15 +8,18 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
 
 - `deal/daily.ts` — UTC day key and daily v1 seed list
 - `deal/solverClient.ts` — lazy solver Web Worker client: request ids, cancellation (`cancel`, and `cancelHints` for hints alone) and timeout rules, malformed replies fail the client, never-rejecting results; its `hint` settles as a `SolverHintOutcome` (`ok`, `cancelled`, `timeout`, `busy` or `failed`), distinct from the deal service's `HintOutcome`
-- `deal/dealService.ts` — `createDealService`: `deal({ mode, winnableOnly }, onProgress?)`, `hint(state)` and `dispose()`.
-  `deal()` deals Draw 1 (switch on, 40 fresh seeds at 5,000 nodes) and Daily (the UTC day's v1 candidates at 20,000
-  nodes, whatever the switch says) through the solver worker, and every other request (Draw 3, Vegas, Draw 1 with the
-  switch off) at once on the input thread from one fresh seed, `random`, 1 attempt. The state is
-  `dealFromSeed(seed, mode, { verdict, attempts })`, so its deal code reproduces it without the solver.
-  `onProgress({ overlay, attempt })` reports each attempt as it starts; `overlay` turns true once the request has been
-  pending 160 ms (one timer per request, cleared on settle). Every `deal()` cancels pending requests first and settles
-  as `{ status: 'cancelled' }` when a newer one replaces it; if the worker fails, the first seed (Draw 1) or
-  `dailySeed(day, 1)` (Daily) is dealt as `random`, 1 attempt. A dealt Daily deal also carries `dayKey`, the UTC
+- `deal/dealService.ts` — `createDealService`: `deal({ mode, winnableOnly, target }, onProgress?)`, `hint(state)` and
+  `dispose()`. `target` is the grade wanted (`any`, `easy`, `medium` or `hard`, the Difficulty preference). `deal()` with
+  the switch on deals Draw 1, Draw 3 and Vegas through the solver worker (40 fresh seeds at the mode's budget from
+  `winnableBudget(mode)`, selecting `{ target, gradeLimit: GRADE_LIMIT }`), and Daily (the UTC day's v1 candidates at
+  20,000 nodes, always for `any`, whatever the switch or the Difficulty says) the same way. A request with the switch off
+  is dealt at once on the input thread from one fresh seed, `random`, 1 attempt, ungraded, and `target` is ignored. The
+  state is `dealFromSeed(seed, mode, { verdict, attempts, grade })`, where `grade` is the grade of the deal the search
+  selected (the closest one, labelled with its own grade, when `target` is not found), so its deal code reproduces it
+  without the solver. `onProgress({ overlay, attempt })` reports each attempt as it starts; `overlay` turns true once the
+  request has been pending 160 ms (one timer per request, cleared on settle). Every `deal()` cancels pending requests
+  first and settles as `{ status: 'cancelled' }` when a newer one replaces it; if the worker fails, the first seed
+  (Draw 1, Draw 3, Vegas) or `dailySeed(day, 1)` (Daily) is dealt as `random`, 1 attempt, ungraded, in every mode. A dealt Daily deal also carries `dayKey`, the UTC
   `YYYY-MM-DD` its candidate seeds were derived from (worker-verified or the worker-failure fallback alike); every other
   mode omits `dayKey`. `hint(state)` settles as `{ status: 'hint', source, hint }`,
   `{ status: 'none' }` (won, or no move at all) or `{ status: 'cancelled' }` (a newer hint, any deal or `dispose()`
@@ -25,7 +28,7 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   and Vegas use. `dispose()` cancels everything and terminates the worker.
 - `deal/budgets.ts` — the node budgets and the attempt cap: `WINNABLE_BUDGET` (Draw 1, 5,000), `DRAW3_WINNABLE_BUDGET` and
   `VEGAS_WINNABLE_BUDGET` (the ordered-talon search, 20,000 each), `MAX_ATTEMPTS` (40 candidates) and `HINT_BUDGET`
-  (3,000). Daily has its own pinned pair in `daily.ts`. The Draw 3 and Vegas values come from the per-mode benchmark
+  (3,000); `winnableBudget(mode)` picks the winnable budget for Draw 1, Draw 3 and Vegas, and `GRADE_LIMIT` caps the proven candidates graded in search of the requested grade. Daily has its own pinned pair in `daily.ts`. The Draw 3 and Vegas values come from the per-mode benchmark
   recorded in `tests/README.md`.
 - `game/history.ts` — pure undo and redo over `Session` (`{ current, history, future }`, both stacks unbounded).
   `commit(session, next)` starts an undo step (the position in play joins `history`, `future` is cleared);
@@ -84,8 +87,9 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
 - `game/sessionThunks.ts` — split out of `gameThunks.ts` (D15, a pure move; behaviour unchanged): `breakStreakOf(outgoing)`
   (module-private, shared by `startGame`, `restart` and `playDealCode`) breaks the streak of a game about to be replaced
   (`streakBroken(outgoing.mode)`) when it was started and not won; an unstarted or won outgoing game costs nothing.
-  `startGame({ mode })` deals and installs a new game: it reads `winnableOnly` from the preferences and forwards it in
-  the `dealService.deal` request, publishes the service's progress as `app.dealing` (a report that arrives after the
+  `startGame({ mode })` deals and installs a new game: it reads `winnableOnly` and `difficulty` from the preferences
+  when the start begins and forwards them in the `dealService.deal` request (`difficulty` as `target`), so a later change
+  of either leaves the pending deal and the game in play alone, publishes the service's progress as `app.dealing` (a report that arrives after the
   game epoch moved is dropped), and changes nothing when the result is `cancelled`, the game epoch moved while
   dealing (a restart, a reset or another install), or a newer start was requested (even if this deal had already
   resolved). Otherwise it breaks the replaced game's streak then dispatches `installed` with the deal's `dayKey`

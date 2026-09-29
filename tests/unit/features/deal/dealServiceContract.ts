@@ -22,6 +22,8 @@ import { foundationsOf, makeState } from '../../../fixtures/states';
 export const DEAL_SEED = 1;
 /** The UTC day a harness's service treats as today. */
 export const DAY_KEY = '2026-09-24';
+/** The grade every settled deal carries. */
+export const SETTLED_GRADE = 'easy';
 /** The suggestion a settled solver hint carries. */
 export const SOLVER_HINT: SolverHint = { kind: 'draw' };
 
@@ -32,9 +34,10 @@ export type HintSource = 'solver' | 'heuristic';
 export interface DealHarness {
     readonly service: DealService;
     /**
-     * Settles deal call `index` as dealt from {@link DEAL_SEED}, carrying {@link DAY_KEY} for a Daily request. The
-     * index counts the deals that are pending until the harness settles them (Daily and winnable Draw 1 on the real
-     * service, every deal on the fake), in call order. A deal the implementation answers by itself is left alone.
+     * Settles deal call `index` as dealt from {@link DEAL_SEED} with {@link SETTLED_GRADE}, carrying {@link DAY_KEY}
+     * for a Daily request. The index counts the deals that are pending until the harness settles them (Daily and every
+     * winnable mode on the real service, every deal on the fake), in call order. A deal the implementation answers by
+     * itself is left alone.
      */
     readonly settleDeal: (index: number, request: DealRequest) => void;
     /** Reports that pending deal `index` has started attempt `attempt`, with the overlay still off. */
@@ -53,7 +56,7 @@ export interface ContractOptions {
 
 /** The state a deal of `mode` settled by {@link DealHarness.settleDeal} delivers. */
 export function settledState(mode: Mode): GameState {
-    return dealFromSeed(DEAL_SEED, mode, { verdict: 'win', attempts: 1 });
+    return dealFromSeed(DEAL_SEED, mode, { verdict: 'win', attempts: 1, grade: SETTLED_GRADE });
 }
 
 /** The outcome a hint settled by {@link DealHarness.settleHint} delivers for `state`. */
@@ -68,8 +71,8 @@ export function expectedHintOutcome(source: HintSource, state: GameState): HintO
     return { status: 'hint', source, hint };
 }
 
-const WINNABLE_DRAW_ONE: DealRequest = { mode: 'draw1', winnableOnly: true };
-const DAILY: DealRequest = { mode: 'daily', winnableOnly: true };
+const WINNABLE_DRAW_ONE: DealRequest = { mode: 'draw1', winnableOnly: true, target: 'any' };
+const DAILY: DealRequest = { mode: 'daily', winnableOnly: true, target: 'any' };
 const WON = makeState({ foundations: foundationsOf(13, 13, 13, 13), status: 'won' });
 
 /** A Draw 1 position, one a service can ask the solver about. */
@@ -90,14 +93,14 @@ export function dealServiceContract(name: string, makeHarness: () => DealHarness
 
         describe('deal', () => {
             it.each<DealRequest>([
-                { mode: 'draw1', winnableOnly: true },
-                { mode: 'draw1', winnableOnly: false },
-                { mode: 'draw3', winnableOnly: false },
-                { mode: 'draw3', winnableOnly: true },
-                { mode: 'vegas', winnableOnly: false },
-                { mode: 'vegas', winnableOnly: true },
-                { mode: 'daily', winnableOnly: false },
-                { mode: 'daily', winnableOnly: true },
+                { mode: 'draw1', winnableOnly: true, target: 'any' },
+                { mode: 'draw1', winnableOnly: false, target: 'any' },
+                { mode: 'draw3', winnableOnly: false, target: 'any' },
+                { mode: 'draw3', winnableOnly: true, target: 'any' },
+                { mode: 'vegas', winnableOnly: false, target: 'any' },
+                { mode: 'vegas', winnableOnly: true, target: 'any' },
+                { mode: 'daily', winnableOnly: false, target: 'any' },
+                { mode: 'daily', winnableOnly: true, target: 'any' },
             ])('deals $mode (winnableOnly: $winnableOnly), with a dayKey only for daily', async (request) => {
                 const outcome = harness.service.deal(request);
                 harness.settleDeal(0, request);
@@ -114,19 +117,21 @@ export function dealServiceContract(name: string, makeHarness: () => DealHarness
                 }
             });
 
-            it.each<DealRequest>([WINNABLE_DRAW_ONE, DAILY])(
-                'delivers the game the settled request produced for $mode',
-                async (request) => {
-                    const outcome = harness.service.deal(request);
-                    harness.settleDeal(0, request);
+            it.each<DealRequest>([
+                WINNABLE_DRAW_ONE,
+                { mode: 'draw3', winnableOnly: true, target: 'medium' },
+                { mode: 'vegas', winnableOnly: true, target: 'hard' },
+                DAILY,
+            ])('delivers the game the settled request produced for $mode', async (request) => {
+                const outcome = harness.service.deal(request);
+                harness.settleDeal(0, request);
 
-                    expect(await outcome).toEqual({
-                        status: 'dealt',
-                        state: settledState(request.mode),
-                        ...(request.mode === 'daily' ? { dayKey: DAY_KEY } : {}),
-                    });
-                },
-            );
+                expect(await outcome).toEqual({
+                    status: 'dealt',
+                    state: settledState(request.mode),
+                    ...(request.mode === 'daily' ? { dayKey: DAY_KEY } : {}),
+                });
+            });
 
             it('cancels an older pending deal when a newer one arrives, and delivers only the newer', async () => {
                 const first = harness.service.deal(WINNABLE_DRAW_ONE);
@@ -213,7 +218,7 @@ export function dealServiceContract(name: string, makeHarness: () => DealHarness
                 it('cancels a pending hint when a deal follows it', async () => {
                     const hint = harness.service.hint(draw1Position());
 
-                    const request: DealRequest = { mode: 'draw3', winnableOnly: false };
+                    const request: DealRequest = { mode: 'draw3', winnableOnly: false, target: 'any' };
                     const deal = harness.service.deal(request);
                     harness.settleDeal(0, request);
 

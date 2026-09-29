@@ -211,7 +211,7 @@ describe('deal service: a newer request wins over a hint', () => {
         const service = track(createDealService({ createWorker: factory.create, hintTimeoutMs: HUGE_TIMEOUT_MS }));
         const state = dealFromSeed(WIN_SEED, 'draw1');
 
-        const deal = service.deal({ mode: 'draw1', winnableOnly: true });
+        const deal = service.deal({ mode: 'draw1', winnableOnly: true, target: 'any' });
         const stub = stubAt(factory.stubs, 0);
         const outcome = await service.hint(state);
 
@@ -229,7 +229,7 @@ describe('deal service: a newer request wins over a hint', () => {
         });
         expect(await deal).toEqual({
             status: 'dealt',
-            state: dealFromSeed(WIN_SEED, 'draw1', { verdict: 'win', attempts: 1 }),
+            state: dealFromSeed(WIN_SEED, 'draw1', { verdict: 'win', attempts: 1, grade: 'easy' }),
         });
     });
 
@@ -238,7 +238,7 @@ describe('deal service: a newer request wins over a hint', () => {
         const service = track(createDealService({ createWorker: factory.create, hintTimeoutMs: HUGE_TIMEOUT_MS }));
 
         const hint = service.hint(dealFromSeed(WIN_SEED, 'draw1'));
-        const deal = await service.deal({ mode: 'draw3', winnableOnly: false });
+        const deal = await service.deal({ mode: 'draw3', winnableOnly: false, target: 'any' });
 
         expect(await hint).toEqual({ status: 'cancelled' });
         expect(deal.status).toBe('dealt');
@@ -251,7 +251,7 @@ describe('deal service: a newer request wins over a hint', () => {
         const hint = service.hint(dealFromSeed(WIN_SEED, 'draw1'));
         const stub = stubAt(factory.stubs, 0);
         stub.reply({ id: stub.idOf(0), type: 'hint', hint: { kind: 'draw' } });
-        const deal = await service.deal({ mode: 'draw3', winnableOnly: false });
+        const deal = await service.deal({ mode: 'draw3', winnableOnly: false, target: 'any' });
 
         expect(await hint).toEqual({ status: 'cancelled' });
         expect(deal.status).toBe('dealt');

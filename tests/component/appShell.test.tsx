@@ -66,7 +66,9 @@ describe('application shell navigation', () => {
         expect(backToHome()).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /deal cards/i })).not.toBeInTheDocument();
         expect(store.getState().app.route).toBe('game');
-        expect(dealService.requests.map(({ request }) => request)).toEqual([{ mode: 'draw1', winnableOnly: true }]);
+        expect(dealService.requests.map(({ request }) => request)).toEqual([
+            { mode: 'draw1', winnableOnly: true, target: 'any' },
+        ]);
     });
 
     it('starts a game in the selected mode and shows Game when the start control is activated by keyboard', async () => {
@@ -105,7 +107,9 @@ describe('application shell navigation', () => {
 
         await user.click(dealCards());
 
-        expect(dealService.requests.map(({ request }) => request)).toEqual([{ mode: 'vegas', winnableOnly: false }]);
+        expect(dealService.requests.map(({ request }) => request)).toEqual([
+            { mode: 'vegas', winnableOnly: false, target: 'any' },
+        ]);
     });
 
     it('returns to Home when the back control is activated by pointer', async () => {

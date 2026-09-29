@@ -4,7 +4,7 @@ import { assembleThunkExtra, inertPwaPort } from '../../../src/app/thunkExtra';
 import { fakeDealService, type FakeDealService } from '../../fixtures/dealService';
 import { makeState } from '../../fixtures/states';
 
-const REQUEST = { mode: 'draw1', winnableOnly: false } as const;
+const REQUEST = { mode: 'draw1', winnableOnly: false, target: 'any' } as const;
 
 describe('assembleThunkExtra', () => {
     let real: FakeDealService;

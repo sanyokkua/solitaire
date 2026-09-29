@@ -57,8 +57,10 @@ Notes:
 
 ## New deal
 
-`src/features/game/sessionThunks.ts#startGame` reads `winnableOnly`, asks the deal service, and installs the result.
-Only Draw 1 with the switch on, and Daily, use the worker; other requests are dealt at once on the calling thread.
+`src/features/game/sessionThunks.ts#startGame` reads `winnableOnly` and the Difficulty (sent as `target`, the grade
+wanted), asks the deal service, and installs the result. With the switch on, Draw 1, Draw 3 and Vegas use the worker, at
+the mode's budget, and so does Daily (always for `any`); with the switch off the request is dealt at once on the calling
+thread.
 
 ```mermaid
 sequenceDiagram
@@ -73,19 +75,19 @@ sequenceDiagram
     UI->>Nav: choose mode
     Nav->>Store: close sheet, route game
     Nav->>Start: startGame(mode)
-    Start->>Svc: deal(mode, winnableOnly, onProgress)
-    Svc->>Client: cancel pending, findWinnable(seeds, budget, mode)
+    Start->>Svc: deal(mode, winnableOnly, target, onProgress)
+    Svc->>Client: cancel pending, findWinnable(seeds, budget, mode, selection)
     Client->>W: findWinnable request
     loop each candidate seed
         W-->>Client: progress(attempt)
         Client-->>Svc: attempt
         Svc-->>Start: onProgress(overlay, attempt)
         Start->>Store: dealingProgressed
-        Note over W: solve(deal, budget) until first win
+        Note over W: solve(deal, budget), grade each win, until the target grade (or GRADE_LIMIT wins)
     end
-    W-->>Client: findWinnable reply (seed, verdict, attempts)
+    W-->>Client: findWinnable reply (seed, verdict, attempts, grade, spares)
     Client-->>Svc: ok
-    Svc-->>Start: dealt(dealFromSeed(seed, mode, verdict, attempts))
+    Svc-->>Start: dealt(dealFromSeed(seed, mode, verdict, attempts, grade))
     alt not cancelled, epoch and start id unchanged
         Start->>Store: streakBroken for replaced started game
         Start->>Store: installed(state, dayKey)
@@ -99,8 +101,9 @@ Notes:
 
 - `overlay` in the progress report becomes true after 160 ms, which is when the dealing overlay shows.
 - A new `deal` cancels the pending one and terminates a busy worker; the older start delivers nothing.
-- If the worker fails, the first candidate seed is dealt unverified (`random`, 1 attempt).
-- Draw 3, Vegas and Draw 1 with the switch off skip the worker: one `cryptoSeed`, `dealFromSeed`, `installed`.
+- If the worker fails, the first candidate seed is dealt unverified and ungraded (`random`, 1 attempt, no grade), in every mode.
+- A requested grade that is not found within `GRADE_LIMIT` proven candidates deals the closest one, labelled with its own grade.
+- With the switch off, every mode skips the worker: one `cryptoSeed`, `dealFromSeed`, `installed`; the Difficulty is ignored.
 - `restart` and `playDealCode` also install directly with `dealFromSeed`, without the service.
 
 ## Hint

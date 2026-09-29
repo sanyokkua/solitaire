@@ -544,7 +544,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 9. Deal service: every mode, a target grade, instant deals
 
-- [ ] 9.1 Verified deals in every mode with a requested grade
+- [x] 9.1 Verified deals in every mode with a requested grade
     - **Implements:**
       - DS "Deals per mode record their provenance", "Daily deal v1" (the grade), "The search never runs on the input thread" and "Dealing progress and overlay timing";
       - GS "Starting a game installs a fresh deal" and "Settings never change a game in progress";

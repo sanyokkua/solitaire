@@ -1,7 +1,8 @@
 /**
- * The deal service (D9): turns a requested mode into a dealt game, and a position into a hint. Draw 1 with "Winnable
- * deals only" and Daily are chosen by the solver on its worker, with progress reports for the dealing overlay; every
- * other request is dealt at once on the input thread. A newer deal cancels every pending request, and a failed worker
+ * The deal service (D9): turns a requested mode into a dealt game, and a position into a hint. With "Winnable deals
+ * only" on, Draw 1, Draw 3 and Vegas deals are chosen by the solver on its worker, and so is every Daily deal; each
+ * reports progress for the dealing overlay and records the grade it was dealt. With the switch off a deal is one fresh
+ * seed dealt at once on the input thread. A newer deal cancels every pending request, and a failed worker
  * never leaves a deal undelivered. A hint asks the solver only where it applies and falls back to the domain heuristic.
  * Reaches the solver only through `./solverClient` and type-only imports.
  */
@@ -10,18 +11,24 @@ import { dealFromSeed } from '../../domain/deal';
 import { cryptoSeed, type SeedSource } from '../../domain/prng';
 import { isWon, passLimit } from '../../domain/rules';
 import type { GameState, Mode } from '../../domain/types';
+import type { GradeTarget } from '../../solver/grading';
 import type { SolverHint } from '../../solver/hint';
-import { HINT_BUDGET, MAX_ATTEMPTS, WINNABLE_BUDGET } from './budgets';
+import { GRADE_LIMIT, HINT_BUDGET, MAX_ATTEMPTS, winnableBudget } from './budgets';
 import { DAILY_V1, dailySeeds, utcDayKey } from './daily';
 import { createSolverClient, type WorkerLike } from './solverClient';
 
 const DEFAULT_OVERLAY_DELAY_MS = 160;
 const DEFAULT_HINT_TIMEOUT_MS = 150;
 
-/** What a deal request asks for: the mode, and whether Draw 1 must be proven winnable ("Winnable deals only"). */
+/**
+ * What a deal request asks for: the mode, whether the deal must be proven winnable ("Winnable deals only"), and the
+ * grade wanted of a proven deal (`any` takes the first). `target` is ignored when the switch is off, and a Daily deal
+ * always searches for `any` whatever it says.
+ */
 export interface DealRequest {
     readonly mode: Mode;
     readonly winnableOnly: boolean;
+    readonly target: GradeTarget;
 }
 
 /** A delivered game, or `cancelled` when a newer deal or `dispose()` replaced the request (nothing is delivered). */
@@ -64,10 +71,14 @@ export interface DealServiceOptions {
 
 export interface DealService {
     /**
-     * Cancels every pending request, then deals `request`. Draw 1 with `winnableOnly` tries {@link MAX_ATTEMPTS} fresh
-     * seeds on the worker; Daily (whatever `winnableOnly` says) tries the day's v1 candidates on the worker; anything
-     * else deals one fresh seed on the calling thread. `onProgress` is called only for the two worker cases, while the
-     * request is pending. If the worker fails, the fallback game is dealt from the first seed as `random`, 1 attempt.
+     * Cancels every pending request, then deals `request`. Draw 1, Draw 3 and Vegas with `winnableOnly` try
+     * {@link MAX_ATTEMPTS} fresh seeds on the worker at the mode's budget, looking for `request.target`, and the game
+     * records the grade of the deal the search selected (the closest one when the target is not found; `null` for a
+     * `random` fallback). Daily (whatever `winnableOnly` says) tries the day's v1 candidates on the worker, always for
+     * the target `any`, and records its grade too. With `winnableOnly` off, one fresh seed is dealt on the calling
+     * thread, `random`, 1 attempt, ungraded. `onProgress` is called only for the worker cases, while the request is
+     * pending. If the worker fails, the fallback game is dealt from the first seed as `random`, 1 attempt, ungraded,
+     * in every mode.
      * A Daily deal, worker-verified or the worker-failure fallback, also reports the UTC day key (`dayKey`) its
      * candidate seeds came from; every other mode omits `dayKey`. Settles `cancelled` when a newer `deal()` or
      * `dispose()` replaced it. Rejects only when no entropy source exists.
@@ -85,10 +96,11 @@ export interface DealService {
     readonly dispose: () => void;
 }
 
-/** What a worker-run deal searches: the ordered candidate seeds and the node budget for each. */
+/** What a worker-run deal searches: the ordered candidate seeds, the node budget for each and the grade wanted. */
 interface SearchPlan {
     readonly seeds: readonly number[];
     readonly budget: number;
+    readonly target: GradeTarget;
     /** The UTC day key the seeds were derived from, for a Daily plan; absent for a winnable-Draw-1 plan. */
     readonly dayKey?: string;
 }
@@ -108,15 +120,16 @@ export function createDealService(options: DealServiceOptions = {}): DealService
     /** Counts hint requests likewise, so a newer hint also replaces an older one the client never saw. */
     let hintGeneration = 0;
 
-    function searchPlan({ mode, winnableOnly }: DealRequest): SearchPlan | undefined {
+    function searchPlan({ mode, winnableOnly, target }: DealRequest): SearchPlan | undefined {
         if (mode === 'daily') {
             const dayKey = utcDayKey(now());
-            return { seeds: dailySeeds(dayKey), budget: DAILY_V1.budget, dayKey };
+            return { seeds: dailySeeds(dayKey), budget: DAILY_V1.budget, target: 'any', dayKey };
         }
-        if (mode === 'draw1' && winnableOnly) {
+        if (winnableOnly) {
             return {
                 seeds: Array.from({ length: MAX_ATTEMPTS }, () => cryptoSeed(seedSource)),
-                budget: WINNABLE_BUDGET,
+                budget: winnableBudget(mode),
+                target,
             };
         }
         return undefined;
@@ -142,6 +155,7 @@ export function createDealService(options: DealServiceOptions = {}): DealService
         }, overlayDelayMs);
         const outcome = await client
             .findWinnable(plan.seeds, plan.budget, mode, {
+                selection: { target: plan.target, gradeLimit: GRADE_LIMIT },
                 onProgress: (started) => {
                     attempt = started;
                     report();
@@ -155,10 +169,15 @@ export function createDealService(options: DealServiceOptions = {}): DealService
         }
         const day = plan.dayKey === undefined ? {} : { dayKey: plan.dayKey };
         if (outcome.status === 'ok') {
-            const { seed, verdict, attempts } = outcome.result;
-            return { status: 'dealt', state: dealFromSeed(seed, mode, { verdict, attempts }), ...day };
+            const { seed, verdict, attempts, grade } = outcome.result;
+            return {
+                status: 'dealt',
+                state: dealFromSeed(seed, mode, { verdict, attempts, grade: grade ?? null }),
+                ...day,
+            };
         }
-        // The worker failed or could not start: deal the first candidate, unverified, so the player is never left waiting.
+        // The worker failed or could not start: deal the first candidate, unverified and ungraded, so the player is
+        // never left waiting.
         const [first = 0] = plan.seeds;
         return { status: 'dealt', state: dealFromSeed(first, mode), ...day };
     }

@@ -15,6 +15,7 @@ import {
     DEAL_SEED,
     expectedHintOutcome,
     settledState,
+    SETTLED_GRADE,
     SOLVER_HINT,
     type DealHarness,
 } from './dealServiceContract';
@@ -55,7 +56,8 @@ function realHarness(): DealHarness {
     return {
         service,
         settleDeal: (index, { mode, winnableOnly }) => {
-            if (mode !== 'daily' && !(mode === 'draw1' && winnableOnly)) return;
+            // Only a switch-off deal is answered by the service itself; every other request waits for the worker.
+            if (mode !== 'daily' && !winnableOnly) return;
             const { stub, request } = entry('findWinnable', index);
             stub.reply({
                 id: request.id,
@@ -63,7 +65,7 @@ function realHarness(): DealHarness {
                 seed: DEAL_SEED,
                 verdict: 'win',
                 attempts: 1,
-                grade: 'easy',
+                grade: SETTLED_GRADE,
                 spares: [],
             });
         },
@@ -113,14 +115,14 @@ dealServiceContract('the real service on a stub worker', realHarness, { cancelsH
 // The fake settles a pending hint only on command: it does not yet cancel one for a newer hint, a deal or dispose().
 dealServiceContract('fakeDealService', fakeHarness, { cancelsHints: false });
 
-const REQUEST: DealRequest = { mode: 'draw3', winnableOnly: false };
+const REQUEST: DealRequest = { mode: 'draw3', winnableOnly: false, target: 'any' };
 
 describe('fakeDealService beyond the contract', () => {
     it('records requests and settles them by index', async () => {
         const service = fakeDealService();
         const state = makeState({ seed: 3 });
         const first = service.deal(REQUEST);
-        const second = service.deal({ mode: 'daily', winnableOnly: true });
+        const second = service.deal({ mode: 'daily', winnableOnly: true, target: 'any' });
         await expect(first).resolves.toEqual({ status: 'cancelled' });
 
         service.resolve(1, state, '2026-09-24');

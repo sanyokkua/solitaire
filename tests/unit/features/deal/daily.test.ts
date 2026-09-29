@@ -29,7 +29,7 @@ async function dailyDealAt(instant: Date): Promise<{
     const factory = stubFactory();
     const service = createDealService({ createWorker: factory.create, now: () => instant });
     try {
-        const deal = service.deal({ mode: 'daily', winnableOnly: false });
+        const deal = service.deal({ mode: 'daily', winnableOnly: false, target: 'any' });
         const stub = stubAt(factory.stubs, 0);
         stub.emit('error');
         const outcome = await deal;

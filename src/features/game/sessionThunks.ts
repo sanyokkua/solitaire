@@ -22,8 +22,9 @@ function breakStreakOf(outgoing: GameState | null): AppThunk {
 const latestStart = new WeakMap<DealService, number>();
 
 /**
- * Deals a new game of `mode` and installs it (D9). Winnable deals only is read from the preferences when the start
- * begins and travels in the request, so changing the setting while a deal is pending changes nothing about it. While
+ * Deals a new game of `mode` and installs it (D9). Winnable deals only and the Difficulty (the grade wanted, sent as the
+ * request's `target`) are read from the preferences when the start begins and travel in the request, so changing either
+ * setting while a deal is pending, or once the game is in play, changes nothing about it. While
  * the deal service works, its progress is published for the dealing overlay. The result is discarded, changing
  * nothing, when the service reports the request `cancelled` (a newer start replaced it), when the game epoch moved
  * while dealing (a restart, a reset or any other install got there first; progress reported after the epoch moved is
@@ -36,12 +37,12 @@ const latestStart = new WeakMap<DealService, number>();
  */
 export function startGame({ mode }: { readonly mode: Mode }): AppThunk<Promise<void>> {
     return async (dispatch, getState, { dealService }) => {
-        const { winnableOnly } = getState().preferences;
+        const { winnableOnly, difficulty } = getState().preferences;
         const { epoch } = getState().game;
         const startId = (latestStart.get(dealService) ?? 0) + 1;
         latestStart.set(dealService, startId);
         try {
-            const outcome = await dealService.deal({ mode, winnableOnly }, (progress) => {
+            const outcome = await dealService.deal({ mode, winnableOnly, target: difficulty }, (progress) => {
                 // A late report after the game was replaced or cleared (reset-all) must not bring the overlay back.
                 if (getState().game.epoch === epoch) dispatch(dealingProgressed(progress));
             });

@@ -115,19 +115,41 @@ describe('startGame', () => {
         expect(env.store.getState().app.dealing).toBeNull();
     });
 
-    it('reads Winnable deals only from the preferences when it starts and forwards it', async () => {
+    it('reads Winnable deals only and the Difficulty from the preferences when it starts and forwards them', async () => {
         const env = setup();
         const fake = fakeOf(env);
 
         void env.store.dispatch(startGame({ mode: 'draw1' }));
         env.store.dispatch(preferenceSet({ key: 'winnableOnly', value: false }));
+        env.store.dispatch(preferenceSet({ key: 'difficulty', value: 'hard' }));
         void env.store.dispatch(startGame({ mode: 'draw3' }));
 
         expect(fake.requests.map(({ request }) => request)).toEqual([
-            { mode: 'draw1', winnableOnly: true },
-            { mode: 'draw3', winnableOnly: false },
+            { mode: 'draw1', winnableOnly: true, target: 'any' },
+            { mode: 'draw3', winnableOnly: false, target: 'hard' },
         ]);
         await Promise.resolve();
+    });
+
+    it('leaves the pending deal and the game in play alone when the Difficulty changes after the start', async () => {
+        const graded: GameState = { ...dealFromSeed(5, 'draw1', { verdict: 'win', attempts: 2, grade: 'easy' }) };
+        const env = setup(graded);
+        env.store.dispatch(preferenceSet({ key: 'difficulty', value: 'medium' }));
+
+        const started = env.store.dispatch(startGame({ mode: 'draw1' }));
+        env.store.dispatch(preferenceSet({ key: 'difficulty', value: 'hard' }));
+        const dealt = dealFromSeed(9, 'draw1', { verdict: 'win', attempts: 3, grade: 'medium' });
+        fakeOf(env).resolve(0, dealt);
+        await started;
+
+        expect(fakeOf(env).requests[0]?.request.target).toBe('medium');
+        expect(current(env)).toBe(dealt);
+        expect(current(env).grade).toBe('medium');
+
+        env.store.dispatch(preferenceSet({ key: 'difficulty', value: 'easy' }));
+
+        expect(current(env)).toBe(dealt);
+        expect(current(env).grade).toBe('medium');
     });
 
     it('changes nothing when the request is cancelled, and clears the dealing progress', async () => {
