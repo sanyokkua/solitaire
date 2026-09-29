@@ -186,10 +186,13 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   `.help-rule` cards (SH "How to play sheet") covering the foundations win condition, the alternating-colour build
   rule, the empty-column Kings-only rule, and Draw 1 vs Draw 3; a `.sub-label` "Controls" `.keys-table` listing every
   documented shortcut (KS-INP-08) — Tap/Click, Drag, Double-click, Space, Ctrl+Z/Ctrl+Y, H, A, N, P and Esc — each key
-  name marked up as `<kbd>` so assistive technology reads it in full; and a `.sub-label` "Scoring" summary for
-  Standard and Vegas. The one action, "Got it" (`action-button--filled`), both dispatches `closeSheet()` and is the
+  name marked up as `<kbd>` so assistive technology reads it in full; a `.sub-label` "Scoring" summary for
+  Standard and Vegas; and a `.sub-label` "Winnable deals" passage (two paragraphs, a `dl.help-grades` naming Easy,
+  Medium and Hard from the shared `grade.*` keys each beside its `help.winnable.*` explanation, and a closing line
+  about Difficulty on Home) explaining that the solver proves Draw 1, Draw 3 and Vegas deals winnable and that a
+  proven deal is graded by human-style replays. The one action, "Got it" (`action-button--filled`), both dispatches `closeSheet()` and is the
   initial-focus target (I5) — a reference sheet has nothing to edit, so focus starts on the one way out. `sheets.css`
-  gains `.help-rule`/`.help-rule__icon` and `.keys-table` for this sheet; no other sheet uses them yet.
+  gains `.help-rule`/`.help-rule__icon`, `.keys-table` and `.help-grades` for this sheet; no other sheet uses them yet.
 - `sheets/StatsSheet.tsx` — `StatsSheet`, registered in `SheetHost` as `stats` (D2, D8, D13, 5.4). Wraps a
   `.scroll-x`-wrapped `table.stats-table` (mirroring the mockup's `#sheet-stats`) in a wide `ModalSheet`, heading
   `t('stats.heading')`, `onDismiss` `closeSheet()` (also the default focus fallback): one column per mode (Draw 1, Draw 3,

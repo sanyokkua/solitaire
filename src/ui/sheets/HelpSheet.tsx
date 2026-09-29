@@ -18,6 +18,12 @@ interface Rule {
         | 'help.rule.draw.description';
 }
 
+const GRADES = [
+    { nameKey: 'grade.easy', descriptionKey: 'help.winnable.easy' },
+    { nameKey: 'grade.medium', descriptionKey: 'help.winnable.medium' },
+    { nameKey: 'grade.hard', descriptionKey: 'help.winnable.hard' },
+] as const;
+
 const RULES: readonly Rule[] = [
     { icon: 'A→K', titleKey: 'help.rule.foundations.title', descriptionKey: 'help.rule.foundations.description' },
     { icon: 'R/B', titleKey: 'help.rule.alternating.title', descriptionKey: 'help.rule.alternating.description' },
@@ -29,7 +35,8 @@ const RULES: readonly Rule[] = [
  * How to play (5.3, D2, D13): a static reference sheet, registered in `SheetHost` as `help`. Four `.help-rule` cards
  * (SH "How to play sheet") cover the win condition, the alternating-colour build rule, the empty-column rule and
  * Draw 1 vs Draw 3, followed by a `.keys-table` of every documented shortcut (KS-INP-08) with key names marked up as
- * `<kbd>` so assistive technology reads them in full, and a short Standard/Vegas scoring summary. The sole action,
+ * `<kbd>` so assistive technology reads them in full, a short Standard/Vegas scoring summary, and a Winnable deals passage that explains the solver's proof and the
+ * Easy/Medium/Hard grades (10.4). The sole action,
  * "Got it", both closes the sheet (`closeSheet()`, same as `onDismiss`) and is the initial-focus target (I5): this is
  * a reference sheet with nothing to change, so focus lands on the one way out rather than on a control that edits
  * anything.
@@ -126,6 +133,21 @@ export function HelpSheet() {
             <div className="sub-label">{t('help.scoring.heading')}</div>
             <p>{t('help.scoring.standard')}</p>
             <p>{t('help.scoring.vegas')}</p>
+
+            <div className="sub-label">{t('help.winnable.heading')}</div>
+            <p>{t('help.winnable.intro')}</p>
+            <p>{t('help.winnable.grading')}</p>
+            <dl className="help-grades">
+                {GRADES.map((grade) => (
+                    <div className="help-grades__row" key={grade.nameKey}>
+                        <dt>
+                            <strong>{t(grade.nameKey)}</strong>
+                        </dt>
+                        <dd>{t(grade.descriptionKey)}</dd>
+                    </div>
+                ))}
+            </dl>
+            <p>{t('help.winnable.difficulty')}</p>
 
             <div className="modal-sheet__actions">
                 <button type="button" className="action-button action-button--filled" ref={gotItRef} onClick={dismiss}>

@@ -681,7 +681,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/component/sheets/win.test.tsx` ("Hard deal" is shown; nothing for an ungraded game; a restarted graded game that is won still shows its grade; the Win title carries the pixel-typeface class and other sheets' titles do not).
     - **Verify:** `rtk npx vitest run tests/unit/features/interaction tests/component/sheets` passes.
 
-- [ ] 10.4 How to play explains Winnable deals and the grades
+- [x] 10.4 How to play explains Winnable deals and the grades
     - **Implements:** SH "How to play sheet".
     - **Files:** `src/ui/sheets/HelpSheet.tsx`, the catalogs.
     - **Tests:** `tests/component/sheets/help.test.tsx` shows the passage and the three grade names, in both languages.

@@ -223,6 +223,15 @@ export const en = {
     'help.scoring.standard':
         'Standard: +10 to a foundation, +5 waste to table, +5 per card turned over, −2 every 10 s, −100 per redeal in Draw 1.',
     'help.scoring.vegas': 'Vegas: start at −$52, win $5 per card home, three passes through the deck.',
+    'help.winnable.heading': 'Winnable deals',
+    'help.winnable.intro':
+        'With Winnable deals only on, a built-in solver proves every Draw 1, Draw 3 and Vegas deal winnable before it is shown.',
+    'help.winnable.grading':
+        'A proven deal is graded by replaying it the way a person plays, seeing only the face-up cards.',
+    'help.winnable.easy': 'Most replays win.',
+    'help.winnable.medium': 'Some replays win.',
+    'help.winnable.hard': 'Hardly any replays win, although the solver proved it winnable.',
+    'help.winnable.difficulty': 'Difficulty on Home asks for one of these grades.',
 
     'stats.heading': 'Statistics',
     'stats.mode.draw1': 'Draw 1',

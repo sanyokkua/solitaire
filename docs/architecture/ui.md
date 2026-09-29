@@ -156,7 +156,7 @@ return to the opener). While a sheet is open, `App` marks the screen behind it `
 | Sheet id   | Component                         | Notes                                                                                  |
 | ---------- | --------------------------------- | -------------------------------------------------------------------------------------- |
 | `settings` | `src/ui/sheets/SettingsSheet.tsx` | Appearance, Play, Language, Data groups; every control writes `preferenceSet` at once. |
-| `help`     | `src/ui/sheets/HelpSheet.tsx`     | Rules, controls table, scoring.                                                        |
+| `help`     | `src/ui/sheets/HelpSheet.tsx`     | Rules, controls table, scoring, Winnable deals and grades.                             |
 | `stats`    | `src/ui/sheets/StatsSheet.tsx`    | Per-mode table, Daily streak, Reset.                                                   |
 | `newDeal`  | `src/ui/sheets/NewDealSheet.tsx`  | Shown for a started, unwon game; Restart, New deal, Cancel (initial focus).            |
 | `paused`   | `src/ui/sheets/PausedSheet.tsx`   | Frozen time, deal code, Resume; `GameScreen` hides the board while open.               |

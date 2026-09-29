@@ -75,9 +75,16 @@ const GAME_BOXES = [
     '.game-footer',
 ];
 /** Boxes inside an open sheet. */
-const SHEET_BOXES = ['.modal-sheet', '.setting-row', '.help-rule', '.keys-table', '.modal-sheet__actions'];
+const SHEET_BOXES = [
+    '.modal-sheet',
+    '.setting-row',
+    '.help-rule',
+    '.help-grades__row',
+    '.keys-table',
+    '.modal-sheet__actions',
+];
 /** Elements whose text must wrap inside them rather than be cut. */
-const MUST_WRAP = ['.setting-row', '.help-rule', '.modal-sheet'];
+const MUST_WRAP = ['.setting-row', '.help-rule', '.help-grades__row', '.modal-sheet'];
 
 /** Opens the sheet behind `open`, waits for it to settle and returns its geometry. */
 async function openSheet(page: Page, open: () => Promise<void>) {
