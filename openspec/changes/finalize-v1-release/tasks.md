@@ -357,7 +357,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - a seeded completed-dates record with a gap shows the streak reset.
     - **Verify:** `rtk npx playwright test daily --project=chromium --project=webkit` passes.
 
-- [ ] 5.7 Night cards in the accessibility scan
+- [x] 5.7 Night cards in the accessibility scan
     - **Implements:** RF "Accessibility scan" ("Night cards keep their contrast"); AP "Night cards change the cards only".
     - **Files:** `tests/e2e/a11y.spec.ts` gains a pass in the dark theme with night cards over Home, Game and every sheet.
     - **Tests:** axe finds no violations, colour contrast included.

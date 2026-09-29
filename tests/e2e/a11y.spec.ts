@@ -1,13 +1,18 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { drawThreeFanState } from '../fixtures/boardPositions';
+import { drawThreeFanState, worstColumnState } from '../fixtures/boardPositions';
 import { WINNING_LINE, nearlyWonState, parseLine } from '../fixtures/deals';
 import type { Preferences } from '../../src/features/preferences/preferencesSlice';
 import { continueToGame } from './support/cards';
 import { playLine } from './support/play';
 import { seedRecord } from './support/seed';
 
-const THEMES = ['light', 'dark'] as const;
+/** The appearance variants the scan runs over: each theme, and the dark theme with the night-card palette. */
+const VARIANTS: readonly { name: string; theme: 'light' | 'dark'; preferences: Partial<Preferences> }[] = [
+    { name: 'light theme', theme: 'light', preferences: {} },
+    { name: 'dark theme', theme: 'dark', preferences: {} },
+    { name: 'dark theme with night cards', theme: 'dark', preferences: { nightCards: true } },
+];
 const BLOCKING = new Set(['serious', 'critical']);
 /** Moderate rules that are enforced too. */
 const ENFORCED_MODERATE = new Set(['landmark-one-main']);
@@ -35,17 +40,21 @@ const HOME_SHEETS = [
     ['about', 'About', 'About'],
 ] as const;
 
-for (const theme of THEMES) {
-    test.describe(`Accessibility scan, ${theme} theme`, () => {
+for (const { name, theme, preferences: variantPreferences } of VARIANTS) {
+    const nightCards = variantPreferences.nightCards === true;
+
+    test.describe(`Accessibility scan, ${name}`, () => {
         test.beforeEach(async ({ page }, testInfo) => {
             test.skip(testInfo.project.name !== 'chromium', 'The scan runs once, in desktop Chromium');
             await page.emulateMedia({ reducedMotion: 'reduce' });
         });
 
         const open = async (page: Page, current = drawThreeFanState(), preferences: Partial<Preferences> = {}) => {
-            await seedRecord(page, { current, preferences: { theme, ...preferences } });
+            await seedRecord(page, { current, preferences: { theme, ...variantPreferences, ...preferences } });
             await page.goto('/');
             await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+            // A scan that silently ran over the day cards would prove nothing about the night palette.
+            await expect(page.locator('html')).toHaveAttribute('data-night-cards', String(nightCards));
         };
 
         test('Home', async ({ page }) => {
@@ -59,6 +68,15 @@ for (const theme of THEMES) {
             await continueToGame(page);
             await expectNoBlockingViolations(page);
         });
+
+        if (nightCards) {
+            // The fan above shows every suit's ace; this K to A run shows both inks on every rank's index and pips.
+            test('Game, a king-to-ace run of both inks', async ({ page }) => {
+                await open(page, worstColumnState());
+                await continueToGame(page);
+                await expectNoBlockingViolations(page);
+            });
+        }
 
         for (const [id, control, heading] of HOME_SHEETS) {
             test(`the ${id} sheet`, async ({ page }) => {
