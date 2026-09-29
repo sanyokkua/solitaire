@@ -304,7 +304,7 @@
 
 Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix it in the same task when the fix stays inside the requirement the spec proves. Otherwise stop and surface it.
 
-- [ ] 5.1 Corrupt storage and a failing save
+- [x] 5.1 Corrupt storage and a failing save
     - **Implements:** RF "Edge cases are proven end to end", scenarios "A corrupt record starts with defaults" and "A failing save keeps the game playable"; PE "Unreadable data is never lost" and "A failed save keeps the game playable" (KS-PER-03, KS-PER-04).
     - **Files:**
       - new `tests/e2e/storage.spec.ts`;
