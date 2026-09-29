@@ -1,3 +1,4 @@
+// covers: KS-DEAL-01, KS-DEAL-02
 import { describe, expect, it } from 'vitest';
 import { GRADES, dealFromSeed, modeConfig } from '../../../src/domain/deal';
 import { encodeDealCode } from '../../../src/domain/dealCode';
@@ -89,6 +90,7 @@ describe('dealFromSeed', () => {
         expect(state.grade).toBeNull();
     });
 
+    // covers: KS-DEAL-11
     it('records a grade with its verdict and attempts', () => {
         const state = dealFromSeed(7, 'draw3', { verdict: 'win', attempts: 2, grade: 'medium' });
         expect(state.verdict).toBe('win');

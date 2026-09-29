@@ -1,3 +1,4 @@
+// covers: KS-AST-02, KS-AST-03
 import { describe, expect, it, vi } from 'vitest';
 import { noticeRaised } from '../../../../src/app/appSlice';
 import type { AppStore } from '../../../../src/app/store';

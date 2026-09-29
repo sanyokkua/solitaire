@@ -1,3 +1,4 @@
+// covers: KS-AST-05
 import { describe, expect, it } from 'vitest';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import { applyCommand } from '../../../../src/domain/engine';

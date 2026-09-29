@@ -1,3 +1,4 @@
+// covers: KS-AST-06
 import { describe, expect, it } from 'vitest';
 import { isDeadEnd } from '../../../src/domain/deadEnd';
 import { cardId } from '../../../src/domain/cards';

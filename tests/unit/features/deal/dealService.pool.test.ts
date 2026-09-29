@@ -1,4 +1,5 @@
 // @vitest-environment node
+// covers: KS-DEAL-11, KS-DEAL-12
 import '@vitest/web-worker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dealFromSeed } from '../../../../src/domain/deal';

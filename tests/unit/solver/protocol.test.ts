@@ -1,3 +1,4 @@
+// covers: KS-DEAL-04, KS-DEAL-10
 import { describe, expect, it } from 'vitest';
 import { dealFromSeed } from '../../../src/domain/deal';
 import { handleRequest, type SolverRequest, type SolverResponse } from '../../../src/solver/protocol';

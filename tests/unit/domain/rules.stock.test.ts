@@ -1,3 +1,4 @@
+// covers: KS-MOVE-04, KS-MOVE-05, KS-MOVE-07
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { canRecycle, isWon, passLimit } from '../../../src/domain/rules';

@@ -1,3 +1,4 @@
+// covers: KS-DEAL-02, KS-DEAL-09
 import { describe, expect, it } from 'vitest';
 import { dealFromSeed } from '../../../src/domain/deal';
 import { decodeDealCode, encodeDealCode } from '../../../src/domain/dealCode';

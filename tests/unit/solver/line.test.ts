@@ -1,3 +1,4 @@
+// covers: KS-AST-03, KS-MOVE-07
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { dealFromSeed } from '../../../src/domain/deal';

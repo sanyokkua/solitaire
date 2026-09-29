@@ -1,3 +1,4 @@
+// covers: KS-DEAL-11
 import { describe, expect, it } from 'vitest';
 import { dealFromSeed } from '../../../src/domain/deal';
 import { GRADES } from '../../../src/domain/deal';

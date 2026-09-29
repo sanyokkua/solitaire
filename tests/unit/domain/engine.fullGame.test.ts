@@ -1,3 +1,4 @@
+// covers: KS-MOVE-07, KS-DEAL-01
 import { describe, expect, it } from 'vitest';
 import { hint } from '../../../src/domain/hint';
 import { dealFromSeed } from '../../../src/domain/deal';

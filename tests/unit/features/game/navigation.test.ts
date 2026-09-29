@@ -1,3 +1,4 @@
+// covers: KS-DEAL-08, KS-SCO-06, KS-SCO-07
 import { describe, expect, it } from 'vitest';
 import { dealingEnded, dealingProgressed, setRoute, sheetOpened } from '../../../../src/app/appSlice';
 import { dealFromSeed } from '../../../../src/domain/deal';

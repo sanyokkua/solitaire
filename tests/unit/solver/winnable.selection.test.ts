@@ -1,3 +1,4 @@
+// covers: KS-DEAL-03, KS-DEAL-05, KS-DEAL-11
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as GradingModule from '../../../src/solver/grading';
 import type { Grade } from '../../../src/domain/types';

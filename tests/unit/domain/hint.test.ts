@@ -1,3 +1,4 @@
+// covers: KS-AST-02
 import { describe, expect, it } from 'vitest';
 import { findMove, hint, hintCandidates, type HintPriority } from '../../../src/domain/hint';
 import { cardId } from '../../../src/domain/cards';
@@ -317,6 +318,7 @@ function realPositions(): GameState[] {
     return positions;
 }
 
+// covers: KS-DEAL-11
 describe('hintCandidates', () => {
     const positions = realPositions();
 

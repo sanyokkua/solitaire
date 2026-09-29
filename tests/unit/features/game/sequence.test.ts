@@ -1,3 +1,4 @@
+// covers: KS-AST-04, KS-AST-05
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
 import type { AppStore } from '../../../../src/app/store';

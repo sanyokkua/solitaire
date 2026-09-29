@@ -728,7 +728,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - running the generator twice changes nothing, and Prettier leaves its output unchanged.
     - **Verify:** `rtk npx vitest run tests/unit/repo` passes, and `rtk npm run trace` followed by `rtk npm run format:check` reports no change.
 
-- [ ] 11.4 Annotate the deal, move, scoring and assistance tests
+- [x] 11.4 Annotate the deal, move, scoring and assistance tests
     - **Implements:** RF "Requirement traceability is generated and checked" (coverage). KS-DEAL, KS-MOVE, KS-SCO, KS-AST, including this change's delta-only KS-DEAL-11 (grading, target selection, the grade in state and UI) and KS-DEAL-12 (the pool).
     - **Files:** `// covers:` comments only, in `tests/unit/{domain,solver,features/deal,features/game,features/interaction}/**`, the matching `tests/e2e/*.spec.ts` and component tests for the new ids, and the regenerated `docs/reference/traceability.md`.
     - **Tests:** no assertion changes. A comment is added only where the test really proves that id.

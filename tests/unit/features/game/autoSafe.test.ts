@@ -1,3 +1,4 @@
+// covers: KS-AST-04
 import { describe, expect, it, vi } from 'vitest';
 import { setRoute, systemMotionChanged } from '../../../../src/app/appSlice';
 import type { AppStore } from '../../../../src/app/store';

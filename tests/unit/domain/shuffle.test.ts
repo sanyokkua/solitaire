@@ -1,3 +1,4 @@
+// covers: KS-DEAL-01
 import { describe, expect, it } from 'vitest';
 import { orderedDeck, shuffle } from '../../../src/domain/deal';
 import { mulberry32 } from '../../../src/domain/prng';

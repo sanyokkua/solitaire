@@ -1,3 +1,4 @@
+// covers: KS-DEAL-03, KS-DEAL-05
 import { describe, expect, it, vi } from 'vitest';
 import { dealFromSeed } from '../../../src/domain/deal';
 import type { Mode } from '../../../src/domain/types';

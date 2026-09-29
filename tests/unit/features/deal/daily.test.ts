@@ -1,3 +1,4 @@
+// covers: KS-DEAL-07
 import { afterEach, describe, expect, it } from 'vitest';
 import { decodeDealCode, encodeDealCode } from '../../../../src/domain/dealCode';
 import { DAILY_V1, dailySeed, dailySeeds, utcDayKey } from '../../../../src/features/deal/daily';

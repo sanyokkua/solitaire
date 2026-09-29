@@ -1,3 +1,4 @@
+// covers: KS-SCO-04, KS-DEAL-11
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
 import { cardId } from '../../../../src/domain/cards';

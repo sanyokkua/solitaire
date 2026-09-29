@@ -1,3 +1,4 @@
+// covers: KS-DEAL-11, KS-DEAL-12
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Grade } from '../../../../src/domain/types';
 import { GRADE_LIMIT, MAX_ATTEMPTS, winnableBudget } from '../../../../src/features/deal/budgets';

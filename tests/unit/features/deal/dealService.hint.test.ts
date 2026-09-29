@@ -1,4 +1,5 @@
 // @vitest-environment node
+// covers: KS-AST-02, KS-AST-03
 import '@vitest/web-worker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { hint as heuristicHint } from '../../../../src/domain/hint';

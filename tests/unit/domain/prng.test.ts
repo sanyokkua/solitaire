@@ -1,3 +1,4 @@
+// covers: KS-DEAL-02
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cryptoSeed, mulberry32 } from '../../../src/domain/prng';
 

@@ -1,3 +1,4 @@
+// covers: KS-MOVE-01, KS-MOVE-06
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { column, columnTop, foundationTop, groupAt, isMovable, wasteTop } from '../../../src/domain/rules';

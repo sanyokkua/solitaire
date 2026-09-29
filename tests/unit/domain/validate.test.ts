@@ -140,6 +140,7 @@ describe('isValidGameState', () => {
             expect(isValidGameState({ ...dealFromSeed(WINNING_LINE.seed, mode), passes: 50 })).toBe(true);
         });
 
+        // covers: KS-DEAL-11
         describe('the grade', () => {
             const won = { verdict: 'win', attempts: 1 } as const;
 
