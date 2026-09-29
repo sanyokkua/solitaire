@@ -272,7 +272,7 @@
       - `tests/unit/features/persistence/sessionCodec.test.ts`: a stored Vegas game at pass 4 is `invalid`.
     - **Verify:** `rtk npx vitest run tests/unit/domain tests/unit/features/persistence` passes.
 
-- [ ] 4.2 One talon-stepping rule and the reachable talon
+- [x] 4.2 One talon-stepping rule and the reachable talon
     - **Implements:** MR "Talon cards reachable by drawing"; D4.
     - **Files:**
       - new `src/domain/talon.ts` (`stepTalon`, `reachableTops`);

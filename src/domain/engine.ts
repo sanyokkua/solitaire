@@ -1,6 +1,7 @@
 import { suitOf } from './cards';
 import { canDrop, canRecycle, column, groupAt, isWon } from './rules';
 import { applyDelta, commandDelta } from './scoring';
+import { stepTalon } from './talon';
 import type {
     CardId,
     Column,
@@ -133,17 +134,24 @@ function applyAutoFoundation(state: GameState, from: PileRef): CommandResult {
 }
 
 function applyDraw(state: GameState): CommandResult {
-    if (state.stock.length > 0) {
-        const count = Math.min(state.draw, state.stock.length);
-        const turned = state.stock.slice(-count).reverse();
-        const after = { ...state, stock: state.stock.slice(0, -count), waste: [...state.waste, ...turned] };
-        return accept(state, after, [{ type: 'drew', count }], true);
+    const step = stepTalon(state.stock, state.waste, state.draw);
+    if (step === undefined) return reject(state, 'nothing-to-draw');
+    if (!step.recycled) {
+        return accept(
+            state,
+            { ...state, stock: step.stock, waste: step.waste },
+            [{ type: 'drew', count: step.drew }],
+            true,
+        );
     }
-    if (state.waste.length === 0) return reject(state, 'nothing-to-draw');
     if (!canRecycle(state)) return reject(state, 'pass-limit');
     const pass = state.passes + 1;
-    const after = { ...state, stock: [...state.waste].reverse(), waste: [], passes: pass };
-    return accept(state, after, [{ type: 'recycled', pass }], true);
+    return accept(
+        state,
+        { ...state, stock: step.stock, waste: step.waste, passes: pass },
+        [{ type: 'recycled', pass }],
+        true,
+    );
 }
 
 /** Validates and applies one command. Pure and total: it never throws and never modifies `state`. */
