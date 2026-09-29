@@ -5,73 +5,88 @@
 ### Requirement: Instant deals from a pre-verified pool
 
 Once start-up has finished, while the page is visible and no deal the player asked for is pending,
-the service SHALL pre-verify deals for the player's current choice: the selected mode (Draw 1,
-Draw 3 or Vegas) with "Winnable deals only" on, and the selected difficulty. Pre-verification SHALL
-run on a separate, low-priority background thread of its own, never on the one that serves the
-player's deals and hints. It SHALL use exactly the seed source, selection rules, budgets and grading
-of a requested deal (see "Deals per mode record their provenance"), so a pooled deal cannot be told
-apart from one searched on request.
+the service SHALL pre-verify deals for the player's current mode (Draw 1, Draw 3 or Vegas) with
+"Winnable deals only" on. Pre-verification SHALL run on a separate, low-priority background thread of
+its own, never on the one that serves the player's deals and hints. It SHALL use exactly the seed source,
+selection rules, budgets and grading of a requested deal (see "Deals per mode record their
+provenance"), so a pooled deal cannot be told apart from one searched on request.
 
-The pool SHALL:
-- pre-verify one deal at a time, only for the current choice; it never fills a choice the player has
-  not selected;
-- keep whatever pre-verification selects: a deal that ends `random`, because no candidate was proven
-  winnable, is pooled with that verdict and no grade, exactly as a request searched at that moment
-  would have been dealt, and it is not searched again;
-- hold at most 2 deals for each pair of mode and difficulty;
+The pool holds proven-winnable, graded deals. It SHALL:
+- pre-verify one deal at a time, only for the current mode, asking for the grade of which it holds fewest
+  deals; it never fills a mode the player has not selected;
+- keep the deal a pre-verification selects and the other graded deals it met on the way (its spares), when
+  the pool has room for their grade; the spares of a deal the player asked for are kept the same way;
+- never keep a deal that ends `random`, because no candidate was proven winnable: the pool holds only deals
+  that are really winnable;
+- hold at most 2 deals for each pair of mode and grade, oldest first, and drop a deal that does not fit;
 - live in memory only: nothing about it is stored, and a reload starts with an empty pool;
 - never be filled or used for the Daily deal, nor while "Winnable deals only" is off;
 - pause while the page is hidden or a deal the player asked for is pending: no new pre-verification
   starts while it is paused, and one already under way is not cancelled;
-- refill after a pooled deal is used, until it again holds 2 deals for the current choice.
+- refill after a pooled deal is used, until each grade of the current mode again holds 2 deals.
 
-A deal request whose mode, "Winnable deals only" switch and target difficulty match a pooled deal
-SHALL be served from the pool, oldest deal first, at once. The deal is delivered with the verdict,
-attempts and grade recorded when it was pre-verified. No search runs for it, no progress is reported
-for it and the dealing overlay never appears. A pooled deal SHALL be delivered at most once. A
-request that no pooled deal matches SHALL be served exactly as "Deals per mode record their
-provenance" defines.
+A deal request whose mode and "Winnable deals only" switch match the pool SHALL be served from it, at
+once, when the pool holds a deal of the target grade (the oldest one), or, for the target Any, a deal of
+any grade (the oldest one). The deal is delivered with the verdict `win`, the grade and the attempts
+recorded when it was found (1 for a spare). No search runs for it, no progress is reported for it and the
+dealing overlay never appears. A pooled deal SHALL be delivered at most once. A pooled deal of another grade
+SHALL NOT be served for a target grade. A request that the pool cannot serve SHALL be served exactly as
+"Deals per mode record their provenance" defines.
 
 Performance:
 - a deal served from a warm pool SHALL be delivered within 100 ms of the request, in Draw 1, Draw 3
   and Vegas;
-- a winnable Draw 1 deal searched on request with difficulty Any SHALL keep its target of 300 ms at the
-  median and 1.5 s at the 95th percentile on a mid-range phone;
-- Draw 1 deals searched on request for a specific grade, deals searched while a pre-verification is in
-  flight, and Draw 3 and Vegas deals searched on request are measured and reported for information only.
+- a deal searched on request has no time target: the dealing overlay stays for as long as the search takes,
+  and the time is measured and reported for information only, in every mode.
 
 Input-agnostic: the pool serves whichever control requested the deal and has no control of its own.
 
-Deterministic: a pooled deal is the seeded deal of its selected seed, carrying the verdict, attempts
-and grade that selection reports for its candidate seeds, so its deal code reproduces it without the
-solver.
+Deterministic: a pooled deal is the seeded deal of its seed, carrying the verdict, attempts and grade that
+selection reports for it, so its deal code reproduces it without the solver.
 
 *(KS-DEAL-12 (new), KS-PERF-02, KS-DEAL-03, KS-DEAL-11 (new))*
 
 #### Scenario: A matching request is served at once
 
-- **WHEN** the pool holds a deal pre-verified for Draw 3 with target Medium, and a Draw 3 deal is
-  requested with "Winnable deals only" on and target Medium
-- **THEN** that deal is delivered within 100 ms with its recorded verdict `win`, attempts and grade,
-  no progress is reported and the dealing overlay never appears
+- **WHEN** the pool holds a proven Draw 3 deal graded Medium, and a Draw 3 deal is requested with "Winnable
+  deals only" on and target Medium
+- **THEN** that deal is delivered within 100 ms with its verdict `win` and grade, no progress is reported
+  and the dealing overlay never appears
+
+#### Scenario: Any takes the oldest deal of any grade
+
+- **WHEN** the pool holds a Hard deal and, after it, an Easy deal for Draw 1, and a Draw 1 deal is requested
+  with the target Any
+- **THEN** the Hard deal is delivered
 
 #### Scenario: Oldest first, each deal once
 
-- **WHEN** two deals are pooled for the same choice and two matching deals are requested one after
+- **WHEN** two deals are pooled for the same mode and grade and two matching deals are requested one after
   the other
 - **THEN** the first request receives the older pooled deal and the second the newer one, and neither
   is delivered again
 
 #### Scenario: A request the pool cannot serve is searched as usual
 
-- **WHEN** no deal is pooled for the requested mode and target difficulty
+- **WHEN** no deal of the requested grade is pooled for the requested mode
 - **THEN** the deal is searched on request, with progress and overlay timing as "Dealing progress and
-  overlay timing" defines
+  overlay timing" defines, and no deal of another grade is served from the pool
+
+#### Scenario: The spares of a search are kept
+
+- **WHEN** a search for a Hard deal meets a proven Easy deal and a proven Medium deal before it finds a Hard one,
+  and the pool has room for both grades
+- **THEN** the Easy and the Medium deal are pooled, and a later request for either is served at once
+
+#### Scenario: A full bucket drops a spare
+
+- **WHEN** 2 Easy deals are pooled for a mode and a search meets another proven Easy deal
+- **THEN** it is not pooled
 
 #### Scenario: The pool refills after use
 
 - **WHEN** a pooled deal is used while the page stays visible and no deal is pending
-- **THEN** pre-verification for the current choice resumes until 2 deals are pooled for it again
+- **THEN** pre-verification for the current mode resumes until each grade holds 2 deals again
 
 #### Scenario: A hidden page pauses pre-verification
 
@@ -89,12 +104,10 @@ solver.
 - **WHEN** deals are pooled and the app is reloaded
 - **THEN** the pool is empty and the stored record holds nothing about it
 
-#### Scenario: An unproven pre-verification is pooled as it is
+#### Scenario: An unproven pre-verification is not pooled
 
-- **WHEN** a pre-verification for Vegas with target Any proves none of its candidates winnable
-- **THEN** its last candidate is pooled with verdict `random`, the length of the list as its attempts
-  and no grade, and the next pre-verification starts only while fewer than 2 deals are pooled for that
-  choice
+- **WHEN** a pre-verification for Vegas proves none of its candidates winnable
+- **THEN** nothing is pooled from it, and the next pre-verification starts
 
 #### Scenario: No pool for Daily or with the switch off
 
@@ -103,36 +116,69 @@ solver.
 - **THEN** the deal is made as its own requirement defines, and no pooled deal is used or filled for
   it
 
+### Requirement: A small in-memory verdict cache
+
+The service SHALL remember the verdicts, and the grades of the wins, of the seeds its searches have really
+searched, so that a seed is not searched or graded twice at the same budget and mode. It SHALL:
+- keep at most 256 entries, keyed by mode, budget and seed, and drop the least recently used first;
+- send the entries it holds for a request's seeds to the solver as known verdicts (see solver/deal-selection
+  "Winnable selection by reject sampling"), so a search that is cancelled and restarted, and the Daily
+  candidate list, do not repeat work;
+- never use an entry recorded at another mode or budget;
+- live in memory only: nothing about it is stored.
+
+Because search and grading are deterministic, the cache never changes which deal is selected, only how
+long the selection takes.
+
+Input-agnostic: no interaction.
+
+Deterministic: a request with the cache selects exactly what it selects without it.
+
+*(KS-DEAL-03, KS-DEAL-05)*
+
+#### Scenario: A repeated Daily request is answered from the cache
+
+- **WHEN** the Daily deal is requested a second time in a session with the same candidate list
+- **THEN** no candidate is searched or graded again, and the same deal is delivered
+
+#### Scenario: A restarted search keeps its finished work
+
+- **WHEN** a search is cancelled after some of its seeds were searched, and the same seeds are requested again
+- **THEN** the seeds already searched are sent as known verdicts and are not searched again
+
+#### Scenario: The least recently used entry goes first
+
+- **WHEN** the cache holds 256 entries and a new outcome is recorded
+- **THEN** the entry used least recently is dropped
+
+#### Scenario: Another mode or budget misses
+
+- **WHEN** a seed's verdict was recorded at one budget or mode and is requested at another
+- **THEN** it is not sent as known
+
 ### Requirement: The pool follows the player's choice
 
-When the selected mode, the "Winnable deals only" switch or the selected difficulty changes, the next
-pre-verification to start SHALL be for the new choice. Deals already pooled for other choices SHALL
-be kept until the app is reloaded, and SHALL serve a matching request if the player returns to that
-choice. While the new choice is the Daily deal or has "Winnable deals only" off, no new
-pre-verification SHALL start.
+When the selected mode or the "Winnable deals only" switch changes, the next pre-verification to start
+SHALL be for the new mode. Deals already pooled for other modes SHALL be kept until the app is reloaded, and
+SHALL serve a matching request if the player returns to that mode. While the new choice is the Daily deal or
+has "Winnable deals only" off, no new pre-verification SHALL start.
 
 Input-agnostic: the choice is changed through Home's controls (see `ui/home-screen`); the pool reacts
 to the changed settings, whichever input path changed them.
 
-Deterministic: which choice is filled next depends only on the current settings.
+Deterministic: which mode is filled next depends only on the current settings.
 
 *(KS-DEAL-12 (new), KS-DEAL-11 (new))*
 
 #### Scenario: Changing the mode moves the filling
 
-- **WHEN** the pool is filling for Draw 1 with target Any and the player selects Vegas
-- **THEN** the next pre-verification to start is for Vegas with target Any, and the Draw 1 deals
-  already pooled are kept
+- **WHEN** the pool is filling for Draw 1 and the player selects Vegas
+- **THEN** the next pre-verification to start is for Vegas, and the Draw 1 deals already pooled are kept
 
-#### Scenario: Changing the difficulty moves the filling
+#### Scenario: Returning to a kept mode
 
-- **WHEN** the pool is filling for Draw 3 with target Any and the difficulty changes to Hard
-- **THEN** the next pre-verification to start is for Draw 3 with target Hard
-
-#### Scenario: Returning to a kept choice
-
-- **WHEN** Draw 1 deals were pooled for target Any, the player switched to Vegas, then back to Draw 1
-  with target Any, and requests a deal
+- **WHEN** Draw 1 deals were pooled, the player switched to Vegas, then back to Draw 1, and requests a deal
+  of a pooled grade
 - **THEN** the deal is served at once from the kept Draw 1 deals
 
 #### Scenario: Daily or the switch off stops the filling
@@ -156,14 +202,16 @@ other modes' deals SHALL be made as follows:
 | Draw 1, Draw 3 or Vegas, "Winnable deals only" off | one fresh seed | none | `random`, 1 attempt, no grade |
 
 The Draw 3 and Vegas budgets are set by the per-mode deal benchmark; they live in this table, and
-changing either is a change to this requirement.
+changing either is a change to this requirement. A search request grades at most 4 proven candidates, and
+carries the verdicts the service's cache holds for its seeds (see "A small in-memory verdict cache"). The
+spares of the search are offered to the pool (see "Instant deals from a pre-verified pool").
 
 With the switch on, the verdict, attempts and grade SHALL be those that winnable selection (see
 `solver/deal-selection`) reports for the target difficulty, as `solver/deal-grading` "A requested
 grade, or the closest one found" defines: a deal proven winnable is dealt with verdict `win` and its
 own grade, which is the closest grade found when the target is not; when no candidate is proven
 winnable, the last candidate is dealt with verdict `random` and no grade. A deal served from the pool
-carries the provenance recorded when it was pre-verified (see "Instant deals from a pre-verified
+carries the provenance recorded when it was found (see "Instant deals from a pre-verified
 pool").
 
 Fresh seeds SHALL come from the cryptographic entropy source. The dealt position SHALL be the

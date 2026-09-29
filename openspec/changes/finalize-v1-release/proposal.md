@@ -105,22 +105,26 @@ What is wrong or missing today:
     the heuristic fallback kept.
 - **Difficulty (new).**
   - With "Winnable deals only" on, the player chooses **Any, Easy, Medium or Hard** on Home.
-  - A proven deal is graded by replaying it with a seeded, human-like player that sees only face-up
-    cards:
-    - many winning replays is Easy;
-    - a few is Medium;
-    - almost none is Hard.
-  - Grading is deterministic and versioned ("grading v1"), and its thresholds are calibrated per mode.
+  - A proven deal is graded by how forgiving it is: a seeded, human-like player that sees only face-up cards
+    walks the deal, and at checkpoints the solver says whether the position is still provably winnable.
+    - a deal that stays winnable through much plausible play is Easy;
+    - one that stays winnable for a while is Medium;
+    - one that a few plausible moves ruin is Hard.
+  - Grading is deterministic and versioned ("grading v1"), and its thresholds are calibrated per mode so
+    that every grade holds at least 15% of the proven deals.
   - When the chosen grade isn't found within the attempt limit, the closest proven grade is dealt and
     labelled honestly.
   - The deal chip and the Win sheet show the grade. The Daily deal shows its grade, but it cannot be
     chosen.
   - Deals from a deal code carry no grade.
 - **Instant deals (Phase 11).**
-  - While the app is idle, a pool of pre-verified deals for the selected mode and difficulty is filled on
-    a separate, low-priority background thread.
+  - While the app is idle, a pool of proven, graded deals for the selected mode is filled on a separate,
+    low-priority background thread. It also keeps the other proven deals that a search for a grade meets on the
+    way (its spares).
   - A New deal served from the pool appears at once, with no overlay.
-  - The pool lives in memory only. A player's deal or hint never waits behind it.
+  - A small in-memory cache remembers the verdicts of seeds already searched, so a search that is cancelled
+    and restarted, or the Daily list, is not searched twice.
+  - The pool and the cache live in memory only. A player's deal or hint never waits behind the pool.
 - **Storage record v2.**
   - Adds the `difficulty` preference (default Any) and the game's grade.
   - A v1 record is decoded whole and upgraded without loss. Nothing readable is dropped or copied to
@@ -158,16 +162,16 @@ What is wrong or missing today:
     when the author asks.
 
 **Performance targets.**
-- Draw 1 keeps its target: a winnable deal in 300 ms at the median and 1.5 s at the 95th percentile on a
-  mid-range phone.
+- A really winnable deal matters more than a fast one. A deal searched on request shows the dealing overlay for
+  as long as the search takes, in every mode, and its time is reported for information only. The earlier Draw 1
+  target (300 ms median, 1.5 s at the 95th percentile) is dropped.
 - A deal served from a warm pool appears within 100 ms in every mode.
-- Draw 3 and Vegas deals searched on request are reported for information only.
 
 **Not in this change:**
 - a one-card Vegas mode;
 - cumulative Vegas scoring;
 - statistics per difficulty;
-- a persisted deal pool;
+- a persisted deal pool or verdict cache;
 - pixel-diff screenshot gates;
 - any change to the Draw 1 search or the Daily v1 selection.
 
@@ -180,8 +184,9 @@ What is wrong or missing today:
   - winning lines with explicit draws;
   - agreement with exhaustive search on small positions;
   - unsupported and won positions.
-- `solver/deal-grading`: deterministic grading of a proven deal by seeded playouts that see only
-  face-up cards, with the per-mode "grading v1" thresholds and choosing the requested or closest grade.
+- `solver/deal-grading`: deterministic grading of a proven deal by how long seeded playouts that see only
+  face-up cards keep it provably winnable, with the per-mode "grading v1" thresholds and choosing the requested
+  or closest grade.
 
 ### Modified Capabilities
 
@@ -199,7 +204,8 @@ What is wrong or missing today:
   - Daily v1 unchanged but graded;
   - fallbacks in every mode;
   - hints in every mode;
-  - the pool, which a newer request never cancels.
+  - the graded-spare pool, which a newer request never cancels;
+  - the in-memory verdict cache.
 - `features/preferences`: the Difficulty setting.
 - `features/persistence`: record v2, version-aware decoding, and the lossless v1 upgrade.
 - `features/game-session`: a start carries the difficulty; restart keeps the grade; a deal-code deal
@@ -244,7 +250,7 @@ What is wrong or missing today:
   - `winnable.ts`, `hint.ts` and `protocol.ts` carry the mode and grade.
   - `solver.ts` (Draw 1) is unchanged.
 - **`src/features`:**
-  - `deal/` gains `budgets.ts` and `dealPool.ts`; `dealService.ts` serves every mode, the grade and the
+  - `deal/` gains `budgets.ts`, `dealPool.ts` and `verdictCache.ts`; `dealService.ts` serves every mode, the grade and the
     pool; `solverClient.ts` is also used for a second, pool-only instance;
   - `persistence/` gains `guards.ts` and record v2 with the v1 upgrade;
   - `preferences/` gains `difficulty`;

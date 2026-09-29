@@ -4,20 +4,24 @@
 
 ### Requirement: Winnable selection by reject sampling
 
-Given an ordered list of candidate seeds, a mode (Draw 1, Draw 3, Vegas or Daily), a node budget and a
-target grade (Any, Easy, Medium or Hard), the system SHALL:
+Given an ordered list of candidate seeds, a mode (Draw 1, Draw 3, Vegas or Daily), a node budget, a target
+grade (Any, Easy, Medium or Hard), a grade limit and optionally the verdicts already known for some of the seeds,
+the system SHALL:
 - deal each seed in the requested mode, in order;
 - search each deal with that budget, using the search that fits the mode:
   - Draw 1 and Daily, which draw one card with no pass limit: the Draw 1 search (see
     solver/draw1-solver);
   - Draw 3 and Vegas: the ordered-talon search (see solver/draw3-solver);
-- select a deal as deal-grading "A requested grade, or the closest one found" states. With the target
-  Any, that is the first deal whose verdict is `win`.
+- grade each deal whose verdict is `win`, and select a deal as deal-grading "A requested grade, or the
+  closest one found" states. With the target Any, that is the first deal whose verdict is `win`;
+- skip the search and the grading of a seed whose verdict is known, and take that verdict, and the grade of a
+  known `win`, as they are.
 
-The result SHALL report the selected seed, the verdict `win`, the number of attempts and the selected
-deal's grade. With the target Any, or when a deal of the target grade is found, the attempts are that
-seed's position in the list, counting from 1. When no proven deal has the target grade, the closest
-proven deal is reported with its own grade and the length of the list as the attempts.
+The result SHALL report the selected seed, the verdict `win`, the number of attempts, the selected
+deal's grade and the spares (the other graded candidates). With the target Any, or when a deal of the target
+grade is found, the attempts are that seed's position in the list, counting from 1. When no graded deal has
+the target grade, the closest graded deal is reported with its own grade and the number of candidates tried as
+the attempts.
 
 When no candidate is proven winnable, the system SHALL select the last seed, report the verdict
 `random`, report no grade, and report the length of the list as the attempts. Both `loss` and
@@ -25,10 +29,13 @@ When no candidate is proven winnable, the system SHALL select the last seed, rep
 number counting from 1; no attempt is reported that is not then tried. An empty seed list is a
 programming error and SHALL be refused rather than answered.
 
+Each seed that was really searched (not a known one) SHALL be reported, in order, with its verdict and, for a
+`win`, its grade, once it is settled.
+
 Input-agnostic: no interaction.
 
-Deterministic: the same seed list, mode, budget and target grade always select the same seed with the
-same verdict, attempts and grade.
+Deterministic: the same seed list, mode, budget, target grade and grade limit always select the same seed
+with the same verdict, attempts, grade and spares. Known verdicts save work and never change the result.
 
 *(KS-DEAL-03, KS-DEAL-05, KS-DEAL-11 (new))*
 
@@ -56,6 +63,22 @@ same verdict, attempts and grade.
 - **WHEN** the Draw 1 selections pinned before grading existed, the Daily golden dates among them, are
   run again with the target Any
 - **THEN** each selects its pinned seed with its pinned verdict and attempts
+
+#### Scenario: Known verdicts are trusted and save the work
+
+- **WHEN** selection is given the verdicts, and the grades of the wins, that an earlier run of the same list
+  reported
+- **THEN** it selects exactly what that run selected, reports no seed as searched, and grades nothing
+
+#### Scenario: A known verdict that is not a win still counts as an attempt
+
+- **WHEN** the first seed's verdict is known to be `unknown` and the second is winnable
+- **THEN** the second is selected with attempts 2, and attempts 1 and 2 are reported
+
+#### Scenario: Each searched seed is reported
+
+- **WHEN** selection searches a `loss`, an `unknown` and a `win` in turn
+- **THEN** three outcomes are reported, in that order, the last with its grade
 
 #### Scenario: An empty seed list is refused
 
@@ -118,10 +141,10 @@ Winnable selection and the solver hint SHALL be reachable through a message inte
 background thread, never on the thread that handles input.
 
 Every request SHALL carry an identifier, and every reply SHALL echo it.
-- A selection request SHALL carry the seeds, the mode, the budget and the target grade. It SHALL
-  produce one progress message as each attempt starts, carrying that attempt's number, before its
-  final reply. The final reply SHALL carry the selected seed, verdict, attempts and grade, with no
-  grade for `random`.
+- A selection request SHALL carry the seeds, the mode, the budget, the target grade and the grade limit,
+  and MAY carry known verdicts. It SHALL produce one progress message as each attempt starts, carrying that
+  attempt's number, and one outcome message for each seed it really searched, before its final reply. The final
+  reply SHALL carry the selected seed, verdict, attempts, grade and spares, with no grade for `random`.
 - A hint request SHALL carry the position and the budget. The position's own mode selects the search.
 
 The background thread SHALL keep no game state between requests. Each request carries everything it
@@ -139,11 +162,10 @@ Deterministic: the same request always produces the same progress messages and r
 
 #### Scenario: A selection request round-trips
 
-- **WHEN** a selection request with an identifier, a mode and a target grade is posted to the
+- **WHEN** a selection request with an identifier, a mode, a target grade and a grade limit is posted to the
   background thread
-- **THEN** one progress message per attempt tried arrives in order, the last carrying the reported
-  attempts, followed by a reply with the same identifier and the selected seed, verdict, attempts and
-  grade
+- **THEN** one progress message per attempt tried arrives in order, each followed by the outcome of the seed it
+  searched, then a reply with the same identifier and the selected seed, verdict, attempts, grade and spares
 
 #### Scenario: A hint request round-trips
 

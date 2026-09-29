@@ -81,7 +81,8 @@ checked against the code.
 
 - Winnable, graded deals in Draw 1, Draw 3 and Vegas.
   - Every Draw 1 verdict, every Daily deal and every pinned fixture stays byte-identical.
-- A deal served from a warm pool appears at once. A player's deal or hint never waits for pool work.
+- A deal that is really winnable matters more than a fast one: a cold deal may take seconds behind the dealing
+  overlay. A deal served from a warm pool appears at once. A player's deal or hint never waits for pool work.
 - Grading and the new search are deterministic by seed (constitution 2). Every source of randomness is
   the seeded PRNG.
 - Every KS id maps to a test or a recorded manual check, and a guard keeps that true.
@@ -94,7 +95,7 @@ checked against the code.
 **Non-Goals:**
 
 - Any change to the Draw 1 search, the Daily v1 selection, the scoring rules or the deal-code format.
-- A pool that survives a reload, a pool inside the worker, or a pool for Daily.
+- A pool or a verdict cache that survives a reload, a pool inside the worker, or a pool for Daily.
 - Statistics per difficulty, a one-card Vegas mode, or cumulative Vegas.
 - Pixel-diff screenshot gates, or a new screenshot or icon library.
 - Refactoring `useBoardPointer`'s large effect. The previous change looked at it and left it alone, and
@@ -234,96 +235,113 @@ checked against the code.
 - **Why.** Some published solvers mis-solve benchmark deals, so any solver must be validated against known
   results. The engine is the oracle, so the search cannot drift from the rules the player plays by.
 
-### D6 — Grading v1: seeded, visible-information playouts
+### D6 — Grading v1: solver-checked survival
 
-- **Candidates.** `src/domain/hint.ts` gains `hintCandidates(state)`: every productive move, ordered by
-  hint priority, then canonical source order, then target order. `findMove(state)` is its first entry, and
-  a property test pins that.
+The player's priority is a game they can really win, so a deal is graded by how forgiving it is: how long plausible
+human play keeps it provably winnable. An earlier design graded by counting winning playouts. Task 7.3 of that design
+found that about 82% of proven Draw 3 deals won none of 16 playouts, so no setting gave every grade 15%; the playout
+mechanism stays, the signal changed.
+
+- **Candidates.** `src/domain/hint.ts` has `hintCandidates(state)`: every productive move, ordered by hint priority, then
+  canonical source order, then target order. `findMove(state)` is its first entry.
   - Candidates use only visible cards: face-up runs, the waste top and the foundation heights.
   - A test checks that permuting the hidden cards among themselves never changes the candidates.
-- **Playout player** (`src/solver/grading.ts`). Its parameters are `GRADING_V1`, and the
-  `solver/deal-grading` delta holds their values:
-
-  | Parameter | Initial value | Tuned by task 7.3 |
-  | --- | --- | --- |
-  | Playouts per deal, N | 16 | yes, down to 8 if cost requires |
-  | Take probability | 0.6 | yes |
-  | Unforced-draw probability | 0.05 | yes |
-  | Step cap | 1,000 commands | no |
-  | Thresholds per mode | Easy *w* ≥ 10, Medium 3–9, Hard ≤ 2 | yes |
-
-  - At each step, when a candidate exists and a draw or recycle is also legal, it first draws with the
-    unforced-draw probability (one random value), as people do.
-  - Otherwise it walks the candidates from the first, taking each with the take probability (one random
-    value per candidate visited); the last candidate is taken when reached. This geometric walk favours
-    higher priorities with a single parameter.
+- **Playout player** (`src/solver/grading.ts`, task 7.2). It walks a deal as a person who sees face-up cards only would.
+  - At each step, when a candidate exists and a draw or recycle is also legal, it first draws with the unforced-draw
+    probability (one random value).
+  - Otherwise it walks the candidates from the first, taking each with the take probability (one random value per
+    candidate visited); the last candidate is taken when reached, with no value.
   - With no candidate it draws, and recycles when the pass limit allows.
-  - It stops at a win; when no move, draw or recycle is left; at a stall, detected when the talon
-    arrangement (stock and waste ids) repeats since the last board move; or at the step cap.
+  - It stops at a win; when no move, draw or recycle is left; at a stall (the talon arrangement, stock and waste ids,
+    repeats since the last board move); or at the step cap.
   - Randomness is `mulberry32(playoutSeed(dealSeed, i))` and nothing else, with
-    `playoutSeed(s, i) = fmix32((s + Math.imul(i + 1, 0x9e3779b9)) >>> 0)` and `fmix32` the MurmurHash3
-    finalizer (`h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
-    h ^= h >>> 16; return h >>> 0`). Both live in `grading.ts`, so the domain's `crypto` exception and
-    `prng.ts` stay untouched.
-- **Grade.**
-  - N playouts give *w* wins. The per-mode table `GRADING_V1.thresholds[mode]` maps *w* to Easy, Medium
-    or Hard.
-  - Daily is graded with the Draw 1 table.
-- **Calibration** (task 7.3).
-  - `tests/bench/grading.bench.ts` grades the verified deals of seeds 1–N per mode and reports each
-    grade's share and the cost.
-  - Only the parameters marked "yes" above may change, so that every grade holds at least 15% of
-    verified deals in each mode. Task 7.3 writes the final values back into this table and into the
-    `solver/deal-grading` parameters table.
-  - The result is pinned in `tests/fixtures/gradingGolden.ts` and, by task 7.4, in the Daily golden
-    dates.
-  - After that pin, changing any parameter, the policy or the table creates a new grading version.
-- **Where it runs.** Grading runs in the worker, only after a `win`, and costs at most N × 1,000 engine
-  steps (typically a few hundred per playout).
-- **Latency guard.** Grading adds cost to every winnable deal, Draw 1 with Any included. Task 7.4 re-runs
-  the Draw 1 Any selection benchmark with grading and stops to surface the result if its desktop median
-  or p95 rises by more than 20% over the task 6.5 baseline (KS-PERF-02).
+    `playoutSeed(s, i) = fmix32((s + Math.imul(i + 1, 0x9e3779b9)) >>> 0)` and `fmix32` the MurmurHash3 finalizer. Both
+    live in `grading.ts`, so the domain's `crypto` exception and `prng.ts` stay untouched.
+- **Survival** (`survival`, task 7.4). For playout `i` of a proven-winnable deal:
+  - after every `checkpointEvery`-th command, the solver (`search`, `checkpointBudget` nodes) is asked whether that
+    position is still provably winnable;
+  - the playout stops at the first checkpoint the solver cannot prove (`loss` and `unknown` alike);
+  - its survival is the number of checkpoints proven, at most `maxCheckpoints`; a playout that wins, or reaches the
+    maximum, survives every checkpoint it had left.
+- **Grade.** The deal's score is the survival of M playouts summed, from 0 to M × `maxCheckpoints`. The per-mode table
+  `GRADING_V1.thresholds[mode]` maps the score to Easy (from `easyMin`), Hard (up to `hardMax`) or Medium. Daily is
+  graded with the Draw 1 row. The solver is reached through a `Judge` seam so tests can script it.
+- **Pinned values** (task 7.5): M = 8, take 0.6, unforced draw 0.05, step cap 1,000, a checkpoint every 10 commands, at
+  most 10 checkpoints, 3,000 nodes per checkpoint.
+
+  | Mode | Easy from | Hard up to | Easy / Medium / Hard share of the calibration sample |
+  | --- | --- | --- | --- |
+  | Draw 1 (and Daily) | 62 | 43 | 35 / 32 / 33% |
+  | Draw 3 | 30 | 12 | 32 / 32 / 37% |
+  | Vegas | 8 | 0 | 27 / 25 / 48% |
+
+- **Calibration** (task 7.5). `tests/bench/grading.bench.ts` grades the first 60 proven seeds per mode under four
+  parameter variants and reports the score histogram, the thresholds that split the sample most evenly and the cost. The
+  result is pinned in `tests/fixtures/gradingGolden.ts` (the sample's scores and golden deals that are regraded) and, by
+  task 7.5, in the Daily golden dates. The requirement is at least 15% per grade in every mode. After that pin, changing
+  any parameter, the playout rules or the table creates a new grading version.
+- **Cost.** One grading costs 0.2 s (Draw 1), 0.35 s (Draw 3) and 0.45 s (Vegas) on average on a desktop, at most
+  about 2 s, so a selection that grades several candidates takes seconds. That is accepted (D7); it runs in the worker,
+  only after a `win`.
 - **Alternatives rejected.**
+  - Counting winning playouts (the first design): the simple player rarely wins Draw 3 or Vegas, so nearly every deal
+    is Hard.
   - Counting distinct winning lines: infeasible, because easy deals have millions.
-  - Solver node count: it depends on move ordering, not on difficulty for a person.
-  - One greedy playout: that only wins about 13% of Draw 1 seeds (`tests/fixtures/deals.ts:69`), too
-    coarse to split into three grades.
+  - Solver node count alone: it depends on move ordering, not on difficulty for a person.
+  - One greedy playout: that only wins about 13% of Draw 1 seeds (`tests/fixtures/deals.ts:69`), too coarse.
 
-### D7 — Selection with a target grade and an honest fallback
+### D7 — Selection with a target grade, spares and known verdicts
 
-`findWinnable({ mode, seeds, budget, target })` works like this:
+`findWinnable(seeds, budget, mode, { selection, known, onAttempt, onOutcome })` works like this. `selection` is
+`{ target, gradeLimit }`, with `target` `any`, `easy`, `medium` or `hard`.
 
 | Case | What it selects | Attempts reported |
 | --- | --- | --- |
-| `target = 'any'` | today's algorithm exactly: the first `win`, then graded | the position of that seed |
+| `target = 'any'` | today's algorithm: the first `win`, then graded | the position of that seed |
 | An exact match | the first candidate that is `win` with the requested grade | its position |
-| No exact match | the proven candidate whose grade is closest (Easy < Medium < Hard; on a tie, the earlier seed), labelled with its actual grade | the list length |
+| No exact match | the proven candidate whose grade is closest (Easy < Medium < Hard; on a tie, the earlier seed), labelled with its actual grade | the candidates tried |
 | Nothing proven | the last seed as `random`, with no grade | the list length (KS-DEAL-05) |
 
-- **Daily** always uses `any`, with its pinned v1 plan, then grading. So a Daily deal's seed and attempts
-  never change.
-- **Cost.** Grading runs only on `win` candidates. The walk stops at the first exact match, so a proven
-  deal of another grade costs one grading pass.
+- **Grade limit.** Grading is the costly step, so a request grades at most `gradeLimit` proven candidates
+  (`GRADE_LIMIT`, 4) before it settles for the closest. The bound is a count, not a clock, so the same request always
+  selects the same deal. Together with the 40 candidates it bounds the work of one request.
+- **Spares.** The result carries every other proven candidate it graded, as `{ seed, grade }`. The deal service pools
+  them (D8), so one search for a Hard deal that meets Easy and Medium deals along the way pays for later requests.
+- **Known verdicts.** A request may carry `known` outcomes (`win` with a grade, `loss`, `unknown`), valid only at the
+  request's budget. Those seeds are neither searched nor graded again but still count as attempts. Because search and
+  grading are deterministic, `known` never changes the result, only the work. The worker posts an `outcome` message for
+  each seed it really searched, so the service can remember them (D8).
+- **Daily** always uses `any`, with its pinned v1 plan, then grading. So a Daily deal's seed and attempts never change.
+- **No latency target.** Latency is reported for information. A cold deal shows the dealing overlay for as long as the
+  search takes, because a deal that is really winnable is worth several seconds; the pool serves a warm deal at once.
+  The earlier 300 ms and 1.5 s Draw 1 target and the 20% guard on grading were dropped for that reason.
 
-### D8 — The instant-deal pool lives on the main thread, with its own worker
+### D8 — The deal pool and the verdict cache live on the main thread, with their own worker
 
-- **Where it lives.** `src/features/deal/dealPool.ts` is created inside the deal service.
+- **Where it lives.** `src/features/deal/dealPool.ts` and `verdictCache.ts` are created inside the deal service.
   - The deal service builds a second `SolverClient` with the same `createSolverClient(createWorker)` it
     uses for the player, and passes it to `createDealPool`. That means the same bundled worker chunk,
     no change to `validate-artifact`, and a stub worker in the pool's own tests.
-  - It keeps a FIFO of pre-verified outcomes, at most 2, keyed by `mode:target`.
-  - It fills one deal at a time, only for the current choice, with an ordinary `findWinnable` request:
-    fresh crypto seeds, the same budgets and grading as a requested deal. So a pooled deal's provenance
-    means exactly what an on-demand one means.
-  - It keeps whatever the request returns. A `random` fallback is pooled with its honest label, as an
-    on-demand request would have dealt it, and there is no retry loop.
+  - Nothing is stored: both are memory only.
+- **The pool holds proven, graded deals** per mode and grade, at most 2 each, oldest first.
+  - It is filled by the low-priority worker for the current mode only, one request at a time. Each request asks
+    `findWinnable` for the grade whose bucket holds fewest deals, with fresh crypto seeds, the mode's budget and the
+    grade limit, and the pool keeps the selected deal and its spares that fit.
+  - The spares of a player's live search are deposited too.
+  - A `random` fallback is never pooled: the pool exists to hold deals that are really winnable.
+  - A pooled deal keeps its own grade, and its attempts are those of the search that found it (1 for a spare).
+- **Serving.** `deal()` takes from the pool first when the switch is on and the mode is not Daily. A request for a
+  grade takes the oldest deal of that grade; `any` takes the oldest of any grade. A grade the pool does not hold is
+  searched live, never served from another grade. A pooled deal is delivered at once, with no progress and no overlay,
+  and a refill is scheduled.
+- **The verdict cache** is a least-recently-used map of 256 entries from mode, budget and seed to the worker's
+  outcome. The service sends the entries it holds for a request's seeds as `known`, and records every `outcome` the
+  worker reports. It saves the work of a search that was cancelled and restarted, and of the Daily list, which is the
+  same all day.
 - **Control.**
-  - `dealService.prefetch(choice)` sets the current choice (mode, switch, target) and starts filling it;
-    a choice that is Daily or has the switch off stops filling. `pause()` stops it after the request in
-    flight.
+  - `dealService.prefetch(choice)` sets the current choice (mode, switch) and starts filling; a choice that is Daily
+    or has the switch off stops filling. `pause()` stops it after the request in flight.
   - Filling also pauses by itself while a player's deal is pending.
-  - `deal()` takes from the pool first when the switch is on and the mode is not Daily. A pooled deal is
-    delivered at once, with no progress and no overlay, and a refill is scheduled.
   - `deal()` cancels only the player client. The pool client is never cancelled by a deal or a hint.
   - If the pool worker fails, only the fill in flight is dropped. Deals already pooled stay available,
     no notice is shown, and the next fill starts a new worker. The player path is unaffected.
@@ -332,15 +350,14 @@ checked against the code.
   - The default scheduler uses `requestIdleCallback(cb, { timeout: 2000 })` where it exists and
     `setTimeout(cb, 2000)` otherwise, because WebKit and Safari have not reliably shipped
     `requestIdleCallback`, and three of the seven e2e projects are WebKit.
-  - It calls `prefetch` whenever `selectedMode`, `winnableOnly` or `difficulty` change, or the page
-    becomes visible.
+  - It calls `prefetch` whenever `selectedMode` or `winnableOnly` change, or the page becomes visible.
   - It calls `pause` when the page is hidden.
   - `ThunkExtra` keeps its shape; `DealService` gains `prefetch` and `pause`. Only the controller calls
     them; the thunks keep using `deal`, `hint` and `dispose`. Splitting the interface for two methods is
     not worth a second port.
   - Once the controller runs, the app has two solver workers. The e2e specs that wait for "the" worker
     (`dealLatency.spec.ts`, `pwa.spec.ts`) must identify the player's worker by creation order and
-    request type; task 9.5 makes that change.
+    request type; task 9.6 makes that change.
 - **Why not in the worker, as the Phase 11 text says.** The spec requires a stateless worker. Also,
   `cancel()` terminates a busy worker, so a pool held there would be killed by every player deal, and
   hints would queue behind refills.
@@ -632,8 +649,9 @@ test:
 - **Win sheet:** a graded game shows "Easy deal", "Medium deal" or "Hard deal". An ungraded one shows
   nothing.
 - **How to play:** one passage on "Winnable deals only" and the three grades.
-- **Pool:** at most 2 deals per key; filling starts after the first idle period (about 2 s after load at
-  most). Deals pooled for other keys are kept until reload.
+- **Pool:** at most 2 deals per mode and grade; filling starts after the first idle period (about 2 s after load at
+  most). Deals pooled for other modes are kept until reload. The verdict cache holds 256 entries.
+- **Grade limit:** a request grades at most 4 proven candidates (`GRADE_LIMIT`).
 - **Daily:** ignores Difficulty and shows its grade.
 - **Statistics:** remain per mode, not per difficulty.
 - **Budgets:** Draw 3 and Vegas start at 20,000 nodes and the 40-attempt cap. Task 6.5 may change those
@@ -648,17 +666,17 @@ test:
   node more expensive than in Draw 1, so a cold Draw 3 deal might take seconds. → Mitigations:
   - the pool makes warm deals instant;
   - the overlay covers cold deals;
-  - the budgets come from the benchmark;
-  - task 6.5 stops and surfaces the result if cold Draw 3 or Vegas deals miss 1 s at the median or 3 s at
-    the 95th percentile on the desktop benchmark.
+  - the budgets come from the benchmark, and a sweep (task 7.3) shows a larger budget proves only a few more deals
+    per hundred seeds at twice the time per proven deal.
 
-  Cold Draw 3 and Vegas numbers are informational (KS-PERF-02 is modified).
-- **Grades may collapse into Hard in Draw 3 and Vegas**, where human-like play rarely wins. → Mitigations:
-  per-mode tables, the policy weights, and a per-mode N. Task 7.3 stops and surfaces the result if any grade
-  holds under about 15% of verified deals after tuning.
-- **Grading adds cost to every verified deal, Daily included.** → It runs only on `win` candidates. The
-  benchmark measures it, N can drop to 8, and task 7.4 stops if Draw 1 Any latency rises by more than 20%
-  (D6).
+  Cold deal numbers are informational in every mode (KS-PERF-02 is modified, D7).
+- **Grades could collapse into one in Draw 3 and Vegas**, where the simple playout player rarely wins. → Grading is
+  solver-checked survival (D6), which spreads deals in every mode: on the calibration sample each grade holds at least
+  25%. The tables are per mode, and grading v1 is pinned by golden deals, so a later change is a new version.
+- **Grading is slow, and every proven deal is graded.** One grading takes about 0.2 to 0.45 s on a desktop and a
+  request may grade `GRADE_LIMIT` (4) candidates, so a cold Vegas deal takes several seconds, more on a phone. →
+  Accepted (D7): the overlay covers it, the pool and the spares make later deals instant, and the limit is a count so
+  the result stays deterministic. The desktop numbers are in `tests/README.md`; the phone check is manual.
 - **Traceability annotation touches many test files.** → It is split by area (11.4–11.6), each task a
   comments-only diff. The guard stays in report mode until 11.8.
 - **Full-game end-to-end runs are long.** The 117-command line already takes up to 180 s. → Pick the
@@ -669,7 +687,7 @@ test:
 - **The coverage gate may fail on today's code.** → Task 2.1 measures it first, and adds tests for the
   gaps rather than lowering the thresholds. If the gap is large, it stops and surfaces it.
 - **A second worker adds memory and battery use.** → It is lazy, starts after idle, pauses when the page
-  is hidden, stops at 2 deals per key, and fills only the current choice.
+  is hidden, stops at 2 deals per grade, and fills only the current mode.
 - **Deleting the mockup removes the old visual authority.** → The visual review comes first (D19). The
   self-contained requirements (D18) and the committed screenshots then carry the look.
 

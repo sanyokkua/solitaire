@@ -415,17 +415,26 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes.
 
 - [x] 6.5 Per-mode budgets from the benchmark
-    - **Implements:** DS "Deals per mode record their provenance" (the budget column); RF "Informational solver benchmark outside the validation gate" (verdicts and selection latency per mode; the grading report is 7.3's and the target-grade row is 7.4's).
+    - **Implements:** DS "Deals per mode record their provenance" (the budget column); RF "Informational solver benchmark outside the validation gate" (verdicts and selection latency per mode; the grading report is 7.5's and the target-grade row is 7.6's).
     - **Files:**
       - new `src/features/deal/budgets.ts`: `WINNABLE_BUDGET` for Draw 1 moves there unchanged from `dealService.ts:18-22`, alongside `MAX_ATTEMPTS`, `HINT_BUDGET` and the Draw 3 and Vegas budgets;
       - `tests/bench/winnable.bench.ts` (per mode: verdict distribution, median and p95 per selection);
-      - `tests/README.md` (the recorded results with date, machine and Node version; the Draw 1 figures are the baseline for 7.4's latency guard);
+      - `tests/README.md` (the recorded results with date, machine and Node version; the Draw 1 figures were the baseline for a latency guard that the grading revision dropped);
       - `specs/features/deal-service/spec.md` of this change, if the benchmark moves the Draw 3 or Vegas value away from 20,000;
       - `src/features/README.md`.
     - **Stop condition:** if cold Draw 3 or Vegas selection misses 1 s at the median or 3 s at p95 on the desktop benchmark at any budget that still proves most deals, stop and surface it (design Risks).
     - **Verify:** `rtk npm run bench` prints all three modes, and `rtk npx vitest run tests/unit/features/deal` passes.
 
 ## 7. Deal grading
+
+> **Revision after task 7.2.** Calibrating the first grading (the number of winning playouts out of 16) hit its stop
+> condition: about 82% of proven Draw 3 deals won none of the 16, so no setting reached 15% per grade. Grading v1 is
+> therefore solver-checked survival (D6): the playouts of 7.2 are kept as the generator of plausible play, and the
+> solver says how long each stays provably winnable. The player's priority is a really winnable deal, so seconds of
+> dealing are accepted and the 20% latency guard, and the Draw 1 300 ms target, are dropped (D7). Tasks 7.3 to 7.7
+> replace the old 7.3 and 7.4. Code for 7.1 to 7.7 is done; the pool (9.3), the verdict cache (9.4) and the service
+> wiring (9.1, 9.5) follow in section 9.
+
 
 - [x] 7.1 Hint candidates in priority order
     - **Implements:** AST "Hint candidates in priority order"; D6.
@@ -438,8 +447,8 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Verify:** `rtk npx vitest run tests/unit/domain` passes.
 
 - [x] 7.2 Seeded playouts and grading
-    - **Implements:** GRD "Seeded playouts that see only face-up cards" and "Grading v1 turns playout wins into a grade" (mechanism, with the parameters and table of the GRD parameters table); D6.
-    - **Files:** new `src/solver/grading.ts` (`GRADING_V1` holding the D6 parameters, `fmix32`, `playoutSeed`, `playout`, `gradeDeal`), `src/solver/README.md`.
+    - **Implements:** GRD "Seeded playouts that see only face-up cards"; D6. `playout`, `playoutSeed`, `fmix32`, `Grade`, `GRADES` and `GradeTarget` stay as built here; the win-count `gradeDeal`, its parameters and its table were replaced by 7.4.
+    - **Files:** new `src/solver/grading.ts` (`fmix32`, `playoutSeed`, `playout`, and the first `GRADING_V1` and `gradeDeal`), `src/solver/README.md`.
     - **Tests:** new `tests/unit/solver/grading.test.ts`:
       - `playoutSeed` matches pinned vectors for a few `(seed, index)` pairs;
       - with a scripted generator, the walk takes the first candidate below the take probability, moves on otherwise and always takes the last candidate it reaches, and an unforced draw happens only when a draw or recycle is legal;
@@ -452,36 +461,36 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - a Daily deal grades like its Draw 1 twin.
     - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/repo/solverPurity.test.ts` passes, and `rg "Math.random" src/solver src/domain` finds nothing.
 
-- [ ] 7.3 Calibrate and pin grading v1
-    - **Implements:** GRD "Grading v1 turns playout wins into a grade" ("Every grade is common enough", "Pinned grades do not drift").
-    - **Files:**
-      - new `tests/bench/grading.bench.ts` (per mode: grade shares over a pinned calibration sample of verified seeds, and grading cost);
-      - `src/solver/grading.ts`: only the parameters D6 marks as tunable (the take and unforced-draw probabilities, the table, and N down to 8 if cost requires it);
-      - new `tests/fixtures/gradingGolden.ts`;
-      - `specs/solver/deal-grading/spec.md` of this change (the parameters table and the thresholds) and `design.md` D6's table, whenever a value changes;
-      - `tests/README.md` (distribution and cost).
-    - **Tests:** new `tests/unit/solver/gradingGolden.test.ts` pins about 10 seeds per mode with their grade and win count. It also asserts each grade's share on the calibration sample, which is small enough to run in `test:unit`, is at least 15%.
-    - **Stop condition:** if no setting of the tunable parameters reaches 15% per grade in a mode, stop and surface it.
-    - **Verify:** `rtk npm run bench` shows the shares, and `rtk npx vitest run tests/unit/solver` passes.
+- [x] 7.3 Deal budgets for proven wins
+    - **Implements:** D2 budgets; the player's priority of really winnable deals.
+    - **Files:** new `tests/bench/budgets.bench.ts` (verdicts and time per search at three budgets per mode); `tests/README.md` (the sweep).
+    - **Result:** raising a budget buys a few more proven deals per hundred seeds (Draw 1 5,000 to 50,000 nodes: 70 to 78; Draw 3 20,000 to 100,000: 52 to 64; Vegas 17 to 28) while the time per proven deal doubles or worse. A selection tries up to 40 seeds, so a request finds no proven deal about once in thousands even in Vegas. The budgets in `src/features/deal/budgets.ts` stay.
+    - **Verify:** `rtk npm run bench` prints the sweep.
 
-- [ ] 7.4 Selection with a target grade
-    - **Implements:** GRD "A requested grade, or the closest one found"; SEL "Winnable selection by reject sampling" (grade) and "Background-thread message interface" (the target and grade fields); D7.
-    - **Files:**
-      - `src/solver/winnable.ts`, `src/solver/protocol.ts`, `src/features/deal/solverClient.ts` (the request's `target` and the reply's `grade`);
-      - `tests/fixtures/dailyGolden.ts` gains a grade column, leaving seeds and attempts untouched;
-      - `tests/bench/winnable.bench.ts`: Draw 1 with target Hard, and Draw 1 Any again now that grading runs;
-      - `tests/README.md` (the new figures);
-      - `src/solver/README.md`.
-    - **Tests:**
-      - `tests/unit/solver/winnable.test.ts`:
-        - `any` equals today's selection on `SOLVER_CORPUS` seeds;
-        - the exact-match position;
-        - the closest grade, with the earlier seed on a tie;
-        - nothing proven gives `random` with no grade and attempts equal to the list length, and grading never runs for it;
-      - `protocol.test.ts`, `solverClient.test.ts`;
-      - `tests/unit/features/deal/daily.test.ts` also checks the pinned grades.
-    - **Stop condition:** if Draw 1 Any selection's desktop median or p95, now with grading, is more than 20% above the 6.5 baseline in `tests/README.md`, stop and surface it (D6 latency guard, KS-PERF-02).
-    - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes, and `rtk npm run bench` prints the Draw 1 Hard and Any rows.
+- [x] 7.4 Solver-checked survival grading
+    - **Implements:** GRD "Seeded playouts that see only face-up cards" and "Grading v1 turns playout survival into a grade"; D6.
+    - **Files:** `src/solver/grading.ts` (`GRADING_V1` now holds M, the take and unforced-draw probabilities, the step cap, `checkpointEvery`, `maxCheckpoints`, `checkpointBudget` and the thresholds over the score; `playout` gains an `onStep` hook; new `survival` and the `Judge` seam; `gradeDeal` sums the survival of M playouts; `gradeOf` reads a score), `src/solver/README.md`.
+    - **Tests:** `tests/unit/solver/grading.test.ts`: `survival` counts the checkpoints a scripted judge proves and stops at the first it cannot, asks at the checkpoint budget after every `checkpointEvery`-th command, stops at `maxCheckpoints`, gives a winning playout every checkpoint it had left, scores a playout that ends early 0 and plays the playout of its own index; `gradeDeal` sums and is deterministic with the real solver; a Daily deal grades like its Draw 1 twin; `gradeOf` reads each row.
+    - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/repo/solverPurity.test.ts` passes.
+
+- [x] 7.5 Calibrate and pin grading v1
+    - **Implements:** GRD "Grading v1 turns playout survival into a grade" ("Every grade is common enough", "Pinned grades do not drift").
+    - **Files:** `tests/bench/grading.bench.ts` (score histograms of four parameter variants per mode, the best thresholds, the cost of a grading, and `GRADING_CALIBRATION=fixture`); `src/solver/grading.ts` (the thresholds); new `tests/fixtures/gradingGolden.ts` (60 calibration `[seed, score]` pairs and 6 golden deals per mode); `tests/fixtures/dailyGolden.ts` (a `grade` column); `tests/README.md`.
+    - **Result:** M = 8, take 0.6, unforced 0.05, a checkpoint every 10 commands, at most 10 checkpoints, 3,000 nodes each. Thresholds (Easy from, Hard up to): Draw 1 62 and 43, Draw 3 30 and 12, Vegas 8 and 0. Shares of Easy, Medium and Hard on the sample: 35 / 32 / 33% in Draw 1, 32 / 32 / 37% in Draw 3 and 27 / 25 / 48% in Vegas. One grading costs 0.2 s (Draw 1), 0.35 s (Draw 3) and 0.45 s (Vegas) on average, at most 1.8 s.
+    - **Tests:** `tests/unit/solver/gradingGolden.test.ts` regrades the golden deals and reads the calibration scores through the thresholds (each grade at least 15%); `tests/unit/features/deal/daily.test.ts` checks the Daily grades.
+    - **Verify:** `rtk npm run bench` shows the shares, `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes.
+
+- [x] 7.6 Selection with a target grade, and spares
+    - **Implements:** GRD "A requested grade, or the closest one found"; SEL "Winnable selection by reject sampling" and "Background-thread message interface" (target, grade limit, grade and spares); D7.
+    - **Files:** `src/solver/winnable.ts` (`findWinnable(seeds, budget, mode, options?)` with `selection`, the result's `grade` and `spares`), `src/solver/protocol.ts`, `src/features/deal/solverClient.ts` (`DealOptions`), `src/features/deal/dealService.ts` (options form of the call), `src/features/deal/budgets.ts` (`GRADE_LIMIT`), `tests/bench/winnable.bench.ts` (Draw 1 with target Hard), `tests/README.md`, `src/solver/README.md`.
+    - **Tests:** `tests/unit/solver/winnable.selection.test.ts` (scripted grades: Any, exact match with spares, closest, tie to the earlier, grade limit, nothing proven), `winnable.test.ts`, `protocol.test.ts` (the selection is forwarded), `solverClient.test.ts`.
+    - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes.
+
+- [x] 7.7 Known verdicts and outcome reports
+    - **Implements:** SEL "Winnable selection by reject sampling" (known verdicts) and "Background-thread message interface" (the outcome message); D7, D8.
+    - **Files:** `src/solver/winnable.ts` (`Outcome`, `known`, `onOutcome`), `src/solver/protocol.ts` (`known` on the request, an `outcome` message), `src/features/deal/solverClient.ts` (`known`, `onOutcome`), the READMEs.
+    - **Tests:** `winnable.selection.test.ts` (known wins and losses are trusted, cost nothing, change no result; each searched seed is reported once), `protocol.test.ts`, `worker.test.ts`, `solverClient.test.ts`.
+    - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes.
 
 ## 8. Deal provenance and the storage record v2
 
@@ -541,7 +550,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - GS "Starting a game installs a fresh deal" and "Settings never change a game in progress";
       - HO "Home actions" (Deal cards honours the switch and Difficulty).
     - **Files:**
-      - `src/features/deal/dealService.ts`: `DealRequest` gains `target`; Draw 1, Draw 3 and Vegas go to the worker when the switch is on; fallbacks for every mode; Daily is graded;
+      - `src/features/deal/dealService.ts`: `DealRequest` gains `target`, sent as the search's `selection: { target, gradeLimit: GRADE_LIMIT }` (`GRADE_LIMIT` is in `budgets.ts`, task 7.6); Draw 1, Draw 3 and Vegas go to the worker when the switch is on; fallbacks for every mode; Daily is graded and always asks for `any`;
       - `src/features/game/sessionThunks.ts` (`startGame` reads the `difficulty` preference when the start begins and passes it as the request's `target`);
       - `tests/fixtures/dealService.ts` (the fake honours the new request);
       - `src/features/README.md`, `docs/architecture/data-flows.md`.
@@ -563,40 +572,49 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/unit/features/interaction/hint.test.ts`.
     - **Verify:** `rtk npx vitest run tests/unit/features` passes.
 
-- [ ] 9.3 The deal pool
+- [ ] 9.3 The graded-spare pool
     - **Implements:** DS "Instant deals from a pre-verified pool" (the pool's own behaviour); D8.
-    - **Files:** new `src/features/deal/dealPool.ts` (`createDealPool`; it takes the `SolverClient` the service builds, D8): a FIFO per `mode:target`, at most 2, filling one at a time and only the current choice, pooling whatever `findWinnable` returns (a `random` fallback included, never retried), pause and resume, a failure drops only the fill in flight, dispose; `src/features/README.md`.
+    - **Files:** new `src/features/deal/dealPool.ts` (`createDealPool`; it takes the `SolverClient` the service builds, D8): proven, graded deals kept per mode and grade, at most `POOL_PER_GRADE` (2) each, oldest first; `take(mode, target)` gives the oldest deal of that grade, or the oldest of any grade for `any`, once; `deposit(mode, spares)` keeps the spares of a live search that fit; a filler that works on the current mode only, one request at a time, asking `findWinnable` for the grade whose bucket holds fewest deals, with fresh crypto seeds, the mode's budget and `GRADE_LIMIT`, and depositing the selected deal and its spares; a `random` result is not pooled; pause and resume; a failure drops only the fill in flight; dispose; `src/features/README.md`.
     - **Tests:** new `tests/unit/features/deal/dealPool.test.ts`, with a `SolverClient` over a stub worker, fake timers and an injected seed source:
-      - only the current choice fills, and a change of choice moves the next fill;
-      - a `random` result is pooled once with its label and no grade, and is not searched again;
-      - oldest first, and each deal is taken once;
+      - only the current mode fills, the emptiest grade first, and a change of mode moves the next fill;
+      - a `random` result is not pooled;
+      - a bucket never holds more than its cap, and a spare that does not fit is dropped;
+      - oldest first, each deal is taken once, `any` takes the oldest of any grade;
+      - a grade with no pooled deal is not served from another grade;
       - it refills after use;
       - pause stops new fills but keeps the fill in flight;
       - a failure empties nothing already pooled, and the next fill starts a new worker;
-      - no pool for Daily or with the switch off;
+      - no filling for Daily or with the switch off;
       - dispose.
     - **Verify:** `rtk npx vitest run tests/unit/features/deal` passes.
 
-- [ ] 9.4 The deal service serves from the pool
-    - **Implements:** DS "Instant deals from a pre-verified pool" (delivery, timing) and "A newer request wins" (the pool is never cancelled); KS-PERF-02 (warm deals).
+- [ ] 9.4 The seed verdict cache
+    - **Implements:** DS "A small in-memory verdict cache"; D8.
+    - **Files:** new `src/features/deal/verdictCache.ts` (`createVerdictCache(limit = 256)`: a least-recently-used map from mode, budget and seed to the worker's `Outcome`; `known(mode, budget, seeds)` returns the entries it holds for those seeds, `record(mode, budget, outcome)` stores one; a Daily list, which is the same all day, is the case it serves best); `src/features/README.md`.
+    - **Tests:** new `tests/unit/features/deal/verdictCache.test.ts`: a recorded outcome is returned for its mode, budget and seed and for nothing else; a different budget or mode misses; the least recently used entry goes first at the limit; a read counts as a use; `known` returns only the seeds asked for.
+    - **Verify:** `rtk npx vitest run tests/unit/features/deal` passes.
+
+- [ ] 9.5 The deal service serves from the pool and the cache
+    - **Implements:** DS "Instant deals from a pre-verified pool" (delivery, timing), "A small in-memory verdict cache" and "A newer request wins" (the pool is never cancelled); KS-PERF-02 (warm deals).
     - **Files:**
-      - `src/features/deal/dealService.ts` (a second `SolverClient` for the pool, built with the same `createSolverClient(createWorker)` and passed to `createDealPool`; `prefetch(choice)`, `pause()`; delivery from the pool with no progress reports);
+      - `src/features/deal/dealService.ts` (a second `SolverClient` for the pool, built with the same `createSolverClient(createWorker)` and passed to `createDealPool`; `prefetch(choice)`, `pause()`; delivery from the pool with no progress reports; every search request carries the cache's `known` verdicts and records each `outcome` in the cache; the spares of a live search are deposited in the pool; a delivered spare has attempts 1);
       - `src/app/thunkExtra.ts` (the `DealService` type);
       - `tests/fixtures/dealService.ts` (the fake gains `prefetch` and `pause`);
       - `src/features/README.md`.
     - **Tests:**
       - new `tests/unit/features/deal/dealService.pool.test.ts`:
         - a matching request is served at once with no overlay report;
-        - a request the pool cannot serve is searched as usual;
+        - a request the pool cannot serve is searched as usual, with the known verdicts, and its spares are pooled;
         - a player deal pauses filling without cancelling it;
         - a newer deal never cancels the pool;
         - a pooled deal carries its recorded verdict, attempts and grade;
         - a player's hint never waits behind a pool fill (DS "A newer request wins", scenario "A player's hint never waits behind the pool");
         - the player and pool threads answer the same selection request alike (SEL "Background-thread message interface", scenario "Two threads answer alike");
+      - `dealService.deal.test.ts`: a second Daily request in a session is answered from the cache with no new search of the seeds it holds;
       - the contract suite.
     - **Verify:** `rtk npx vitest run tests/unit/features/deal tests/unit/app` passes.
 
-- [ ] 9.5 The pool follows the player's choice
+- [ ] 9.6 The pool follows the player's choice
     - **Implements:** DS "The pool follows the player's choice" and "Instant deals from a pre-verified pool" (a hidden page pauses); D8.
     - **Files:**
       - new `src/app/dealPoolController.ts` (subscribes to `selectedMode`, `winnableOnly`, `difficulty` and document visibility; starts after the first idle period through an injected scheduler whose default uses `requestIdleCallback(cb, { timeout: 2000 })` where it exists and `setTimeout(cb, 2000)` otherwise, D8);
@@ -757,7 +775,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
         - per mode, on demand with a fresh page;
         - warm pool deals against the 100 ms target. The spec knows the pool is warm by wrapping `postMessage` in the pool worker through `worker.evaluate` and counting its `findWinnable` replies, never by a fixed wait;
         - for information, Draw 1 with target Hard, and Draw 1 while a pre-verification is in flight;
-        - the player's worker is identified as task 9.5 set up (creation order and request type);
+        - the player's worker is identified as task 9.6 set up (creation order and request type);
       - `tests/README.md` (recorded results).
     - **Verify:** `rtk npx playwright test dealLatency pwa --project=chromium` passes and prints every path.
 

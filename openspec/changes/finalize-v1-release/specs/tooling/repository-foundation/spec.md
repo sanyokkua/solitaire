@@ -589,7 +589,7 @@ fixed seed set, it SHALL report:
   mode;
 - the median and the 95th percentile of the time to select a winnable deal;
 - the share of verified deals graded Easy, Medium and Hard;
-- the median and the 95th percentile of the time to grade one verified deal.
+- the mean and the worst time to grade one verified deal.
 
 It SHALL NOT be part of any of these:
 - the validation gate;
@@ -600,9 +600,9 @@ It SHALL NOT be part of any of these:
 The seed sets are fixed, so every run measures the same deals. The verdicts and grades it reports are
 therefore identical from run to run; only the timings vary.
 
-The *KS-PERF-02* targets for a deal searched on demand are a 300 ms median and a 1.5 s 95th percentile
-for Draw 1 on a mid-range phone. The benchmark SHALL report the Draw 1 timings against them, and SHALL
-report the Draw 3 and Vegas timings for information, with no target. It SHALL NOT gate on any timing.
+A deal searched on demand has no time target in any mode: a really winnable deal matters more than a fast
+one, and the dealing overlay covers the wait (*KS-PERF-02* is modified). The benchmark SHALL report the
+timings of every mode for information. It SHALL NOT gate on any timing.
 
 Measuring deal latency in a real browser through the application's own worker, including deals from the
 warm pool, is covered by "In-browser deal latency is reported".
@@ -645,12 +645,8 @@ It SHALL also report, for information, Draw 1 on demand with difficulty Hard, an
 pre-verification is in flight.
 
 For each mode and path, the spec SHALL report the median, the 95th percentile and the maximum, and SHALL
-show that the background solver ran. The targets are:
-- Draw 1 on demand with difficulty Any: 300 ms at the median and 1.5 s at the 95th percentile;
-- warm pool, every mode: 100 ms.
-
-Draw 3 and Vegas on demand have no target and are reported for information. The spec SHALL pass whatever
-the measured values.
+show that the background solver ran. The only target is the warm pool, in every mode: 100 ms. Deals on
+demand have no target and are reported for information. The spec SHALL pass whatever the measured values.
 
 Input-agnostic: a measurement, driven by pointer activation of the start control.
 
@@ -836,9 +832,9 @@ They SHALL be listed in the repository's manual-checks record. Each entry SHALL 
 The record SHALL cover at least:
 - **Drag smoothness (KS-PERF-01):** dragging cards and the card animations hold 60 fps on a mid-range
   phone.
-- **Deal latency (KS-PERF-02):** on a mid-range phone, a Draw 1 winnable deal with difficulty Any searched on
-  demand takes 300 ms or less at the median and 1.5 s or less at the 95th percentile. A deal from a warm pool appears
-  within 100 ms in every mode.
+- **Deal latency (KS-PERF-02):** on a mid-range phone, the record gives how long a winnable deal searched on
+  demand takes in Draw 1, Draw 3 and Vegas, for information, with the dealing overlay shown. A deal from a warm pool
+  appears within 100 ms in every mode.
 - **Lighthouse (KS-PERF-03, KS-PWA-02):** on the production build, the mobile performance score is at
   least 90 and the result is installable.
 - **Real-device fit (KS-GEN-03, KS-GEN-05, KS-GEN-10):** on each real device checked, the record gives the
