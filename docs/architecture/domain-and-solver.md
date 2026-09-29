@@ -115,6 +115,39 @@ them for display. Numbers are listed in [game-rules.md](../reference/game-rules.
 - `src/solver/hint.ts#solverHint` turns the first command of the winning line into a hint (`move`, `draw` or
   `recycle`), or `undefined` when no win is proven.
 
+### Ordered-talon search (Draw 3 and Vegas)
+
+`src/solver/ordered.ts#solveOrdered(state, budget)` searches the modes `solve` refuses: the positions that draw three
+cards, Draw 3 with unlimited passes and Vegas with its three. It returns the same `{ verdict, nodes, line? }` and is
+built to make a `loss` a proof.
+
+- **Model.** The columns (a face-down count and the face-up cards), the four foundation heights, the stock and the
+  waste as ordered piles (top last), and the pass in progress. A recycle turns the waste back into the stock with
+  `src/domain/talon.ts#stepTalon`, the same rule the engine and the dead-end check use, so the search cannot disagree
+  with the game about what drawing reaches.
+- **Key.** Foundation heights, the column strings sorted (columns are symmetric), the exact stock order and the exact
+  waste order, and in Vegas the pass in progress. Merging every talon by its order after the next recycle would be
+  cheaper, but a part-way arrangement reaches waste tops that a fresh cycle cannot, so `loss` would stop being a proof.
+- **Talon moves are macros.** From a node, `stepTalon` is applied until an arrangement repeats (Draw 3) or the recycles
+  run out (Vegas). Each arrangement whose waste top can go to a foundation or a column gives one move: draw _k_
+  times, recycles included, then play that card. Draws commute with board moves, so a bare draw is never a branch.
+  The line spells the draws out as `{ t: 'd' }` steps, which `src/solver/line.ts#expandLine` plays as `draw` commands.
+- **Moves,** tried in this order: column to foundation; talon to foundation; a whole run that uncovers a face-down
+  card; talon to column; a whole run from a column with nothing face down onto another column; partial runs;
+  foundation to column, a King going to the first empty column included (it can carry a Queen).
+- **Strict safe sends.** Before branching, column tops go to their foundation when the card is next and its rank is at
+  most 2, or both opposite-colour foundations reach rank - 1 and the other same-colour foundation reaches rank - 2.
+  The last clause is there because a foundation card can come back down onto a column; the domain's looser `isSafe`
+  (used for players and by the Draw 1 search) can discard a win here. The talon is never sent without branching, the
+  waste top included: taking a card out of the waste moves every card behind it up a place in the next pass, so a card
+  that is safe as a parent can be the spacer that lets a needed card reach the waste top. Talon sends are moves.
+- **Pruning** removes only what can never be needed: a King already at the base of a column moving to an empty column,
+  and every empty column but the first. Nothing prunes partial runs, column-emptying runs or foundation-to-column
+  moves.
+- **Budget.** Counted like Draw 1: a node is counted after the safe sends, the win check and the visited check, and
+  `budget + 1` means `unknown`. A position that fails `isValidGameState`, or draws one card, gives `unknown` with no
+  nodes; a won position gives `win` with an empty line.
+
 ### Worker protocol
 
 `src/solver/protocol.ts` defines the messages; `src/solver/solver.worker.ts` is a three-line binding to

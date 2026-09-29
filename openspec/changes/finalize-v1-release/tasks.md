@@ -373,7 +373,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - Draw 1 cases unchanged.
     - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/repo/solverPurity.test.ts` passes.
 
-- [ ] 6.2 The ordered-talon search
+- [x] 6.2 The ordered-talon search
     - **Implements:** D3S "Bounded ordered-talon search verdict" and "Won, invalid and Draw 1 positions"; D3.
     - **Files:**
       - new `src/solver/ordered.ts` (`solveOrdered`), using `src/domain/talon.ts` from 4.2;

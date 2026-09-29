@@ -172,8 +172,10 @@ checked against the code.
   7. partial runs;
   8. foundation → column.
 - **Safe sends** apply before branching, and only where they can never discard a win.
-  - They cover the column tops and the **current** waste top only. Surfacing another reachable top costs
-    draws, and in Vegas it can cost a pass.
+  - They cover the column tops only. The waste top is not sent without branching, although the same rule would
+    call it safe: taking a card out of the waste moves every card behind it up a place in the next pass, so a card
+    that is safe as a parent can be the spacer that lets a needed card reach the waste top at all. The
+    search found this against the exhaustive oracle; the talon send is a branch (talon → foundation, priority 2).
   - They use the strict rule. A card is safe if either:
     - its rank is at most 2; or
     - both opposite-colour foundations reach rank − 1 **and** the other same-colour foundation reaches

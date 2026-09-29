@@ -7,6 +7,12 @@ exactly the modules listed here plus this README):
 
 - `solver.ts` — the bounded, iterative Draw 1 depth-first search: `solve(state, budget)` returns a `win`, `loss` or
   `unknown` verdict and the number of nodes expanded, plus the winning line of player commands on a `win`.
+- `ordered.ts` — the bounded, iterative ordered-talon search for Draw 3 and Vegas: `solveOrdered(state, budget)` returns
+  the same result as `solve`, modelling the stock and waste as ordered piles, three-card draws, recycles and the
+  Vegas passes left. Its `loss` is a proof: nothing that could matter is pruned and only the strict safe rule sends a
+  card without branching. A `win` line spells its draws out as `{ t: 'd' }` steps. A position that is invalid or
+  draws one card gives `unknown` with no nodes. `solver.ts` stays untouched beside it; the model, key and moves are
+  in `docs/architecture/domain-and-solver.md`.
 - `line.ts` — the `SolverMove` type and `expandLine(state, moves)`, which turns the search's moves into draws and
   `move` commands that replay through `applyCommand` (never `autoFoundation`). A `{ t: 'd' }` step is one explicit
   draw (a recycle on an empty stock); the Draw 1 search leaves its draws implicit, and `expandLine` still brings a
@@ -36,6 +42,7 @@ exactly the modules listed here plus this README):
 
 ## Verdict semantics
 
-- A `loss` verdict is not a proof that a deal is unwinnable: the search is bounded and prunes, so it can
-  only say that it found no win within its budget.
+- A `solve` (Draw 1) `loss` is not a proof that a deal is unwinnable: the search is bounded and prunes, so it can
+  only say that it found no win within its budget. A `solveOrdered` (Draw 3, Vegas) `loss` is a proof: every
+  reachable position was expanded.
 - The search sees face-down cards. It works from the full deal, not from what a player has revealed.
