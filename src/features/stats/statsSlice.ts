@@ -88,9 +88,6 @@ export const selectModeStats = (state: { readonly stats: StatsState }, mode: Mod
 export const winRateOf = (modeStats: ModeStats): number =>
     modeStats.played === 0 ? 0 : modeStats.won / modeStats.played;
 
-export const selectWinRate = (state: { readonly stats: StatsState }, mode: Mode): number =>
-    winRateOf(selectModeStats(state, mode));
-
 /**
  * The current Daily streak: the run of consecutive completed days ending today, or else yesterday; otherwise 0. Dates
  * after today (a device clock that was ahead) never hide it.

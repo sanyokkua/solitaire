@@ -169,8 +169,8 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
 - `stats/statsSlice.ts` — per-mode statistics (`played`, `won`, `streak`, `bestStreak`, `bestTimeMs`, `bestScore` for
   Draw 1, Draw 3, Vegas and Daily). `played(mode)` counts a game, `won({ mode, elapsedMs, score })` adds a win, grows
   the streak and keeps the fastest time and highest score (negative Vegas banks included), `streakBroken(mode)` zeroes
-  one mode's streak and keeps its best, `statsReset()` restores fresh initial state. Selectors `selectModeStats` and
-  `selectWinRate` take the structural shape `{ stats }`; `winRateOf(modeStats)` is the win rate of one mode record
+  one mode's streak and keeps its best, `statsReset()` restores fresh initial state. Selector `selectModeStats`
+  takes the structural shape `{ stats }`; `winRateOf(modeStats)` is the win rate of one mode record
   (the Statistics sheet uses it directly). The `daily` block records Daily completions:
   `dailyCompleted(dayKey)` adds a UTC `YYYY-MM-DD` once (a repeat is a no-op, an earlier date lands in sorted
   position), raises `daily.bestStreak` to the consecutive run containing it, then keeps only the newest 400 dates — the
@@ -266,9 +266,9 @@ inject `fakeDealService()` or a fake clock. The store's development state checks
 
 One dependency needs care (5.4, D8): the default (lazy) deal service's Daily-deal date logic reads a `now` clock
 (`createDealService({ now })`), and that clock must track whichever `today` a caller ends up with. The single assembly
-`assembleThunkExtra(overrides)` in `src/app/thunkExtra.ts` (used by `createAppStore` and `startApp`) merges the
+`assembleThunkExtra(overrides, create?)` in `src/app/thunkExtra.ts` (used by `createAppStore` and `startApp`) merges the
 overrides over the defaults and, only when the caller did not inject its own `dealService`, builds the lazy default
-once as `lazyDealService(() => extra.today())`: that closure reads the final, merged `extra.today` at the moment a deal
+once as `lazyDealService(() => extra.today(), create)` (`create` defaults to `createDealService`; only tests pass another): that closure reads the final, merged `extra.today` at the moment a deal
 actually happens, not when the store was built, so `createAppStore({ deps: { today } })`'s injected clock is what the
 default deal service's Daily deal reads. An explicitly injected `deps.dealService` is used exactly as given. `startApp`
 also reads the browser languages for the loader through `extra.languages()`, so a test injects `languages` instead of

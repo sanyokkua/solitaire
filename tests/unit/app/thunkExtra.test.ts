@@ -129,7 +129,7 @@ describe('the default deal service clock (D8)', () => {
         expect(passedNow?.()).toEqual(current);
     });
 
-    it('createAppStore uses an injected deal service exactly as given, bypassing the default entirely', () => {
+    it('createAppStore uses an injected deal service exactly as given', () => {
         const dealService = fakeDealService();
         const store = createAppStore({ deps: { dealService } });
         const extra = store.dispatch((_dispatch, _getState, injected) => injected);

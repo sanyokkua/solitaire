@@ -48,7 +48,7 @@ describe('vite.config.ts build identity define', () => {
     });
 
     it('defines a fixed __APP_BUILD__ for Vitest', () => {
-        expect(vitestConfig).toContain('__APP_BUILD__');
+        expect(vitestConfig).toMatch(/__APP_BUILD__: JSON\.stringify\(\{ number: '\d+', time: '[^']+ UTC' \}\)/);
     });
 
     it.each([

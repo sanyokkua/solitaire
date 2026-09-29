@@ -3,7 +3,6 @@ import type { Mode } from '../../../../src/domain/types';
 import {
     played,
     selectModeStats,
-    selectWinRate,
     winRateOf,
     statsReducer,
     statsReset,
@@ -199,18 +198,6 @@ describe('selectors', () => {
         const stats = reduce(initial(), played('draw3'), played('draw3'));
         expect(selectModeStats({ stats }, 'draw3')).toBe(stats.modes.draw3);
         expect(selectModeStats({ stats }, 'draw3').played).toBe(2);
-    });
-
-    it('selectWinRate is 0 with no games and won over played otherwise', () => {
-        const none = initial();
-        expect(selectWinRate({ stats: none }, 'draw1')).toBe(0);
-        const half = reduce(
-            initial(),
-            played('draw1'),
-            played('draw1'),
-            won({ mode: 'draw1', elapsedMs: 1, score: 1 }),
-        );
-        expect(selectWinRate({ stats: half }, 'draw1')).toBe(0.5);
     });
 
     it('winRateOf takes a mode record: 0 with no games, won over played otherwise', () => {

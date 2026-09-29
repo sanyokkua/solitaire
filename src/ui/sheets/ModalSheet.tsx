@@ -70,7 +70,7 @@ export function ModalSheet({
     const fallback = returnFocusFallback ?? onDismiss;
     const fallbackRef = useRef(fallback);
 
-    // Keep the latest fallback for the unmount cleanup below; declared first so it is current when that cleanup runs.
+    // Keep the fallback from the latest commit for the unmount cleanup below, so a re-render never re-runs that cleanup.
     useEffect(() => {
         fallbackRef.current = fallback;
     });
