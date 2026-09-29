@@ -32,7 +32,7 @@ function runStart(ids: readonly CardId[]): number {
  * go to the stock, the waste and the seven columns (one card each before any column gets a second); a column shows its trailing run face up and everything under it face
  * down, as a game in progress does. The same arguments always give the same position.
  */
-export function endgameFromSeed(seed: number, mode: Mode, off: number, passes = 1): GameState {
+export function endgameFromSeed(seed: number, mode: Mode, off: number, passes = 1, maxTalon = off): GameState {
     const rng = mulberry32(seed);
     const perSuit: [number, number, number, number] = [0, 0, 0, 0];
     for (let placed = 0; placed < off;) {
@@ -49,7 +49,7 @@ export function endgameFromSeed(seed: number, mode: Mode, off: number, passes = 
         Array.from({ length: perSuit[suit] }, (_, i) => cardId(suit, (13 - i) as Rank)),
     );
     const cards = shuffle(loose, rng);
-    const talonSize = Math.floor(rng() * (cards.length + 1));
+    const talonSize = Math.floor(rng() * (Math.min(cards.length, maxTalon) + 1));
     const wasteSize = Math.floor(rng() * (Math.min(talonSize, 4) + 1));
     const stock = cards.slice(wasteSize, talonSize);
     const waste = cards.slice(0, wasteSize);

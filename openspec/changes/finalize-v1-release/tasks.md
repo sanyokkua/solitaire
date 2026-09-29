@@ -390,7 +390,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - every `win` for seeds 1–50 in Draw 3 and in Vegas replays to a win through `applyCommand`.
     - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/repo/solverPurity.test.ts` passes.
 
-- [ ] 6.3 Exhaustive cross-check on small positions
+- [x] 6.3 Exhaustive cross-check on small positions
     - **Implements:** D3S "Verdicts agree with exhaustive search on small positions"; D5.
     - **Files:**
       - new `tests/support/bruteForce.ts`: exhaustive search over `applyCommand` with no pruning, deduplicating on `positionKey` plus, in Vegas, the passes left;
