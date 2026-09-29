@@ -789,7 +789,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `rtk npx playwright test --project=device-fit` passes against the production build that `webServer` uses;
       - before archive, the author records the real-device rows, or a dated waiver with its reason for each device they do not have, in `manual-checks.md`. Ask the author which devices they own.
 
-- [ ] 11.12 Flake sweep
+- [x] 11.12 Flake sweep
     - **Implements:** Phase 9 "no flaky tests" (RF "Edge cases are proven end to end" and "Input is proven end to end").
     - **Files:** `tests/README.md` (the sweep results: date, command, pass count, and any quarantined or fixed flake with its cause).
     - **Checks:** run `rtk npx playwright test --repeat-each=3` over all seven projects, and `rtk npm run test:unit` three times. Every failure goes through `superpowers:systematic-debugging`: fix it, never add retries or skips.

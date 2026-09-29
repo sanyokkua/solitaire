@@ -13,7 +13,11 @@ export interface WorkerTag {
     readonly winReplies: Readonly<Record<string, number>>;
 }
 
-type TagWindow = Window & { __solverWorkers?: WorkerTag[] };
+type TagWindow = Window & {
+    __solverWorkers?: WorkerTag[];
+    /** Called, in the same task, right after the pool's first fill request is posted; a spec that needs to act while that fill is in flight sets it. */
+    __afterPoolRequest?: (() => void) | undefined;
+};
 
 /**
  * Tags every `Worker` the page creates from the first script on (D8: the app runs the player's solver worker and the
@@ -73,6 +77,12 @@ export async function tagWorkers(target: Page | BrowserContext): Promise<void> {
                 }
                 if (Array.isArray(options)) super.postMessage(message, options);
                 else super.postMessage(message, options);
+                const first = tag?.firstRequest;
+                if (first?.type === 'findWinnable' && first.target !== 'any' && first.target !== undefined) {
+                    // The fill was just posted and cannot have been answered yet: a hook here runs while it is in flight.
+                    (window as TagWindow).__afterPoolRequest?.();
+                    (window as TagWindow).__afterPoolRequest = undefined;
+                }
             }
         };
     });
@@ -135,10 +145,4 @@ const provenBy = (tag: WorkerTag, mode?: string): number =>
  */
 export async function poolProven(page: Page, mode?: string): Promise<number> {
     return poolWorkers(await allWorkers(page)).reduce((total, tag) => total + provenBy(tag, mode), 0);
-}
-
-/** Whether the pool's worker has been asked to fill and has not yet delivered a proven deal: a pre-verification is in flight. */
-export async function poolFillInFlight(page: Page): Promise<boolean> {
-    const workers = poolWorkers(await allWorkers(page));
-    return workers.length > 0 && workers.every((tag) => provenBy(tag) === 0);
 }

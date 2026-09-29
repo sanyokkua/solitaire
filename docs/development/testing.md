@@ -184,7 +184,7 @@ Chromium-only specs skip themselves in other projects: `visualParity`, `dealLate
   defaults and keeps a backup; a failing save shows the notice and the game stays playable), `resume.spec.ts` (a reload
   with the mouse held mid-drag, and in the middle of Finish), `talonRules.spec.ts` (the Vegas pass limit and the Draw 3
   recycle penalty, by tap and keyboard), `history.spec.ts` (the 200-step undo and redo limit across a reload, and a
-  rapid double tap applying one move), `daily.spec.ts` (the Daily date and streak across midnight UTC) and the
+  rapid double tap applying one move, sent through DevTools with explicit event times in the Chromium projects only, so that the load on the test machine cannot stretch the gap between the two taps), `daily.spec.ts` (the Daily date and streak across midnight UTC) and the
   "resize during the deal" case in `resize.spec.ts`.
 - `pwa`: `tests/e2e/pwa.spec.ts` covers offline cold start, offline reload and Continue, and the update flow against
   `tests/e2e/support/distServer.ts`.

@@ -1,7 +1,7 @@
 // covers: KS-DEAL-10, KS-DEAL-12, KS-PERF-02
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
 import { median, percentile } from './support/stats';
-import { holdDealPool, playerWorker, poolFillInFlight, poolProven, tagWorkers } from './support/workers';
+import { holdDealPool, playerWorker, poolProven, tagWorkers } from './support/workers';
 
 const ITERATIONS = 10;
 const CARDS = 52;
@@ -38,35 +38,75 @@ async function observeLongTasks(page: Page): Promise<void> {
     });
 }
 
-/** Clicks "Deal cards" and resolves with the milliseconds until all 52 cards are on the board. */
-function clickDealAndTime(page: Page): Promise<number> {
-    return page.evaluate(
-        (cardCount) =>
-            new Promise<number>((resolve, reject) => {
-                const button = [...document.querySelectorAll('button')].find(
-                    (candidate) => candidate.textContent.trim() === 'Deal cards',
-                );
-                if (!button) {
-                    reject(new Error('no "Deal cards" button'));
-                    return;
-                }
-                const start = performance.now();
-                const cardsPresent = () => document.querySelectorAll('[data-card-id]').length >= cardCount;
-                const watcher = new MutationObserver(() => {
+type DealWindow = Window &
+    typeof globalThis & {
+        __startDealTimer?: () => Promise<number>;
+        __dealTime?: Promise<number> | undefined;
+    };
+
+/**
+ * Defines, before any page script runs, `window.__startDealTimer()`: it clicks "Deal cards" and resolves with the
+ * milliseconds until all 52 cards are on the board. When `atPoolRequest` is set it also arranges for that to happen in
+ * the very task that posts the pool's first fill request, so the deal starts while a pre-verification is in flight; the
+ * result is then `window.__dealTime`.
+ */
+async function installDealTimer(page: Page, options: { atPoolRequest: boolean }): Promise<void> {
+    await page.addInitScript(
+        ({ cardCount, atPoolRequest }) => {
+            const w = window as DealWindow;
+            w.__startDealTimer = () =>
+                new Promise<number>((resolve, reject) => {
+                    const button = [...document.querySelectorAll('button')].find(
+                        (candidate) => candidate.textContent.trim() === 'Deal cards',
+                    );
+                    if (!button) {
+                        reject(new Error('no "Deal cards" button'));
+                        return;
+                    }
+                    const start = performance.now();
+                    const cardsPresent = () => document.querySelectorAll('[data-card-id]').length >= cardCount;
+                    const watcher = new MutationObserver(() => {
+                        if (cardsPresent()) {
+                            watcher.disconnect();
+                            resolve(performance.now() - start);
+                        }
+                    });
+                    watcher.observe(document, { childList: true, subtree: true });
+                    button.click();
                     if (cardsPresent()) {
                         watcher.disconnect();
                         resolve(performance.now() - start);
                     }
                 });
-                watcher.observe(document, { childList: true, subtree: true });
-                button.click();
-                if (cardsPresent()) {
-                    watcher.disconnect();
-                    resolve(performance.now() - start);
-                }
-            }),
-        CARDS,
+            if (atPoolRequest) {
+                (window as unknown as { __afterPoolRequest?: () => void }).__afterPoolRequest = () => {
+                    w.__dealTime = w.__startDealTimer?.();
+                };
+            }
+        },
+        { cardCount: CARDS, atPoolRequest: options.atPoolRequest },
     );
+}
+
+/** Clicks "Deal cards" and resolves with the milliseconds until all 52 cards are on the board. */
+function clickDealAndTime(page: Page): Promise<number> {
+    return page.evaluate(() => {
+        const start = (window as DealWindow).__startDealTimer;
+        if (start === undefined) throw new Error('the deal timer is not installed');
+        return start();
+    });
+}
+
+/** The time of the deal `installDealTimer` started at the pool's first fill request, once it has started. */
+async function dealAtPoolRequestTime(page: Page): Promise<number> {
+    await page.waitForFunction(() => (window as DealWindow).__dealTime !== undefined, undefined, {
+        timeout: POOL_TIMEOUT_MS,
+    });
+    return page.evaluate(() => {
+        const time = (window as DealWindow).__dealTime;
+        if (time === undefined) throw new Error('no deal was started');
+        return time;
+    });
 }
 
 /** The longest long task the page has seen so far, 0 when there was none. */
@@ -85,15 +125,21 @@ interface Session {
 }
 
 /** A fresh page (its own context, so its own solver workers) with the long-task observer and worker tags installed. */
-async function freshPage(browser: Browser, baseURL: string, options: { holdPool: boolean }): Promise<Session> {
+async function freshPage(
+    browser: Browser,
+    baseURL: string,
+    options: { holdPool: boolean; atPoolRequest: boolean },
+): Promise<Session> {
     const context = await browser.newContext({ baseURL });
     const page = await context.newPage();
     await observeLongTasks(page);
+    await installDealTimer(page, { atPoolRequest: options.atPoolRequest });
     // A player search that must be measured is a cold one: with the pool held it never starts, so it cannot serve the deal.
     if (options.holdPool) await holdDealPool(page);
     await tagWorkers(page);
     await page.goto('/');
-    await page.getByRole('button', { name: 'Deal cards' }).waitFor();
+    // An armed deal starts by itself, and Home with its button is gone by then.
+    if (!options.atPoolRequest) await page.getByRole('button', { name: 'Deal cards' }).waitFor();
     return { page, close: () => context.close() };
 }
 
@@ -142,6 +188,8 @@ async function measure(
         readonly mode: ModeCase;
         readonly difficulty?: string;
         readonly holdPool: boolean;
+        /** Starts the deal in the task that posts the pool's first fill request, so that fill is in flight. */
+        readonly atPoolRequest?: boolean;
         /** Runs after the page loaded and the choice was made, before the deal is timed. */
         readonly before?: (page: Page) => Promise<void>;
     },
@@ -151,11 +199,14 @@ async function measure(
     let fromPool = 0;
     let workerUrl = '';
     for (let iteration = 0; iteration < ITERATIONS; iteration++) {
-        const session = await freshPage(browser, baseURL, { holdPool: options.holdPool });
+        const atPoolRequest = options.atPoolRequest === true;
+        const session = await freshPage(browser, baseURL, { holdPool: options.holdPool, atPoolRequest });
         try {
             await choose(session.page, options.mode.label, options.difficulty);
             await options.before?.(session.page);
-            times.push(await clickDealAndTime(session.page));
+            times.push(
+                atPoolRequest ? await dealAtPoolRequestTime(session.page) : await clickDealAndTime(session.page),
+            );
             longest = Math.max(longest, await longestLongTask(session.page));
             const target = options.difficulty?.toLowerCase() ?? 'any';
             const player = await playerWorker(session.page, options.mode.mode, target).catch(() => undefined);
@@ -243,12 +294,8 @@ test.describe('Latency report', () => {
         const figures = await measure(browser, baseURL, {
             mode: MODES[0],
             holdPool: false,
-            // The pool's worker has been asked to fill and has not delivered yet.
-            before: async (page) => {
-                await expect
-                    .poll(() => poolFillInFlight(page), { timeout: POOL_TIMEOUT_MS, intervals: [10] })
-                    .toBe(true);
-            },
+            // The deal starts in the very task that posts the pool's first fill request, so the fill is in flight.
+            atPoolRequest: true,
         });
 
         report(testInfo, 'Draw 1, on-demand, pre-verification in flight', 'Winnable Draw 1, the pool filling', figures);

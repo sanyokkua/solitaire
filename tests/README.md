@@ -220,20 +220,20 @@ and System (live, via `page.emulateMedia`) themes, night cards, the four-colour 
 - **On demand, cold worker.** `holdDealPool` stubs `requestIdleCallback`, so the pool never starts and the deal is searched by a newly started player worker; `playerWorker` finds it by creation order and first request (`findWinnable`, the mode, the `any` target) and its URL must contain `worker`.
 - **Warm pool.** The pool is left running. Before each deal the spec polls `poolProven(page, mode)` from `support/workers.ts`, which counts the pool worker's own completed `findWinnable` replies with a `win` verdict for that mode (`tagWorkers` records each request's mode by id and counts the replies as the page receives them), so the pool is known to be warm from the worker and never by a fixed wait. The pool fills the mode chosen on Home, so a deal proven for another mode does not count. The target is 100 ms in every mode; the spec records how many deals met it.
 
-For information, it also runs Draw 1 on demand with difficulty Hard, and Draw 1 on demand while a pre-verification is in flight (the pool's worker has been asked to fill and has not delivered). Each path records the median, nearest-rank 95th percentile and maximum, the longest long task, how many deals the pool served, and the worker URL as `test.info().annotations` labelled with the mode and path (`on-demand, cold-worker`, `warm-pool`), and prints one summary line per path. Read them in the list reporter's output, or in the HTML report (`rtk npx playwright show-report`). With 10 deals the nearest-rank 95th percentile is the maximum. The numbers come from the development machine, not a phone: the 300 ms median and 1.5 s p95 targets of Draw 1 are compared against them by eye, and the mid-range-phone check is a row of `docs/reference/manual-checks.md`. Run it with `rtk npx playwright test dealLatency --project=chromium`.
+For information, it also runs Draw 1 on demand with difficulty Hard, and Draw 1 on demand while a pre-verification is in flight: `tagWorkers` calls `window.__afterPoolRequest` in the very task that posts the pool's first fill request, and the spec's hook clicks "Deal cards" there, so the fill cannot have been answered yet (a poll from outside would have to catch a window of about 100 ms). Each path records the median, nearest-rank 95th percentile and maximum, the longest long task, how many deals the pool served, and the worker URL as `test.info().annotations` labelled with the mode and path (`on-demand, cold-worker`, `warm-pool`), and prints one summary line per path. Read them in the list reporter's output, or in the HTML report (`rtk npx playwright show-report`). With 10 deals the nearest-rank 95th percentile is the maximum. The numbers come from the development machine, not a phone: the 300 ms median and 1.5 s p95 targets of Draw 1 are compared against them by eye, and the mid-range-phone check is a row of `docs/reference/manual-checks.md`. Run it with `rtk npx playwright test dealLatency --project=chromium`.
 
 Recorded (2026-09-29, Apple M1 Pro, Desktop Chromium against the production build, 10 deals each; no long task above the observer's 50 ms threshold in any path):
 
-| Path                              | Median | p95 (max) | Served from the pool |
-| --------------------------------- | ------ | --------- | -------------------- |
-| Draw 1, on demand                 | 110 ms | 422 ms    | 0 of 10              |
-| Draw 3, on demand                 | 333 ms | 870 ms    | 0 of 10              |
-| Vegas, on demand                  | 2.3 s  | 5.4 s     | 0 of 10              |
-| Draw 1, Hard, on demand           | 239 ms | 626 ms    | 0 of 10              |
-| Draw 1, on demand, fill in flight | 68 ms  | 208 ms    | 0 of 10              |
-| Draw 1, warm pool (target 100 ms) | 17 ms  | 26 ms     | 10 of 10             |
-| Draw 3, warm pool (target 100 ms) | 15 ms  | 27 ms     | 10 of 10             |
-| Vegas, warm pool (target 100 ms)  | 18 ms  | 28 ms     | 10 of 10             |
+| Path                              | Median    | p95 (max)  | Served from the pool |
+| --------------------------------- | --------- | ---------- | -------------------- |
+| Draw 1, on demand                 | 110 ms    | 422 ms     | 0 of 10              |
+| Draw 3, on demand                 | 333 ms    | 870 ms     | 0 of 10              |
+| Vegas, on demand                  | 2.3 s     | 5.4 s      | 0 of 10              |
+| Draw 1, Hard, on demand           | 239 ms    | 626 ms     | 0 of 10              |
+| Draw 1, on demand, fill in flight | 96–254 ms | 434–560 ms | 0 of 10              |
+| Draw 1, warm pool (target 100 ms) | 17 ms     | 26 ms      | 10 of 10             |
+| Draw 3, warm pool (target 100 ms) | 15 ms     | 27 ms      | 10 of 10             |
+| Vegas, warm pool (target 100 ms)  | 18 ms     | 28 ms      | 10 of 10             |
 
 `tests/e2e/a11y.spec.ts` is the accessibility scan (RF "Accessibility scan", KS-A11Y-01/03). It is Chromium-only (`test.skip(testInfo.project.name !== 'chromium'` in `beforeEach`; listed in `CHROMIUM_ONLY_SPECS`). For each of the light and dark themes (seeded through the `theme` preference) it runs `@axe-core/playwright` on Home, Game and each of the eight sheets (settings, help, stats, dealCode and about opened from Home, newDeal and paused from Game, win by playing the last command of the recorded line) with reduced motion emulated, and fails on any `serious` or `critical` violation, naming each rule id and the selectors it hit. Run it with `rtk npx playwright test a11y --project=chromium`.
 
@@ -272,3 +272,35 @@ in a clean profile (Incognito, no extensions). The target is a performance score
 Cause of the first result: the two bundled fonts (about 470 KB) start loading before the first paint, which the simulated
 slow-4G first paint waits for. The fix is in `src/assets/fonts/README.md`. Installability was confirmed by hand: the
 install prompt appears in Chrome and Edge and the installed app runs. Lighthouse 13 has no separate PWA category.
+
+## Flake sweep
+
+Run on 2026-09-29 (Apple M1 Pro, 10 cores, default worker count) against the production build, before the release.
+
+| Command                                       | Result                                                                                |
+| --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `rtk npm run test:unit`, three times          | 183 files, 3498 passed and 1 skipped each time; no failure                            |
+| `rtk npx playwright test --repeat-each=3`, #1 | 1747 passed, 2 failed, 1032 skipped (19.8 min): the rapid double tap, see below       |
+| `rtk npx playwright test --repeat-each=3`, #2 | 1736 passed, 1 failed, 1044 skipped (24.6 min): the in-flight latency test, see below |
+| `rtk npx playwright test --repeat-each=3`, #3 | 1737 passed, 0 failed, 1044 skipped (22.4 min)                                        |
+
+Every run covers all seven projects (`chromium`, `firefox`, `webkit`, `iphone-17-pro`, `iphone-14-pro-max`, `galaxy-s25`
+and `device-fit`); the skipped tests are the ones that skip themselves outside their projects (the Chromium-only and
+whole-game specs, and the touch-only or CDP-only cases).
+
+Flakes found and fixed, each reproduced first and fixed at its cause, with no retry and no skip added to hide it:
+
+- **`history.spec.ts` "A rapid double tap applies at most one move"** failed on `iphone-14-pro-max` and `galaxy-s25`
+  (`released` was `[card, undefined]`). The two taps were sent as two Playwright calls, and the gap between them (median 67 ms,
+  up to 316 ms, against the app's 320 ms double-tap window) let the first move commit and leave nothing under the second tap at
+  the spot: the board finds a card from its layout, not from where it is drawn. Under 8 workers it failed in 36 of 80 runs. Now
+  the taps go through DevTools with explicit event times, which the board reads as the time of the tap: the second tap falls 50 ms
+  after the first however long the machine takes, and it is aimed at the card where the move left it (animations off).
+  200 of 200 runs pass under 8 workers. Only Chromium (`chromium` and `galaxy-s25`) can time input this way, so the test skips
+  itself in the other engines; the double-tap window is unit-tested for all of them (`pointerController.test.ts`).
+- **`dealLatency.spec.ts` "Draw 1 on demand while a pre-verification is in flight"** timed out once: a poll from outside the page
+  has to catch a window of about 100 ms between the pool's request and its reply, and missed it. The deal is now started by a
+  hook inside the very task that posts the pool's first fill request (`__afterPoolRequest` in `support/workers.ts`), so the fill
+  cannot have been answered yet.
+
+CI reruns: pending. The three reruns on GitHub Actions need a push, which the author has not yet approved.

@@ -106,13 +106,29 @@ test.describe('The undo storm', () => {
     });
 });
 
+/** The pile the six of diamonds starts in on `twoTargetsPosition`. */
+const START_PILE = 'tableau:0';
+/** Seconds between the two taps of the rapid double tap, by the event times the browser is given: inside the 320 ms window. */
+const DOUBLE_TAP_GAP = 0.05;
+
+interface Point {
+    x: number;
+    y: number;
+}
+
 test.describe('A rapid double tap', () => {
     // covers: KS-INP-01
     test('applies at most one move', async ({ page }, testInfo) => {
+        test.skip(
+            testInfo.project.use.defaultBrowserType !== 'chromium',
+            'the two taps are timed through DevTools input, which only Chromium has; the double-tap window itself is unit-tested for every engine',
+        );
         await seedRecord(page, {
             // The 6♦ has two legal homes, so a second move would visibly carry it from one seven to the other.
             current: twoTargetsPosition(),
-            preferences: { tapMode: 'smart', autoSafe: false },
+            // Animations off: once the move is applied the six is drawn where the board finds it, so the second tap can be
+            // aimed at the card itself and the release check below sees it there.
+            preferences: { tapMode: 'smart', autoSafe: false, animations: false },
         });
         await continueToGame(page);
         await expect(page.locator(MOVES_VALUE)).toHaveText('000');
@@ -133,16 +149,49 @@ test.describe('A rapid double tap', () => {
                 true,
             );
         });
-        if (testInfo.project.use.hasTouch === true) {
-            // Two taps at the same spot in a row: `card.tap()` would wait for the moved card and tap it where it landed.
-            const box = await card.boundingBox();
-            if (box === null) throw new Error('the card has no box');
-            const spot = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-            await page.touchscreen.tap(spot.x, spot.y);
-            await page.touchscreen.tap(spot.x, spot.y);
-        } else {
-            await card.dblclick();
-        }
+        const box = await card.boundingBox();
+        if (box === null) throw new Error('the card has no box');
+        // Taps are sent through DevTools with explicit event times, which the board reads as the time of each tap. The
+        // second tap therefore falls 50 ms after the first however long the test machine takes to send it, and it can wait
+        // for the first move to be applied and be aimed at the card where the move left it: the board finds a card from
+        // its layout, so a tap at the spot the card left would find nothing.
+        const cdp = await page.context().newCDPSession(page);
+        const start = Date.now() / 1000;
+        const touch = testInfo.project.use.hasTouch === true;
+        const tapAt = async ({ x, y }: Point, at: number, clickCount: number) => {
+            const down = touch
+                ? cdp.send('Input.dispatchTouchEvent', {
+                      type: 'touchStart',
+                      timestamp: at,
+                      touchPoints: [{ x, y, id: 1 }],
+                  })
+                : cdp.send('Input.dispatchMouseEvent', {
+                      type: 'mousePressed',
+                      timestamp: at,
+                      x,
+                      y,
+                      button: 'left',
+                      clickCount,
+                  });
+            const up = touch
+                ? cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: at + 0.005, touchPoints: [] })
+                : cdp.send('Input.dispatchMouseEvent', {
+                      type: 'mouseReleased',
+                      timestamp: at + 0.005,
+                      x,
+                      y,
+                      button: 'left',
+                      clickCount,
+                  });
+            await Promise.all([down, up]);
+        };
+        await tapAt({ x: box.x + box.width / 2, y: box.y + box.height / 2 }, start, 1);
+        const moved = await card.evaluate(async (element, from) => {
+            while (element.dataset.pile === from) await new Promise((resolve) => requestAnimationFrame(resolve));
+            const rect = element.getBoundingClientRect();
+            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+        }, START_PILE);
+        await tapAt(moved, start + DOUBLE_TAP_GAP, 2);
         const released = await page.evaluate(() => (window as unknown as { releasedOn: unknown[] }).releasedOn);
         // Both taps hit the six itself, so the second one really came inside the double-tap window.
         expect(released).toEqual([String(SIX_OF_DIAMONDS), String(SIX_OF_DIAMONDS)]);
