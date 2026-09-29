@@ -324,7 +324,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - reload after starting Finish: the resumed position is valid and consistent, and Finish or a win can still complete.
     - **Verify:** `rtk npx playwright test resume --project=chromium --project=iphone-17-pro` passes.
 
-- [ ] 5.3 Vegas pass limit and the Draw 3 recycle penalty
+- [x] 5.3 Vegas pass limit and the Draw 3 recycle penalty
     - **Implements:** RF "Edge cases are proven end to end" (the Vegas and Draw 3 pass scenarios); KS-MOVE-05, KS-SCO-02. The stock is never dragged, so the cases run by tap and by keyboard.
     - **Files:**
       - new `tests/e2e/talonRules.spec.ts`;
