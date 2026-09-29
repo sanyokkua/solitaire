@@ -42,6 +42,11 @@ its own `dealService`, it builds the lazy default once, reading the final merged
 second argument is the factory the default service is built through (default `createDealService`); tests pass one to
 observe creation, and it is not part of `createAppStore`'s `deps`.
 
+The deal service's graded-spare pool and seed verdict cache (D8) are not application state: they live in memory inside
+the deal service, are never written to the record, and a reload starts both empty. Only `dealService.prefetch` and
+`dealService.pause` steer the pool, and only the deal pool controller in the app layer calls them (see
+[Lifecycle](#lifecycle) and [data flows](data-flows.md#deal-pool)).
+
 ## Thunks by file
 
 | File                                            | Thunks                                                                                                 |
@@ -153,9 +158,14 @@ flowchart TD
    reduced-motion media query (if the browser has one).
 7. Subscribe to the PWA gateways, if given: update-ready raises the `update-ready` notice; install availability sets
    `installable`.
-8. Render `<App />` inside `StrictMode` and `Provider`.
+8. Start `src/app/dealPoolController.ts#createDealPoolController` with `extra.dealService` and `deps.poolScheduler`
+   (default: the first idle period, `requestIdleCallback` with a 2 s timeout, or a 2 s timer where the browser has
+   none). From then on it calls `prefetch({ mode, winnableOnly })` when `selectedMode` or `winnableOnly` changes or
+   the page becomes visible, and `pause()` when the page is hidden; the Difficulty is not an input.
+9. Render `<App />` inside `StrictMode` and `Provider`.
 
-It returns `{ store, dispose }`; `dispose` does not save, so a caller that wants the pending write flushes first.
+It returns `{ store, dispose }`; `dispose` does not save, so a caller that wants the pending write flushes first. It
+stops the pool controller (cancelling an idle signal still awaited) before it disposes the deal service.
 `src/main.tsx` is the only place that passes the real PWA gateways.
 
 ## Related

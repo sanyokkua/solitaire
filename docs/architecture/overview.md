@@ -49,7 +49,8 @@ These are enforced by ESLint restrictions and repository guard tests; see [code 
 ## Runtime shape
 
 - **Startup** (`src/main.tsx` -> `src/app/lifecycle.tsx#startApp`): read the storage record, build the store, start the
-  theme and locale controllers, the clock ticker and the debounced writer, then render React. The PWA service worker is
+  theme and locale controllers, the clock ticker and the debounced writer and the deal pool controller, then render
+  React. The deal pool starts filling on its own solver worker at the first idle period. The PWA service worker is
   registered after the page `load` event.
 - **Routes and sheets** are Redux state (`src/app/appSlice.ts`): route `home` or `game`, plus eight sheets (settings,
   help, stats, newDeal, paused, win, dealCode, about). There is no URL router.

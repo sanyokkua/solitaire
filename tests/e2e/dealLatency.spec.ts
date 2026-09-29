@@ -1,4 +1,5 @@
 import { test, type Page } from '@playwright/test';
+import { holdDealPool, playerWorker, tagWorkers } from './support/workers';
 
 const ITERATIONS = 10;
 const CARDS = 52;
@@ -94,14 +95,15 @@ test('Latency report', async ({ browser, baseURL }, testInfo) => {
         const page = await context.newPage();
         try {
             await observeLongTasks(page);
-            const workerEvent = page.waitForEvent('worker');
-            workerEvent.catch(() => undefined); // a failure elsewhere closes the page; report that one, not this
+            // Every measured deal is a cold player search: the pool never starts, so it cannot serve the deal.
+            await holdDealPool(page);
+            await tagWorkers(page);
             await page.goto('/');
             await page.getByRole('button', { name: 'Deal cards' }).waitFor();
             latencies.push(await clickDealAndTime(page));
-            const worker = await workerEvent;
-            if (!worker.url().includes('worker')) throw new Error(`unexpected worker url ${worker.url()}`);
-            workerUrl = worker.url();
+            const worker = await playerWorker(page, 'draw1');
+            if (!worker.url.includes('worker')) throw new Error(`unexpected worker url ${worker.url}`);
+            workerUrl = worker.url;
             longest = Math.max(longest, await longestLongTask(page));
         } finally {
             await context.close();

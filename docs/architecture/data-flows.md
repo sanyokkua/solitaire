@@ -116,14 +116,58 @@ Notes:
 - A new `deal` cancels the pending one and terminates a busy player worker; the older start delivers nothing. It never
   cancels the pool's fill, which runs on a worker of its own.
 - The pool starts no fill while a request that may search is pending; a superseded search does not end the pause of the
-  newer one. `prefetch(choice)` and `pause()` set what the pool fills and when (the controller that calls them lands
-  with task 9.6).
+  newer one. `prefetch(choice)` and `pause()` set what the pool fills and when; the deal pool controller calls them
+  (see [Deal pool](#deal-pool)).
 - Every search sends the verdict cache's entries for its seeds as `known`, so a repeated Daily request searches none of
   its candidates again.
 - If the worker fails, the first candidate seed is dealt unverified and ungraded (`random`, 1 attempt, no grade), in every mode.
 - A requested grade that is not found within `GRADE_LIMIT` proven candidates deals the closest one, labelled with its own grade.
 - With the switch off, every mode skips the worker: one `cryptoSeed`, `dealFromSeed`, `installed`; the Difficulty is ignored.
 - `restart` and `playDealCode` also install directly with `dealFromSeed`, without the service.
+
+## Deal pool
+
+`src/app/dealPoolController.ts`, started by `startApp` (D8). Nothing happens until the first idle period:
+`requestIdleCallback(cb, { timeout: 2000 })` where the browser has it, a 2 s timer otherwise (WebKit). From then on the
+controller follows `preferences.selectedMode`, `preferences.winnableOnly` and `app.documentVisible`, and calls the deal
+service only when one of them changed. The pool itself lives in the deal service (`src/features/deal/dealPool.ts`) and
+runs on a solver worker of its own.
+
+```mermaid
+sequenceDiagram
+    participant Sched as Idle scheduler
+    participant Ctrl as Deal pool controller
+    participant Store as Redux store
+    participant Svc as Deal service
+    participant Pool as Deal pool
+    participant PW as Pool worker
+
+    Sched-->>Ctrl: first idle period (at most 2 s)
+    Ctrl->>Store: read selectedMode, winnableOnly, documentVisible; subscribe
+    Ctrl->>Svc: prefetch({ mode, winnableOnly })
+    Svc->>Pool: setChoice(choice), resume()
+    loop while the choice is Draw 1, Draw 3 or Vegas with the switch on, not paused or busy, and a grade has room
+        Pool->>PW: findWinnable(fresh seeds, budget, mode, emptiest grade)
+        PW-->>Pool: selected deal and spares
+        Note over Pool: keep the proven deals whose bucket has room (2 per mode and grade)
+    end
+    Note over Svc,Pool: a player's deal takes a matching pooled deal at once, and the take starts a refill
+    Store-->>Ctrl: mode or switch changed
+    Ctrl->>Svc: prefetch(new choice)
+    Note over Pool: the next fill is for the new mode; deals pooled for other modes are kept.<br/>Daily or the switch off starts no fill
+    Store-->>Ctrl: page hidden
+    Ctrl->>Svc: pause()
+    Note over Pool: no new fill; the fill in flight finishes
+    Store-->>Ctrl: page visible
+    Ctrl->>Svc: prefetch(current choice)
+```
+
+Notes:
+
+- The Difficulty is not an input: a fill asks for the emptiest grade of the mode, whatever the Difficulty.
+- Nothing about the pool or the verdict cache is stored; a reload starts both empty.
+- `RunningApp.dispose()` cancels an idle signal still awaited and removes the subscription before it disposes the deal
+  service.
 
 ## Hint
 

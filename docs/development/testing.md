@@ -11,7 +11,7 @@ Naming: `*.test.ts(x)` is Vitest (in-process); `*.spec.ts` is Playwright (real b
 | ------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tests/unit/`      | Vitest                         | Logic without React: `domain/`, `solver/`, `features/`, `app/`, `i18n/`, `pwa/`, `ui/` (pure board, CSS suites, contrast, formatting), `repo/` (guards), `support/`, `fixtures/`, `e2e-support/`. |
 | `tests/component/` | Vitest + React Testing Library | Components and the app lifecycle (`appLifecycle*.test.tsx`), sheets (`sheets/`), Home (`home/`).                                                                                                  |
-| `tests/e2e/`       | Playwright                     | End-to-end specs against the built app, plus `support/` helpers (`seed.ts`, `play.ts`, `distServer.ts`, ...).                                                                                     |
+| `tests/e2e/`       | Playwright                     | End-to-end specs against the built app, plus `support/` helpers (`seed.ts`, `play.ts`, `distServer.ts`, `workers.ts`, ...).                                                                       |
 | `tests/bench/`     | Vitest bench                   | The informational winnable-search latency benchmark (`winnable.bench.ts`).                                                                                                                        |
 | `tests/fixtures/`  | none                           | Shared non-test builders: seeded deals, game states, board positions, solver corpus, storage doubles, worker doubles, the viewport matrix, and mini `dist/` trees.                                |
 | `tests/support/`   | none                           | Doubles shared by component tests: `testStore.ts`, `renderWithStore.tsx`, `fakeResizeObserver.ts`, `matchMedia.ts`, `pointer.ts`, `pseudoLocale.ts`, `boardHarness.tsx`, and others.              |
@@ -108,6 +108,14 @@ written only while the key is absent, so a reload exercises real resume). `seedR
 record key, `failSaves` makes every storage write throw, and `readStoredSession` reads back the session the app itself
 stored. Positions live in `tests/fixtures/boardPositions.ts`.
 
+The app runs two solver workers from one chunk: the player's and the deal pool's, which starts at the first idle
+period (D8). `tests/e2e/support/workers.ts` tells them apart: `tagWorkers` (an init script) records each `Worker` in
+creation order with its script URL, its first request and whether it has answered; `playerWorker(page, mode)` returns
+the earliest one whose first request is a `findWinnable` for that mode with the `any` target, which a pool fill never
+sends (it always asks for a named grade). `holdDealPool` replaces `requestIdleCallback` with one that never calls back,
+so the pool never starts and a deal is always the player's own search; `dealLatency` and the offline cold start in `pwa`
+use it.
+
 ## Playwright
 
 Configured in `playwright.config.ts`:
@@ -156,7 +164,8 @@ Chromium-only specs skip themselves in other projects: `visualParity`, `dealLate
   `tests/e2e/support/distServer.ts`.
 - `playByTap`, `playByDrag`, `playByKeyboard`: each plays a recorded winning line to a win by one input path.
 - `visualParity`: writes screenshots to `test-results/visual-parity/`; CI uploads them as an artifact for manual review.
-- `dealLatency`: informational; asserts only that the solver worker started.
+- `dealLatency`: informational; asserts only that the player's solver worker started. The deal pool is held, so every
+  measured deal is a cold search.
 
 ### Run one spec, one test or one project
 

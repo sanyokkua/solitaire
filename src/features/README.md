@@ -204,8 +204,10 @@ GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (tie
   element with `themeController.ts` and sets `<html lang>`/`document.title` with `src/i18n/localeController.ts`
   (both before the first render), starts the ticker and the writer and connects the save port to the writer, attaches
   the page listeners (`visibilitychange` updates `documentVisible` and flushes the writer when hidden, `pagehide`
-  flushes, the reduced-motion media query updates `systemReducedMotion`), renders, and returns `{ store, dispose }`,
-  which also disposes the locale controller
+  flushes, the reduced-motion media query updates `systemReducedMotion`), starts the deal pool controller
+  (`src/app/dealPoolController.ts`: from the first idle period it calls the deal service's `prefetch({ mode,
+winnableOnly })` when the selected mode or the switch changes or the page becomes visible, and `pause()` when it is
+  hidden), renders, and returns `{ store, dispose }`, which also disposes the locale and deal pool controllers
 - `stats/statsSlice.ts` — per-mode statistics (`played`, `won`, `streak`, `bestStreak`, `bestTimeMs`, `bestScore` for
   Draw 1, Draw 3, Vegas and Daily). `played(mode)` counts a game, `won({ mode, elapsedMs, score })` adds a win, grows
   the streak and keeps the fastest time and highest score (negative Vegas banks included), `streakBroken(mode)` zeroes

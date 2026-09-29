@@ -52,6 +52,7 @@ function start(storage: MemoryStorage = memoryStorage(), overrides: StartAppDeps
             ticker: { setInterval, clearInterval, ...overrides.ticker },
             ...(overrides.writer === undefined ? {} : { writer: overrides.writer }),
             ...(overrides.pwa === undefined ? {} : { pwa: overrides.pwa }),
+            ...(overrides.poolScheduler === undefined ? {} : { poolScheduler: overrides.poolScheduler }),
         });
     });
     if (app === undefined) throw new Error('startApp did not return');
@@ -250,6 +251,38 @@ describe('application lifecycle wiring', () => {
         });
 
         expect(dealService.disposed).toBe(true);
+    });
+
+    it('starts the deal pool controller at the idle signal and stops it with the app', () => {
+        const dealService = fakeDealService();
+        let idle: (() => void) | undefined;
+        const cancel = vi.fn();
+        const poolScheduler = {
+            schedule: (callback: () => void) => {
+                idle = callback;
+                return cancel;
+            },
+        };
+        const { app } = start(memoryStorage(), { extra: { dealService }, poolScheduler });
+        expect(dealService.prefetches).toEqual([]);
+
+        act(() => {
+            idle?.();
+        });
+        expect(dealService.prefetches).toEqual([{ mode: 'draw1', winnableOnly: true }]);
+        fireVisibilityChange('hidden');
+        expect(dealService.pauses).toBe(1);
+
+        act(() => {
+            app.dispose();
+        });
+        expect(cancel).toHaveBeenCalledOnce();
+        fireVisibilityChange('visible');
+        act(() => {
+            app.store.dispatch(preferenceSet({ key: 'selectedMode', value: 'vegas' }));
+        });
+        expect(dealService.prefetches).toHaveLength(1);
+        expect(dealService.pauses).toBe(1);
     });
 
     it('accrues the ticker from the store clock when no ticker clock is given', () => {

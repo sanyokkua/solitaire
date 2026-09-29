@@ -614,17 +614,17 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - the contract suite.
     - **Verify:** `rtk npx vitest run tests/unit/features/deal tests/unit/app` passes.
 
-- [ ] 9.6 The pool follows the player's choice
+- [x] 9.6 The pool follows the player's choice
     - **Implements:** DS "The pool follows the player's choice" and "Instant deals from a pre-verified pool" (a hidden page pauses); D8.
     - **Files:**
-      - new `src/app/dealPoolController.ts` (subscribes to `selectedMode`, `winnableOnly`, `difficulty` and document visibility; starts after the first idle period through an injected scheduler whose default uses `requestIdleCallback(cb, { timeout: 2000 })` where it exists and `setTimeout(cb, 2000)` otherwise, D8);
+      - new `src/app/dealPoolController.ts` (subscribes to `selectedMode`, `winnableOnly` and document visibility, not to `difficulty`: the pool fills the emptiest grade whatever the Difficulty; starts after the first idle period through an injected scheduler whose default uses `requestIdleCallback(cb, { timeout: 2000 })` where it exists and `setTimeout(cb, 2000)` otherwise, D8);
       - `src/app/lifecycle.tsx` starts and stops it;
       - `tests/e2e/dealLatency.spec.ts` (`:97`) and `tests/e2e/pwa.spec.ts` (`:85`): once the pool worker exists, identify the player's solver worker by creation order and request type instead of taking the first `worker` event;
       - `docs/architecture/data-flows.md` (the pool sequence, in mermaid);
       - `docs/architecture/state-and-persistence.md`.
     - **Tests:**
       - new `tests/unit/app/dealPoolController.test.ts`:
-        - changing the mode or the difficulty moves the filling;
+        - changing the mode moves the filling, and a difficulty change does not start a fill;
         - returning to a kept choice finds its deals;
         - Daily or the switch off stops filling;
         - hidden pauses and visible resumes;
