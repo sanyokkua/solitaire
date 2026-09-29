@@ -7,47 +7,11 @@ import { STORAGE_KEY } from '../../src/features/persistence/recordCodec';
 import { undoMovePosition } from '../fixtures/boardPositions';
 import { allFaceUp } from '../fixtures/deals';
 import { cardOf, continueToGame, KING_OF_SPADES, type Point } from './support/cards';
-import { expectClockCarriedOn, readGame } from './support/game';
+import { expectClockCarriedOn, placement, placementOf, readGame } from './support/game';
 import { seedRecord } from './support/seed';
 
 const DRAG_STEPS = 12;
 const FOUNDATION_CARDS = "[data-card-id][data-pile^='foundation']";
-
-/** Every card's pile and index as the board draws them, keyed by card id. */
-async function placement(page: Page): Promise<Record<string, string>> {
-    return page
-        .locator('[data-card-id]')
-        .evaluateAll((cards) =>
-            Object.fromEntries(
-                cards.map((card) => [
-                    card.getAttribute('data-card-id') ?? '',
-                    `${card.getAttribute('data-pile') ?? ''}#${card.getAttribute('data-index') ?? ''}`,
-                ]),
-            ),
-        );
-}
-
-/** The same placement for an engine position, in the board's own naming of piles. */
-function placementOf(state: GameState): Record<string, string> {
-    const placed: Record<string, string> = {};
-    const add = (pile: string, ids: readonly number[]) => {
-        ids.forEach((id, index) => {
-            placed[String(id)] = `${pile}#${String(index)}`;
-        });
-    };
-    add('stock', state.stock);
-    add('waste', state.waste);
-    state.foundations.forEach((cards, suit) => {
-        add(`foundation:${String(suit)}`, cards);
-    });
-    state.tableau.forEach((cards, col) => {
-        add(
-            `tableau:${String(col)}`,
-            cards.map((card) => card.id),
-        );
-    });
-    return placed;
-}
 
 /** The move count of the session the app has stored. */
 async function storedMoves(page: Page): Promise<number> {

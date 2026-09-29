@@ -334,7 +334,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - Draw 3: the score drops by 20 on the fourth pass's recycle and not before, by tap and by keyboard.
     - **Verify:** `rtk npx playwright test talonRules --project=chromium --project=firefox` passes.
 
-- [ ] 5.4 A storm of 200+ undos and redos, and rapid double taps
+- [x] 5.4 A storm of 200+ undos and redos, and rapid double taps
     - **Implements:** RF "Edge cases are proven end to end" ("Undo storm survives a reload", "A double tap never applies two moves"); GS "Undo history has no in-memory limit"; PE stored-history limits.
     - **Files:** new `tests/e2e/history.spec.ts`; `tests/e2e/support/play.ts` only if needed. `playLine` already plays any command list, so a Draw 1 game can be padded with draws and recycles.
     - **Tests:**
