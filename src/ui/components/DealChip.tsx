@@ -11,8 +11,8 @@ const DICE =
 /**
  * The Game top bar's deal chip: "Winnable · <grade>" ("Winnable" when the deal is ungraded) with a check, or "Random
  * deal" with a dice. The icon is decorative. The shuffle count is not part of the chip's text or name: a proven deal
- * that needed more than one shuffle carries "found after N shuffles" as its accessible description (a hidden
- * `.sr-only` element, so it adds no width) and after the chip text in the `title`. The chip is a labelled group so that
+ * that needed more than one shuffle carries "found after N shuffles" as its accessible description (a `hidden`
+ * element, so it is neither shown nor read as chip text) and after the chip text in the `title`. The chip is a labelled group so that
  * the text, not the `title`, is its accessible name. At 460 px wide or narrower
  * `layout.css` shows the icon only by hiding the text visually (not removing it), so the text stays the accessible
  * name; the `title` is the hover text. Display only.
@@ -46,7 +46,7 @@ export function DealChip() {
                 {text}
             </span>
             {note === null ? null : (
-                <span id={noteId} className="sr-only">
+                <span id={noteId} hidden>
                     {note}
                 </span>
             )}

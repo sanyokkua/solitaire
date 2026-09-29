@@ -120,7 +120,7 @@ describe('DealChip', () => {
         expect(chip).not.toHaveAttribute('aria-describedby');
         // With the name taken from the text, the browser reads the title as a description; it repeats the name only.
         expect(chip).not.toHaveAccessibleDescription(/found after|shuffle/);
-        expect(chip?.querySelector('.sr-only')).toBeNull();
+        expect(chip?.querySelector('[hidden]')).toBeNull();
     });
 
     it('offers no note for a random deal', () => {
@@ -152,14 +152,14 @@ describe('DealChip', () => {
         },
     );
 
-    it('keeps the note out of the layout and the visible text', () => {
+    it('keeps the note out of the visible text and the reading order', () => {
         renderChips(game('draw1', { verdict: 'win', attempts: 3, grade: 'medium' }));
 
         const chip = document.querySelector('.deal-chip');
-        const note = chip?.querySelector('.sr-only');
+        const note = chip?.querySelector('[hidden]');
         expect(note).toHaveTextContent('found after 3 shuffles');
         expect(note).not.toHaveClass('deal-chip__text');
-        expect(rulesFor(layoutCss, '.sr-only').join(' ')).toMatch(/position:\s*absolute/);
+        expect(chip).toHaveAccessibleDescription('found after 3 shuffles');
     });
 
     it('marks a random deal and hides its icon from assistive technology', () => {

@@ -270,7 +270,7 @@ action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`a
   proven deal with no grade) or "Random deal", with a decorative check or dice `Icon` and the text in
   `span.deal-chip__text`. The chip is a `role="group"` labelled by that text. The shuffle count is not in the text or
   the name: when `verdict === 'win'` and `attempts` > 1 the chip carries "found after N shuffles" (`game.chip.deal.shuffleNote`,
-  catalog plural) as its `aria-describedby` description, in a hidden `.sr-only` span that adds no width, and its `title`
+  catalog plural) as its `aria-describedby` description, in a `hidden` span (not read as chip text), and its `title`
   is the chip text, " — " and that note; otherwise the `title` is the chip text alone (the mode chip's `title` is its text). Both chips truncate
   with an ellipsis inside the slot (which keeps its reserved size), and at 460 px or narrower the deal chip shows only
   its icon by hiding `.deal-chip__text` visually (a clip, not `display: none`), so the text stays its accessible name.
