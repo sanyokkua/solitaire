@@ -11,6 +11,7 @@ const CHROMIUM_ONLY_SPECS: string[] = [
     'tests/e2e/visualParity.spec.ts',
     'tests/e2e/dealLatency.spec.ts',
     'tests/e2e/pwa.spec.ts',
+    'tests/e2e/dragPerf.spec.ts',
     'tests/e2e/a11y.spec.ts',
 ];
 

@@ -1260,7 +1260,7 @@ Requirements:
 
 Tests:
 
-- none
+- `tests/e2e/dragPerf.spec.ts`
 
 Manual checks:
 

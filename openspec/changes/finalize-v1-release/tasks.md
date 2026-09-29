@@ -759,7 +759,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** the guard fails when a fixture matrix has an uncovered main-spec id. The new ids KS-DEAL-11, KS-DEAL-12, KS-PER-06 and KS-GEN-11 join the strict rule once 14.4 syncs them into the main specs, so this task makes sure they are already covered.
     - **Verify:** `rtk npm run validate` passes, and the guard's informational delta-only list is empty (each of the four new ids is declared by at least one test).
 
-- [ ] 11.9 Informational drag-performance trace
+- [x] 11.9 Informational drag-performance trace
     - **Implements:** RF "Performance and installability are checked manually and recorded" (the trace) and "Test suites separated by execution layer" (a Chromium-only spec); KS-PERF-01.
     - **Files:**
       - new `tests/e2e/dragPerf.spec.ts`: Chromium only, a phone viewport, 4× CPU throttling over CDP; it drags a run across the board and reports frame times (median, p95, frames over 16.7 ms) as an annotation, with no timing assertion;

@@ -162,7 +162,7 @@ Configured in `playwright.config.ts`:
 | `galaxy-s25`        | Galaxy S24 descriptor, viewport 360x780 | Same set.                                            |
 | `device-fit`        | Desktop Chrome                          | Only `deviceFit.spec.ts` and `pseudoLocale.spec.ts`. |
 
-Chromium-only specs skip themselves in other projects: `visualParity`, `dealLatency`, `pwa`, `a11y` (list in
+Chromium-only specs skip themselves in other projects: `visualParity`, `dealLatency`, `dragPerf`, `pwa`, `a11y` (list in
 `tests/unit/repo/playwrightProjects.test.ts`). The whole-game tests of `playByTap`, `playByDrag`, `playByKeyboard` and
 `playModes` run in `chromium`, `firefox`, `webkit` and `iphone-17-pro` (`FULL_GAME_PROJECTS` in
 `tests/e2e/support/projects.ts`) and skip themselves in the other projects.
@@ -187,6 +187,7 @@ Chromium-only specs skip themselves in other projects: `visualParity`, `dealLate
 - `pwa`: `tests/e2e/pwa.spec.ts` covers offline cold start, offline reload and Continue, and the update flow against
   `tests/e2e/support/distServer.ts`.
 - `playByTap`, `playByDrag`, `playByKeyboard`: each plays a recorded winning line to a win by one input path.
+- `dragPerf`: an informational drag trace on a phone viewport with the CPU slowed 4×; it attaches the Chromium trace and reports frame times as annotations without asserting on them.
 - `playModes`: Draw 3 by keyboard, Vegas by drag and the Daily deal (dealt from Home on its golden date) by tap, each to a win.
 - `visualParity`: writes screenshots to `test-results/visual-parity/`; CI uploads them as an artifact for manual review.
 - `dealLatency`: informational; asserts only that the player's solver worker started. The deal pool is held, so every
