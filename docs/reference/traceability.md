@@ -514,6 +514,7 @@ Requirements:
 
 Tests:
 
+- `tests/e2e/dealLatency.spec.ts`
 - `tests/unit/features/deal/dealService.deal.test.ts`
 - `tests/unit/features/deal/solverClient.test.ts`
 - `tests/unit/repo/featuresSolverImport.test.ts`
@@ -1276,6 +1277,7 @@ Requirements:
 Tests:
 
 - `tests/bench/winnable.bench.ts`
+- `tests/e2e/dealLatency.spec.ts`
 
 Manual checks:
 

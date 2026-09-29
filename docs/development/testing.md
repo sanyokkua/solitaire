@@ -132,7 +132,9 @@ stored. Positions live in `tests/fixtures/boardPositions.ts`.
 
 The app runs two solver workers from one chunk: the player's and the deal pool's, which starts at the first idle
 period (D8). `tests/e2e/support/workers.ts` tells them apart: `tagWorkers` (an init script) records each `Worker` in
-creation order with its script URL, its first request and whether it has answered; `playerWorker(page, mode)` returns
+creation order with its script URL, its first request, whether it has answered and, per mode, how many proven deals it
+has delivered (`poolProven(page, mode)` counts the pool's, so a spec knows the pool is warm without a fixed wait);
+`playerWorker(page, mode)` returns
 the earliest one whose first request is a `findWinnable` for that mode with the `any` target, which a pool fill never
 sends (it always asks for a named grade). `holdDealPool` replaces `requestIdleCallback` with one that never calls back,
 so the pool never starts and a deal is always the player's own search; `dealLatency` and the offline cold start in `pwa`
@@ -190,8 +192,10 @@ Chromium-only specs skip themselves in other projects: `visualParity`, `dealLate
 - `dragPerf`: an informational drag trace on a phone viewport with the CPU slowed 4×; it attaches the Chromium trace and reports frame times as annotations without asserting on them.
 - `playModes`: Draw 3 by keyboard, Vegas by drag and the Daily deal (dealt from Home on its golden date) by tap, each to a win.
 - `visualParity`: writes screenshots to `test-results/visual-parity/`; CI uploads them as an artifact for manual review.
-- `dealLatency`: informational; asserts only that the player's solver worker started. The deal pool is held, so every
-  measured deal is a cold search.
+- `dealLatency`: informational, for Draw 1, Draw 3 and Vegas; asserts only that a background solver ran. It reports two
+  paths per mode: on demand (the deal pool is held, so every measured deal is a cold search) and from a warm pool (the
+  spec waits until the pool worker's own replies show a proven deal for the mode, and reports against the 100 ms target),
+  plus Draw 1 with difficulty Hard and Draw 1 while a pre-verification is in flight.
 
 ### Run one spec, one test or one project
 

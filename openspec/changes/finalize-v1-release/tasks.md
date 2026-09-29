@@ -768,7 +768,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/README.md`.
     - **Verify:** `rtk npx playwright test dragPerf --project=chromium` passes and prints the report.
 
-- [ ] 11.10 Deal latency for every mode, cold and from the pool
+- [x] 11.10 Deal latency for every mode, cold and from the pool
     - **Implements:** RF "In-browser deal latency is reported"; KS-PERF-02.
     - **Files:**
       - `tests/e2e/dealLatency.spec.ts`:

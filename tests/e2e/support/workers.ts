@@ -9,6 +9,8 @@ export interface WorkerTag {
     readonly url: string;
     readonly firstRequest: { readonly type: unknown; readonly mode: unknown; readonly target: unknown } | null;
     readonly answered: boolean;
+    /** Per mode, how many of its replies were a finished `findWinnable` selection that proved a deal winnable. */
+    readonly winReplies: Readonly<Record<string, number>>;
 }
 
 type TagWindow = Window & { __solverWorkers?: WorkerTag[] };
@@ -25,9 +27,12 @@ export async function tagWorkers(target: Page | BrowserContext): Promise<void> {
             url: string;
             firstRequest: WorkerTag['firstRequest'];
             answered: boolean;
+            winReplies: Record<string, number>;
         }
         const tags: MutableTag[] = [];
         const tagOf = new WeakMap<Worker, MutableTag>();
+        /** The mode of every request posted, by the request's id, so a reply is counted under the mode it answers. */
+        const modes = new Map<number, string>();
         (window as TagWindow).__solverWorkers = tags;
         const Native = window.Worker;
         window.Worker = class TaggedWorker extends Native {
@@ -38,16 +43,26 @@ export async function tagWorkers(target: Page | BrowserContext): Promise<void> {
                     url: String(scriptURL),
                     firstRequest: null,
                     answered: false,
+                    winReplies: {},
                 };
                 tags.push(tag);
                 tagOf.set(this, tag);
-                this.addEventListener('message', () => {
-                    tag.answered = true;
-                });
+                this.addEventListener(
+                    'message',
+                    (event: MessageEvent<{ id?: number; type?: unknown; verdict?: unknown } | null>) => {
+                        tag.answered = true;
+                        const mode = event.data?.id === undefined ? undefined : modes.get(event.data.id);
+                        if (mode !== undefined && event.data?.type === 'findWinnable' && event.data.verdict === 'win') {
+                            tag.winReplies[mode] = (tag.winReplies[mode] ?? 0) + 1;
+                        }
+                    },
+                );
             }
 
             override postMessage(message: unknown, options?: Transferable[] | StructuredSerializeOptions): void {
                 const tag = tagOf.get(this);
+                const posted = (message ?? {}) as { id?: number; mode?: unknown };
+                if (posted.id !== undefined && typeof posted.mode === 'string') modes.set(posted.id, posted.mode);
                 if (tag?.firstRequest === null) {
                     const request = (message ?? {}) as {
                         type?: unknown;
@@ -77,19 +92,53 @@ export async function holdDealPool(target: Page | BrowserContext): Promise<void>
 }
 
 /**
- * The player's solver worker for a winnable deal of `mode` at Difficulty Any: the earliest-created worker whose first
- * request is `findWinnable` for that mode with the `any` target. The pool's worker never matches, because every fill
- * asks for one named grade. Needs {@link tagWorkers}; throws when there is no such worker (for instance, the deal was
- * served from the pool, so no player search ran).
+ * The player's solver worker for a winnable deal of `mode` at Difficulty Any (or at `target`): the earliest-created
+ * worker whose first request is `findWinnable` for that mode with that target. The pool's worker never matches the
+ * default, because every fill asks for one named grade. Needs {@link tagWorkers}; throws when there is no such worker
+ * (for instance, the deal was served from the pool, so no player search ran).
  */
-export async function playerWorker(page: Page, mode: string): Promise<WorkerTag> {
-    const tags = await page.evaluate(() => (window as TagWindow).__solverWorkers ?? []);
+export async function playerWorker(page: Page, mode: string, target = 'any'): Promise<WorkerTag> {
+    const tags = await allWorkers(page);
     const found = tags.find(
         ({ firstRequest }) =>
-            firstRequest?.type === 'findWinnable' && firstRequest.mode === mode && firstRequest.target === 'any',
+            firstRequest?.type === 'findWinnable' && firstRequest.mode === mode && firstRequest.target === target,
     );
     if (found === undefined) {
         throw new Error(`no player solver worker for a ${mode} deal among ${JSON.stringify(tags)}`);
     }
     return found;
+}
+
+/** Every worker the page has created so far, in creation order. Needs {@link tagWorkers}. */
+export async function allWorkers(page: Page): Promise<readonly WorkerTag[]> {
+    return page.evaluate(() => (window as TagWindow).__solverWorkers ?? []);
+}
+
+/** The deal pool's workers: those whose first request is a `findWinnable` for a named grade (the player's asks for `any`). */
+export function poolWorkers(tags: readonly WorkerTag[]): readonly WorkerTag[] {
+    return tags.filter(
+        ({ firstRequest }) =>
+            firstRequest?.type === 'findWinnable' && firstRequest.target !== 'any' && firstRequest.target !== undefined,
+    );
+}
+
+/** The proven-deal replies of a worker, for `mode` or, without one, for every mode. */
+const provenBy = (tag: WorkerTag, mode?: string): number =>
+    mode === undefined
+        ? Object.values(tag.winReplies).reduce((total, count) => total + count, 0)
+        : (tag.winReplies[mode] ?? 0);
+
+/**
+ * How many deals the pool's pre-verification has proven so far for `mode` (every mode without one), counted from its
+ * own completed selection replies, so a spec learns that the pool is warm from the worker itself and never by waiting a
+ * fixed time. The pool fills the mode chosen on Home, so a deal proven for another mode does not make this one warm.
+ */
+export async function poolProven(page: Page, mode?: string): Promise<number> {
+    return poolWorkers(await allWorkers(page)).reduce((total, tag) => total + provenBy(tag, mode), 0);
+}
+
+/** Whether the pool's worker has been asked to fill and has not yet delivered a proven deal: a pre-verification is in flight. */
+export async function poolFillInFlight(page: Page): Promise<boolean> {
+    const workers = poolWorkers(await allWorkers(page));
+    return workers.length > 0 && workers.every((tag) => provenBy(tag) === 0);
 }
