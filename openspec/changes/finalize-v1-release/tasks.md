@@ -747,7 +747,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - the regenerated matrix.
     - **Verify:** as 11.4, for these prefixes.
 
-- [ ] 11.7 Close the remaining traceability gaps
+- [x] 11.7 Close the remaining traceability gaps
     - **Implements:** RF traceability (coverage) and whichever requirement each uncovered id names.
     - **Files:** new or extended tests at the right layer for every id `docs/reference/traceability.md` still lists as uncovered, plus the regenerated matrix.
     - **Stop condition:** if more than about six ids need new e2e specs, stop and surface the list.
