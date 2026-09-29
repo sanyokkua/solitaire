@@ -5,9 +5,12 @@ import type { CardId, Command, GameState, PileRef, Suit, TableauCol } from '../d
 
 /**
  * A move of the search, in terms that survive replay. The search's talon positions shift as cards leave it, so talon
- * moves name the card; column moves keep the search's column and card index, which equal the engine's.
+ * moves name the card; column moves keep the search's column and card index, which equal the engine's. The ordered
+ * search (Draw 3, Vegas) spells its draws out as `d` steps, a recycle when the stock is empty, so a talon move it
+ * emits finds its card already on the waste top.
  */
 export type SolverMove =
+    | { readonly t: 'd' }
     | { readonly t: 'cf'; readonly col: number }
     | { readonly t: 'tf'; readonly card: CardId }
     | { readonly t: 'cc'; readonly from: number; readonly index: number; readonly to: number }
@@ -20,8 +23,9 @@ function tableau(col: number): PileRef {
 }
 
 /**
- * Turns the search's moves into the player commands that make them, starting from `state`: a talon card is brought to
- * the waste top with draws (an empty stock recycles by itself) before it is moved, and sends to a foundation are
+ * Turns the search's moves into the player commands that make them, starting from `state`: a `d` step is one draw
+ * (an empty stock recycles by itself), a talon card that is not yet the waste top is brought there with draws before
+ * it is moved, and sends to a foundation are
  * ordinary moves, never `autoFoundation`. Every command is run through `applyCommand`, so a move the engine refuses
  * throws. `state` is not modified.
  */
@@ -59,6 +63,9 @@ export function expandLine(state: GameState, moves: readonly SolverMove[]): Comm
 
     for (const move of moves) {
         switch (move.t) {
+            case 'd':
+                play({ type: 'draw' });
+                break;
             case 'cf': {
                 const cards = column(current, move.col as TableauCol);
                 const top = cards.at(-1);

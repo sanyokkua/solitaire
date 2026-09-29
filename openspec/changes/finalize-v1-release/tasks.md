@@ -365,7 +365,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 6. Ordered-talon search (Draw 3 and Vegas)
 
-- [ ] 6.1 Winning lines with explicit draw steps
+- [x] 6.1 Winning lines with explicit draw steps
     - **Implements:** D3S "Winning lines replay as player commands, draws included".
     - **Files:** `src/solver/line.ts` gains a `{ t: 'd' }` step that expands to `{ type: 'draw' }` (a recycle on an empty stock). `src/solver/README.md`.
     - **Tests:** `tests/unit/solver/line.test.ts`:

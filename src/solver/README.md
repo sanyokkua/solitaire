@@ -8,7 +8,9 @@ exactly the modules listed here plus this README):
 - `solver.ts` — the bounded, iterative Draw 1 depth-first search: `solve(state, budget)` returns a `win`, `loss` or
   `unknown` verdict and the number of nodes expanded, plus the winning line of player commands on a `win`.
 - `line.ts` — the `SolverMove` type and `expandLine(state, moves)`, which turns the search's moves into draws and
-  `move` commands that replay through `applyCommand` (never `autoFoundation`).
+  `move` commands that replay through `applyCommand` (never `autoFoundation`). A `{ t: 'd' }` step is one explicit
+  draw (a recycle on an empty stock); the Draw 1 search leaves its draws implicit, and `expandLine` still brings a
+  named talon card to the waste top.
 - `hint.ts` — the `SolverHint` type and `solverHint(state, budget)`, which turns the first command of the winning
   line into a move, draw or recycle hint, or `undefined` when the search does not prove a win, the position is unsupported or it is already won.
 - `winnable.ts` — `findWinnable(seeds, budget, onAttempt?)`, which deals each candidate seed in Draw 1 in order and
