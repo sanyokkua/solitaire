@@ -29,6 +29,19 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   worker's `Outcome` (verdict, and grade for a win). `known(mode, budget, seeds)` returns the entries held for exactly those seeds
   (a read counts as a use); `record(mode, budget, outcome)` stores one, dropping the least recently used at the limit. An entry at
   another mode or budget never matches; nothing is stored. Not yet used by the deal service.
+- `deal/dealPool.ts` — `createDealPool({ client, seedSource? })`: the graded-spare pool, in memory only, over its own
+  `SolverClient` (which it owns and disposes). Proven, graded deals are kept per mode (Draw 1, Draw 3, Vegas) and grade,
+  at most `POOL_PER_GRADE` (2) each, oldest first. `take(mode, target)` removes and returns the oldest `{ seed, grade,
+attempts }` of that grade, or the oldest of any grade for `any`, and never a deal of another grade; `deposit(mode,
+spares)` keeps a player search's spares that fit, with attempts 1. The filler works on the current choice only
+  (`setChoice({ mode, winnableOnly } | undefined)`; Daily, the switch off or `undefined` fills nothing and keeps what is
+  pooled), one request at a time: `findWinnable` with 40 fresh crypto seeds, the mode's budget and `{ target, gradeLimit:
+GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (ties easy, medium, hard); it pools the
+  selected deal (never a `random` one) with its own grade and attempts, and its spares that fit. `pause()`/`resume()`
+  and `setBusy(busy)` stop new fills without cancelling the one in flight, whose deals are pooled under the mode it was
+  started for. A fill that pools nothing or fails ends the filling until the next `take`, `setChoice`, `resume` or
+  `setBusy(false)`; a failure keeps every pooled deal and the next fill starts a new worker. `dispose()` ends the fill
+  in flight and ignores later calls. Not yet used by the deal service.
 - `deal/budgets.ts` — the node budgets and the attempt cap: `WINNABLE_BUDGET` (Draw 1, 5,000), `DRAW3_WINNABLE_BUDGET` and
   `VEGAS_WINNABLE_BUDGET` (the ordered-talon search, 20,000 each), `MAX_ATTEMPTS` (40 candidates) and `HINT_BUDGET`
   (3,000); `winnableBudget(mode)` picks the winnable budget for Draw 1, Draw 3 and Vegas, and `GRADE_LIMIT` caps the proven candidates graded in search of the requested grade. Daily has its own pinned pair in `daily.ts`. The Draw 3 and Vegas values come from the per-mode benchmark

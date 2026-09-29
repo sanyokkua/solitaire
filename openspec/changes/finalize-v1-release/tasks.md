@@ -572,7 +572,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/unit/features/interaction/hint.test.ts`.
     - **Verify:** `rtk npx vitest run tests/unit/features` passes.
 
-- [ ] 9.3 The graded-spare pool
+- [x] 9.3 The graded-spare pool
     - **Implements:** DS "Instant deals from a pre-verified pool" (the pool's own behaviour); D8.
     - **Files:** new `src/features/deal/dealPool.ts` (`createDealPool`; it takes the `SolverClient` the service builds, D8): proven, graded deals kept per mode and grade, at most `POOL_PER_GRADE` (2) each, oldest first; `take(mode, target)` gives the oldest deal of that grade, or the oldest of any grade for `any`, once; `deposit(mode, spares)` keeps the spares of a live search that fit; a filler that works on the current mode only, one request at a time, asking `findWinnable` for the grade whose bucket holds fewest deals, with fresh crypto seeds, the mode's budget and `GRADE_LIMIT`, and depositing the selected deal and its spares; a `random` result is not pooled; pause and resume; a failure drops only the fill in flight; dispose; `src/features/README.md`.
     - **Tests:** new `tests/unit/features/deal/dealPool.test.ts`, with a `SolverClient` over a stub worker, fake timers and an injected seed source:
