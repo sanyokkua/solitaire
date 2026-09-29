@@ -28,6 +28,7 @@ export function collectDeltaIds(root: string): Set<string>;
 export function collectTestCoverage(root: string): { file: string; ids: string[] }[];
 export function parseManualChecks(text: string): Requirement[];
 export function analyze(root: string): Analysis;
+export function uncoveredProblems(analysis: Pick<Analysis, 'uncovered'>): string[];
 export function renderMatrix(analysis: Analysis): string;
 export function formatMatrix(markdown: string): Promise<string>;
 export function generateMatrix(root: string): Promise<string>;

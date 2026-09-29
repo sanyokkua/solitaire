@@ -753,7 +753,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Stop condition:** if more than about six ids need new e2e specs, stop and surface the list.
     - **Verify:** `rtk npm run trace` lists no uncovered id.
 
-- [ ] 11.8 Make the traceability guard strict
+- [x] 11.8 Make the traceability guard strict
     - **Implements:** RF "Requirement traceability is generated and checked" (strict).
     - **Files:** `tests/unit/repo/traceability.test.ts` (`STRICT = true`), `docs/development/testing.md`.
     - **Tests:** the guard fails when a fixture matrix has an uncovered main-spec id. The new ids KS-DEAL-11, KS-DEAL-12, KS-PER-06 and KS-GEN-11 join the strict rule once 14.4 syncs them into the main specs, so this task makes sure they are already covered.

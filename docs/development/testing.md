@@ -81,13 +81,33 @@ These fail when architectural or configuration rules are broken.
 | `tests/unit/repo/validateArtifact.test.ts`      | The four checks of `scripts/validate-artifact.mjs`, run against the mini trees in `tests/fixtures/dist/` (a `good` tree and broken variants).                                                                                                                                                                                                                                     |
 | `tests/unit/repo/lifecycleStorageGuard.test.ts` | `scripts/validate-lifecycle-storage.mjs`, one rule at a time, against scratch repositories.                                                                                                                                                                                                                                                                                       |
 | `tests/unit/repo/playwrightProjects.test.ts`    | The `device-fit` project owns `deviceFit.spec.ts` and `pseudoLocale.spec.ts`; every other project ignores them; each Chromium-only spec carries its `test.skip(testInfo.project.name !== 'chromium'` guard and each whole-game spec its `skipOutsideFullGameProjects` guard.                                                                                                      |
-| `tests/unit/repo/traceability.test.ts`          | The committed `docs/reference/traceability.md` equals a fresh generation; no test or manual check declares an unknown KS id; the delta-only and manual-check rules, against scratch projects. Uncovered ids are listed in the matrix and fail the test only when `STRICT` is `true`.                                                                                              |
+| `tests/unit/repo/traceability.test.ts`          | The committed `docs/reference/traceability.md` equals a fresh generation; no test or manual check declares an unknown KS id; the delta-only and manual-check rules, against scratch projects. Strict: an id of a main-spec requirement that no test and no manual check covers fails the test, naming the id and its requirements.                                                |
 
 `tests/unit/repo/purityScanner.ts` is the shared scanner (strips comments, finds imports and identifiers).
 
 Other static suites worth knowing in `tests/unit/ui/`: `tokens.test.ts` (CSS tokens), `contrast.test.ts` (4.5:1),
 `layoutCss.test.ts` (rails media query matches `RAILS_QUERY`), `motionConstants.test.ts` (TS constants match CSS tokens),
 `boardCss.test.ts`, `hudCss.test.ts`, `sheetsCss.test.ts`.
+
+## Requirement traceability
+
+Every KS id that a requirement of the main OpenSpec specs cites is listed in the generated
+[traceability matrix](../reference/traceability.md), with the requirements that cite it, the tests that declare it and
+the [manual checks](../reference/manual-checks.md) that cover it.
+
+- **Declare coverage** with a comment line `// covers: KS-XXX-nn, KS-YYY-nn` at the top of a test file or of a `describe`;
+  add it only where the test really proves the id. Files under `tests/fixtures/` are not scanned.
+- **Regenerate** with `rtk npm run trace` whenever a `covers:` comment, a KS citation in a main spec or a manual check
+  changes, and commit the matrix. The output is formatted with the project's Prettier configuration, so `format:check`
+  never changes it.
+- **The guard** (`tests/unit/repo/traceability.test.ts`, part of `test:unit`) fails when the committed matrix differs
+  from a fresh generation, when a test or manual check declares an id that no requirement cites, or when an id cited by
+  a main-spec requirement has neither a test nor a manual check (`STRICT` in the test). The delta specs of an active
+  change (`openspec/changes/<name>/specs/`) only make ids known, so a test may cite a new id before the change is
+  archived; they never change the matrix. The test also checks that the ids this change adds (KS-DEAL-11, KS-DEAL-12,
+  KS-PER-06, KS-GEN-11) are already declared, so that syncing the specs cannot uncover a gap.
+- **Manual checks** (real devices, Lighthouse) are rows of the table in `docs/reference/manual-checks.md`, each with its
+  KS ids in the second column; a row counts as coverage for those ids.
 
 ## Storage in tests (the ambient storage rule)
 

@@ -165,6 +165,14 @@ export function analyze(root) {
     };
 }
 
+/** One message per main-spec id that no test and no manual check covers, naming the id and the requirements citing it. */
+export function uncoveredProblems({ uncovered }) {
+    return uncovered.map(
+        ({ id, requirements }) =>
+            `${id} is covered by no test and no manual check; cited by ${requirements.map(({ capability, name }) => `"${name}" (${capability})`).join(', ')}`,
+    );
+}
+
 const bullets = (items, empty) => (items.length === 0 ? [`- ${empty}`] : items.map((item) => `- ${item}`));
 
 /** The matrix as Markdown, before formatting. */

@@ -12,13 +12,14 @@ import {
     generateMatrix,
     parseManualChecks,
     renderMatrix,
+    uncoveredProblems,
 } from '../../../scripts/trace-requirements.mjs';
 
-/**
- * Report mode: ids that no test and no manual check covers are listed in the matrix but do not fail the guard. Task
- * 11.8 sets this to `true` once every main-spec id is covered.
- */
-const STRICT = false as boolean;
+/** Strict: an id of a main-spec requirement that no test and no manual check covers fails the guard (design D17). */
+const STRICT = true as boolean;
+
+/** The ids this change adds to the specs; they join the strict rule when its specs are synced, so each is covered already. */
+const NEW_IDS = ['KS-DEAL-11', 'KS-DEAL-12', 'KS-PER-06', 'KS-GEN-11'];
 
 const REPO = resolve(import.meta.dirname, '../../..');
 const SCRIPT = join(REPO, 'scripts/trace-requirements.mjs');
@@ -69,10 +70,15 @@ describe('the real repository', () => {
         expect(analyze(REPO).unknown).toEqual([]);
     });
 
-    it('lists the uncovered ids, and fails on them only in strict mode', () => {
-        const { uncovered } = analyze(REPO);
+    it('has every main-spec id covered by a test or a manual check', () => {
+        expect(STRICT ? uncoveredProblems(analyze(REPO)) : []).toEqual([]);
+    });
 
-        expect((STRICT ? uncovered : []).map(({ id }) => id)).toEqual([]);
+    it('already covers the ids this change adds to the specs', () => {
+        const { deltaOnlyUncovered, unknown } = analyze(REPO);
+
+        expect(unknown).toEqual([]);
+        for (const id of NEW_IDS) expect(deltaOnlyUncovered, id).not.toContain(id);
     });
 });
 
@@ -161,6 +167,24 @@ describe('the traceability checks', () => {
 
         expect(uncovered.map(({ id }) => id)).toEqual(['KS-AAA-02', 'KS-BBB-03']);
         expect(uncovered[0]?.requirements).toEqual([{ capability: 'dom/cap', name: 'Alpha' }]);
+    });
+
+    it('fails, naming the id and the requirement, when a fixture matrix has an uncovered main-spec id', () => {
+        const problems = uncoveredProblems(analyze(project(BASE)));
+
+        expect(problems).toEqual([
+            'KS-AAA-02 is covered by no test and no manual check; cited by "Alpha" (dom/cap)',
+            'KS-BBB-03 is covered by no test and no manual check; cited by "Beta" (dom/cap)',
+        ]);
+    });
+
+    it('passes when every main-spec id is covered', () => {
+        const root = project({
+            ...BASE,
+            'tests/unit/rest.test.ts': '// covers: KS-AAA-02, KS-BBB-03\nexport {};\n',
+        });
+
+        expect(uncoveredProblems(analyze(root))).toEqual([]);
     });
 
     it('counts a manual check as coverage and lists it for the id', async () => {
