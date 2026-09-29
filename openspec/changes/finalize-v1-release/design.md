@@ -344,7 +344,12 @@ mechanism stays, the signal changed.
   - Filling also pauses by itself while a player's deal is pending.
   - `deal()` cancels only the player client. The pool client is never cancelled by a deal or a hint.
   - If the pool worker fails, only the fill in flight is dropped. Deals already pooled stay available,
-    no notice is shown, and the next fill starts a new worker. The player path is unaffected.
+    no notice is shown, and a new worker starts on the next fill trigger. The player path is unaffected.
+  - **Termination.** A fill that pools nothing (it ended `random`, everything it found fell in a full bucket, or the
+    worker failed) ends the filling until the next `take`, `setChoice`, `resume` or `setBusy(false)`. Otherwise a
+    mode whose Hard deals are rare, or a worker that keeps failing, would keep the background thread busy for ever.
+  - **Daily.** A Daily request pauses the pool (`setBusy`) while it searches, so the pool worker does not compete with
+    it, but it never takes from the pool and never deposits into it.
 - **Controller.** `src/app/dealPoolController.ts` is started by `lifecycle.tsx` after the first idle
   period, through an injected scheduler, so it does not affect Lighthouse's first load.
   - The default scheduler uses `requestIdleCallback(cb, { timeout: 2000 })` where it exists and

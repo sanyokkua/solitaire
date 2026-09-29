@@ -50,7 +50,8 @@ npx vitest run tests/component/sheets
 ### Coverage
 
 `coverage.provider: 'v8'`, reporters `text` and `html` (`coverage/`, gitignored). It measures every file under `src/`
-(`src/**/*.{ts,tsx}`), excluding only `src/main.tsx` and `src/vite-env.d.ts`. Thresholds: one project-wide floor of 80%
+(`src/**/*.{ts,tsx}`), excluding only `src/main.tsx`, `src/pwa/registerPwa.ts` (a thin shim over the `virtual:pwa-register` module, which
+Vitest cannot resolve; `tests/e2e/pwa.spec.ts` exercises it) and `src/vite-env.d.ts`. Thresholds: one project-wide floor of 80%
 for lines, functions, branches and statements. There is no separate threshold for `src/domain`. `npm run validate`
 runs the unit and component suites with `--coverage` (`vitest run tests/unit tests/component --coverage`), so a
 threshold miss fails the gate even when every test passes; CI runs `validate`, so it enforces the same floor. The

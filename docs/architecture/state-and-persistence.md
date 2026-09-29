@@ -45,7 +45,9 @@ observe creation, and it is not part of `createAppStore`'s `deps`.
 The deal service's graded-spare pool and seed verdict cache (D8) are not application state: they live in memory inside
 the deal service, are never written to the record, and a reload starts both empty. Only `dealService.prefetch` and
 `dealService.pause` steer the pool, and only the deal pool controller in the app layer calls them (see
-[Lifecycle](#lifecycle) and [data flows](data-flows.md#deal-pool)).
+[Lifecycle](#lifecycle) and [data flows](data-flows.md#deal-pool)). A fill that pools nothing or fails ends the filling
+until the next take, choice change, resume or end of a pending deal, and a Daily request pauses filling while it searches
+but never takes from or deposits into the pool.
 
 ## Thunks by file
 

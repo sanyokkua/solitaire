@@ -23,7 +23,10 @@ The pool holds proven-winnable, graded deals. It SHALL:
 - never be filled or used for the Daily deal, nor while "Winnable deals only" is off;
 - pause while the page is hidden or a deal the player asked for is pending: no new pre-verification
   starts while it is paused, and one already under way is not cancelled;
-- refill after a pooled deal is used, until each grade of the current mode again holds 2 deals.
+- refill after a pooled deal is used, until each grade of the current mode again holds 2 deals;
+- stop filling when a pre-verification pools nothing (it proves none of its candidates winnable, everything it found
+  fell in a full grade, or it fails): no further pre-verification starts until the next pooled deal is used, the
+  player's choice changes, the page becomes visible again or a pending deal ends.
 
 A deal request whose mode and "Winnable deals only" switch match the pool SHALL be served from it, at
 once, when the pool holds a deal of the target grade (the oldest one), or, for the target Any, a deal of
@@ -107,14 +110,22 @@ selection reports for it, so its deal code reproduces it without the solver.
 #### Scenario: An unproven pre-verification is not pooled
 
 - **WHEN** a pre-verification for Vegas proves none of its candidates winnable
-- **THEN** nothing is pooled from it, and the next pre-verification starts
+- **THEN** nothing is pooled from it, and no further pre-verification starts until the next pooled deal is
+  used, the player's choice changes, the page becomes visible again or a pending deal ends
+
+#### Scenario: A pre-verification that pools nothing stops the filling until a trigger
+
+- **WHEN** a pre-verification pools nothing, whether it proved none of its candidates winnable, found only deals
+  for full grades or failed
+- **THEN** no further pre-verification starts, and filling starts again when a pooled deal is used, the player's
+  choice changes, the page becomes visible again or a pending deal ends
 
 #### Scenario: No pool for Daily or with the switch off
 
 - **WHEN** the Daily deal is requested, or a Draw 1, Draw 3 or Vegas deal is requested with "Winnable
   deals only" off
 - **THEN** the deal is made as its own requirement defines, and no pooled deal is used or filled for
-  it
+  it; a Daily search pauses pre-verification while it runs and deposits nothing into the pool
 
 ### Requirement: A small in-memory verdict cache
 
@@ -473,7 +484,7 @@ Deterministic: a fallback deal is the seeded deal of its seed.
 
 - **WHEN** the pool's background thread fails during a pre-verification
 - **THEN** that pre-verification is dropped, deals already pooled can still be served, the player's
-  deals and hints are served as usual, and the next fill starts a new pool thread
+  deals and hints are served as usual, and a new pool thread starts on the next fill trigger
 
 #### Scenario: The service does not load the search on the input thread
 

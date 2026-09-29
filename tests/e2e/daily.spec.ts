@@ -36,13 +36,18 @@ async function expectDailyTile(page: Page, day: string): Promise<void> {
     );
 }
 
-/** Selects Daily, deals it with the real solver and returns the deal code once all 52 cards are on the board. */
-async function dealDaily(page: Page): Promise<string> {
+/**
+ * Selects Daily, deals it with the real solver and returns the deal code once the deal for UTC date `day` is on the
+ * board. The Game screen shows the game already in the store (a seeded or an earlier one, invisible from Home) until
+ * the new deal replaces it, so the code is awaited by value rather than read as soon as 52 cards are on screen.
+ */
+async function dealDaily(page: Page, day: string): Promise<string> {
+    const code = goldenCode(day);
     await page.getByRole('radio', { name: 'Daily deal' }).click();
     await page.getByRole('button', { name: 'Deal cards' }).click();
-    await expect(page.locator('[data-card-id]')).toHaveCount(52, { timeout: DEAL_TIMEOUT });
     const button = page.locator('.deal-code');
-    await expect(button).toHaveText(/^Deal [dD]-[0-9A-Z]{7}$/, { timeout: DEAL_TIMEOUT });
+    await expect(button).toHaveText(`Deal ${code}`, { timeout: DEAL_TIMEOUT });
+    await expect(page.locator('[data-card-id]')).toHaveCount(52, { timeout: DEAL_TIMEOUT });
     return ((await button.textContent()) ?? '').replace(/^Deal /, '');
 }
 
@@ -68,7 +73,7 @@ test.describe('Daily rollover at midnight UTC', () => {
         await page.goto('/');
 
         await expectDailyTile(page, DAY);
-        const before = await dealDaily(page);
+        const before = await dealDaily(page, DAY);
         expect(before).toBe(goldenCode(DAY));
 
         // The clock passes 00:00 UTC while the game is open; nothing watches the date, so Home shows the new day
@@ -78,7 +83,7 @@ test.describe('Daily rollover at midnight UTC', () => {
         await expect(page.getByRole('heading', { name: 'Solitaire' })).toBeVisible();
         await expectDailyTile(page, NEXT_DAY);
 
-        const after = await dealDaily(page);
+        const after = await dealDaily(page, NEXT_DAY);
         expect(after).not.toBe(before);
         expect(after).toBe(goldenCode(NEXT_DAY));
 
