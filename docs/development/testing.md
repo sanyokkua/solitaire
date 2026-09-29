@@ -104,7 +104,7 @@ the [manual checks](../reference/manual-checks.md) that cover it.
   from a fresh generation, when a test or manual check declares an id that no requirement cites, or when an id cited by
   a main-spec requirement has neither a test nor a manual check (`STRICT` in the test). The delta specs of an active
   change (`openspec/changes/<name>/specs/`) only make ids known, so a test may cite a new id before the change is
-  archived; they never change the matrix. The test also checks that the ids this change adds (KS-DEAL-11, KS-DEAL-12,
+  archived; they never change the matrix. The test also checks that the ids the release change adds (KS-DEAL-11, KS-DEAL-12,
   KS-PER-06, KS-GEN-11) are already declared, so that syncing the specs cannot uncover a gap.
 - **Manual checks** (real devices, Lighthouse) are rows of the table in `docs/reference/manual-checks.md`, each with its
   KS ids in the second column; a row counts as coverage for those ids.

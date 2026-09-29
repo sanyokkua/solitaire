@@ -325,7 +325,7 @@ describe('application lifecycle wiring', () => {
         expect(root).toContainElement(screen.getByRole('button', { name: /deal cards/i }));
     });
 
-    // covers: KS-I18N-01, KS-SET-01
+    // covers: KS-SET-01
     it('follows a stored language on <html lang>, and remembers a change after a reload', () => {
         const saved = memoryStorage();
         saved.setItem(

@@ -103,7 +103,7 @@ test('Drag performance trace', async ({ browser, baseURL }, testInfo) => {
 
         // Reported, never asserted: the frame times of a development machine under a 4× slowdown are not a phone's.
         const ms = (value: number) => `${value.toFixed(1)} ms`;
-        const basis = `${String(deltas.length)} frames over ${String(RUN_PATH.length)} drags of a 13-card run, ${String(CPU_SLOWDOWN)}× CPU slowdown`;
+        const basis = `${String(deltas.length)} frames over ${String(RUN_PATH.length)} drags of a 13-card run with the settle waits between them, ${String(CPU_SLOWDOWN)}× CPU slowdown`;
         const figures: [string, string][] = [
             ['drag frame time median', ms(median(deltas))],
             ['drag frame time p95', ms(percentile(deltas, 0.95))],

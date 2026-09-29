@@ -35,8 +35,8 @@ export async function tagWorkers(target: Page | BrowserContext): Promise<void> {
         }
         const tags: MutableTag[] = [];
         const tagOf = new WeakMap<Worker, MutableTag>();
-        /** The mode of every request posted, by the request's id, so a reply is counted under the mode it answers. */
-        const modes = new Map<number, string>();
+        /** The mode of every request a worker was sent, by the request's id, so a reply is counted under the mode it answers (ids restart at 1 in each worker). */
+        const modesOf = new WeakMap<Worker, Map<number, string>>();
         (window as TagWindow).__solverWorkers = tags;
         const Native = window.Worker;
         window.Worker = class TaggedWorker extends Native {
@@ -51,6 +51,8 @@ export async function tagWorkers(target: Page | BrowserContext): Promise<void> {
                 };
                 tags.push(tag);
                 tagOf.set(this, tag);
+                const modes = new Map<number, string>();
+                modesOf.set(this, modes);
                 this.addEventListener(
                     'message',
                     (event: MessageEvent<{ id?: number; type?: unknown; verdict?: unknown } | null>) => {
@@ -66,7 +68,8 @@ export async function tagWorkers(target: Page | BrowserContext): Promise<void> {
             override postMessage(message: unknown, options?: Transferable[] | StructuredSerializeOptions): void {
                 const tag = tagOf.get(this);
                 const posted = (message ?? {}) as { id?: number; mode?: unknown };
-                if (posted.id !== undefined && typeof posted.mode === 'string') modes.set(posted.id, posted.mode);
+                if (posted.id !== undefined && typeof posted.mode === 'string')
+                    modesOf.get(this)?.set(posted.id, posted.mode);
                 if (tag?.firstRequest === null) {
                     const request = (message ?? {}) as {
                         type?: unknown;

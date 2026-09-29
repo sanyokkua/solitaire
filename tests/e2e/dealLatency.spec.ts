@@ -1,7 +1,9 @@
 // covers: KS-DEAL-10, KS-DEAL-12, KS-PERF-02
 import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
+import { makeState } from '../fixtures/states';
+import { seedRecord } from './support/seed';
 import { median, percentile } from './support/stats';
-import { holdDealPool, playerWorker, poolProven, tagWorkers } from './support/workers';
+import { allWorkers, holdDealPool, playerWorker, poolProven, poolWorkers, tagWorkers } from './support/workers';
 
 const ITERATIONS = 10;
 const CARDS = 52;
@@ -128,10 +130,18 @@ interface Session {
 async function freshPage(
     browser: Browser,
     baseURL: string,
-    options: { holdPool: boolean; atPoolRequest: boolean },
+    options: { holdPool: boolean; atPoolRequest: boolean; selectedMode?: string },
 ): Promise<Session> {
     const context = await browser.newContext({ baseURL });
     const page = await context.newPage();
+    // A player who returns to a stored choice: the pool fills that mode from its first idle period, so no fill has to be
+    // redirected by a change of mode (a fill that pools nothing after such a change stops until the next trigger).
+    if (options.selectedMode !== undefined) {
+        await seedRecord(page, {
+            current: makeState(),
+            preferences: { selectedMode: options.selectedMode as 'draw1' | 'draw3' | 'vegas' },
+        });
+    }
     await observeLongTasks(page);
     await installDealTimer(page, { atPoolRequest: options.atPoolRequest });
     // A player search that must be measured is a cold one: with the pool held it never starts, so it cannot serve the deal.
@@ -188,6 +198,8 @@ async function measure(
         readonly mode: ModeCase;
         readonly difficulty?: string;
         readonly holdPool: boolean;
+        /** Home opens on this mode, as if chosen earlier, and the mode tile is not clicked. */
+        readonly preselect?: boolean;
         /** Starts the deal in the task that posts the pool's first fill request, so that fill is in flight. */
         readonly atPoolRequest?: boolean;
         /** Runs after the page loaded and the choice was made, before the deal is timed. */
@@ -200,9 +212,14 @@ async function measure(
     let workerUrl = '';
     for (let iteration = 0; iteration < ITERATIONS; iteration++) {
         const atPoolRequest = options.atPoolRequest === true;
-        const session = await freshPage(browser, baseURL, { holdPool: options.holdPool, atPoolRequest });
+        const preselected = options.preselect === true;
+        const session = await freshPage(browser, baseURL, {
+            holdPool: options.holdPool,
+            atPoolRequest,
+            ...(preselected ? { selectedMode: options.mode.mode } : {}),
+        });
         try {
-            await choose(session.page, options.mode.label, options.difficulty);
+            if (!preselected) await choose(session.page, options.mode.label, options.difficulty);
             await options.before?.(session.page);
             times.push(
                 atPoolRequest ? await dealAtPoolRequestTime(session.page) : await clickDealAndTime(session.page),
@@ -210,8 +227,10 @@ async function measure(
             longest = Math.max(longest, await longestLongTask(session.page));
             const target = options.difficulty?.toLowerCase() ?? 'any';
             const player = await playerWorker(session.page, options.mode.mode, target).catch(() => undefined);
-            if (player === undefined) fromPool += 1;
-            else workerUrl = player.url;
+            if (player === undefined) {
+                fromPool += 1;
+                workerUrl = poolWorkers(await allWorkers(session.page))[0]?.url ?? workerUrl;
+            } else workerUrl = player.url;
             const solver = player ?? (await poolProven(session.page, options.mode.mode)) > 0;
             expect(solver, 'a background solver ran').toBeTruthy();
             if (player !== undefined) expect(player.url).toContain('worker');
@@ -251,6 +270,7 @@ test.describe('Latency report', () => {
             const figures = await measure(browser, baseURL, {
                 mode,
                 holdPool: false,
+                preselect: true,
                 // The pool is warm when its own worker has delivered a proven deal, never after a fixed wait.
                 before: async (page) => {
                     await expect

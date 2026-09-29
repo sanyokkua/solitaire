@@ -67,7 +67,7 @@ describe('Playwright projects', () => {
         for (const name of FULL_GAME_PROJECTS) expect(names).toContain(name);
     });
 
-    it.each(FULL_GAME_SPECS)('%s skips every whole-game test outside the full-game projects', (spec) => {
+    it.each(FULL_GAME_SPECS)('%s carries the whole-game guard and no Chromium-only guard', (spec) => {
         const source = readFileSync(spec, 'utf8');
         const games = source.match(/skipOutsideFullGameProjects\(testInfo\)/g) ?? [];
         expect(games.length).toBeGreaterThan(0);

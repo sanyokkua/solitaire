@@ -103,7 +103,7 @@ describe('installApp', () => {
     });
 });
 
-// covers: KS-PWA-03, KS-PER-01, KS-PER-04
+// covers: KS-PWA-03, KS-PER-01
 describe('applyUpdate with the real writer over a storage that fails (PW "Updates apply only when the player chooses")', () => {
     beforeEach(() => {
         vi.useFakeTimers();

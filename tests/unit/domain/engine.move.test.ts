@@ -1,4 +1,4 @@
-// covers: KS-MOVE-01, KS-MOVE-02, KS-MOVE-05, KS-MOVE-07, KS-SCO-03, KS-SCO-05
+// covers: KS-MOVE-01, KS-MOVE-02, KS-MOVE-05, KS-MOVE-07, KS-SCO-05
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { applyCommand } from '../../../src/domain/engine';

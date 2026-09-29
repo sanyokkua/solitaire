@@ -5,7 +5,7 @@ import type { Command } from '../../../src/domain/types';
 import type { Preferences } from '../../../src/features/preferences/preferencesSlice';
 import { formatBank, formatMoves } from '../../../src/ui/format';
 import { WINNING_LINE, parseLine, type WinningLine } from '../../fixtures/deals';
-import { MOVES_VALUE } from './game';
+import { MOVES_VALUE, SCORE_VALUE } from './game';
 import { seedRecord } from './seed';
 import { horizontalKey, planCommand, verticalKey, type GesturePlan, type PileKey } from './lineGestures';
 import { FULL_GAME_PROJECTS } from './projects';
@@ -85,6 +85,8 @@ export async function expectWon(page: Page, line: WinningLine): Promise<void> {
     expect(stats.Moves).toBe(formatMoves(line.moves));
     if (line.mode === 'vegas') {
         expect(stats.Bank).toBe(formatBank(line.score));
+        // The HUD shows the final Vegas score as money too.
+        await expect(page.locator(SCORE_VALUE)).toHaveText(formatBank(line.score));
         return;
     }
     const [minutes = 0, seconds = 0] = (stats.Time ?? '').split(':').map(Number);

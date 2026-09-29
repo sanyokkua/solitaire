@@ -56,7 +56,7 @@ interface ListedViewport {
     readonly height: number;
 }
 
-/** The 12 rows of the device matrix, with the Galaxy S25+ / S25 Ultra row counted at both of its viewports. */
+/** The 13 screens of the device matrix, the Galaxy S25+ / S25 Ultra counted at both of its viewports. */
 const LISTED_VIEWPORTS: readonly ListedViewport[] = [
     { name: 'iPhone 14 Pro', platform: 'ios', width: 393, height: 852 },
     { name: 'iPhone 14 Pro Max', platform: 'ios', width: 430, height: 932 },

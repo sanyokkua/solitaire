@@ -736,7 +736,6 @@ Requirements:
 
 Tests:
 
-- `tests/component/appLifecycle.wiring.test.tsx`
 - `tests/component/localeSwitch.test.tsx`
 - `tests/component/pseudoLocale.test.tsx`
 - `tests/component/sheets/settings.test.tsx`
@@ -1135,6 +1134,7 @@ Tests:
 - `tests/unit/domain/engine.fullGame.test.ts`
 - `tests/unit/domain/engine.move.test.ts`
 - `tests/unit/domain/rules.stock.test.ts`
+- `tests/unit/fixtures/winningLines.test.ts`
 - `tests/unit/solver/line.test.ts`
 - `tests/unit/solver/solver.test.ts`
 
@@ -1226,7 +1226,6 @@ Requirements:
 Tests:
 
 - `tests/e2e/storage.spec.ts`
-- `tests/unit/app/pwaThunks.test.ts`
 - `tests/unit/features/persistence/persistenceSlice.test.ts`
 - `tests/unit/features/persistence/persistenceWriter.test.ts`
 - `tests/unit/features/persistence/storageGateway.test.ts`
@@ -1276,7 +1275,6 @@ Requirements:
 
 Tests:
 
-- `tests/bench/winnable.bench.ts`
 - `tests/e2e/dealLatency.spec.ts`
 
 Manual checks:
@@ -1434,7 +1432,6 @@ Requirements:
 
 Tests:
 
-- `tests/unit/domain/engine.move.test.ts`
 - `tests/unit/domain/scoring.time.test.ts`
 - `tests/unit/features/game/gameSlice.test.ts`
 - `tests/unit/features/game/history.test.ts`
@@ -1541,7 +1538,6 @@ Tests:
 - `tests/component/appLifecycle.test.tsx`
 - `tests/component/appLifecycle.wiring.test.tsx`
 - `tests/component/sheets/settings.test.tsx`
-- `tests/e2e/appearance.spec.ts`
 - `tests/unit/app/themeController.test.ts`
 
 Manual checks:

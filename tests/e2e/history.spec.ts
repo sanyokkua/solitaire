@@ -121,7 +121,7 @@ test.describe('A rapid double tap', () => {
     test('applies at most one move', async ({ page }, testInfo) => {
         test.skip(
             testInfo.project.use.defaultBrowserType !== 'chromium',
-            'the two taps are timed through DevTools input, which only Chromium has; the double-tap window itself is unit-tested for every engine',
+            'the two taps are timed through DevTools input, which only Chromium has; other engines are covered by the pointer-controller unit tests and the component tests, not by a browser run',
         );
         await seedRecord(page, {
             // The 6♦ has two legal homes, so a second move would visibly carry it from one seven to the other.

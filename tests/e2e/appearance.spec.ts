@@ -44,7 +44,7 @@ test.describe('Theme', () => {
         });
     });
 
-    // covers: KS-SET-01, KS-SET-02
+    // covers: KS-SET-02
     test.describe('System follows the device live', () => {
         test.use({ colorScheme: 'light' });
 

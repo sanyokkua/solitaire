@@ -233,8 +233,9 @@ export async function generateMatrix(root) {
 
 /** Writes the matrix under `root` and returns the analysis it came from. */
 export async function writeMatrix(root) {
-    writeFileSync(join(root, MATRIX_PATH), await generateMatrix(root));
-    return analyze(root);
+    const analysis = analyze(root);
+    writeFileSync(join(root, MATRIX_PATH), await formatMatrix(renderMatrix(analysis)));
+    return analysis;
 }
 
 const log = (line) => process.stdout.write(`${line}\n`);
