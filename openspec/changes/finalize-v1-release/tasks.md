@@ -779,7 +779,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/README.md` (recorded results).
     - **Verify:** `rtk npx playwright test dealLatency pwa --project=chromium` passes and prints every path.
 
-- [ ] 11.11 Device matrix, a device-fit rerun on the production build, and the real-device checklist
+- [x] 11.11 Device matrix, a device-fit rerun on the production build, and the real-device checklist
     - **Implements:** BL "Columns compress face-down cards first" (the device matrix); GM "The Game screen never scrolls and respects safe areas"; RF "Performance and installability are checked manually and recorded" (the real-device checklist).
     - **Files:**
       - new `docs/reference/device-matrix.md` (the 13 screens with viewport sizes, portrait and landscape, browser and installed, and the real-device checklist table);
