@@ -119,9 +119,14 @@ describe('dailySeed and dailySeeds', () => {
 
 describe('Daily v1 golden dates', () => {
     it.each(DAILY_GOLDEN)(
-        'picks the pinned seed for $day',
-        ({ day, seed, attempts }) => {
-            expect(findWinnable(dailySeeds(day), DAILY_V1.budget, 'daily')).toEqual({ seed, verdict: 'win', attempts });
+        'picks the pinned seed, attempts and grade for $day',
+        ({ day, seed, attempts, grade }) => {
+            expect(findWinnable(dailySeeds(day), DAILY_V1.budget, 'daily')).toMatchObject({
+                seed,
+                verdict: 'win',
+                attempts,
+                grade,
+            });
             expect(decodeDealCode(encodeDealCode(seed, 'daily'))).toEqual({ seed, mode: 'daily' });
         },
         30_000,

@@ -115,31 +115,42 @@ shows at 100% in the html report; the text table hides it), so it is not in `cov
 
 ## Benchmark
 
-`rtk npm run bench` (`vitest bench --run`) runs `bench/winnable.bench.ts`. For Draw 1, Draw 3 and Vegas it prints, at the
-mode's budget from `src/features/deal/budgets.ts`, the verdict distribution of the search over 100 fixed seeds and the
-median and 95th percentile of one cold selection (`findWinnable` over a batch of 40 seeds, the call the deal service
-makes for a winnable deal). Draw 1 is judged against the KS-PERF-02 targets (300 ms median, 1.5 s p95 on a mid-range
-phone); Draw 3 and Vegas have no target. It is informational: it never asserts on a timing and exits zero whatever the
-numbers are. It is not part of `test:unit`, `test`, `validate`, the git hooks or CI, and it is discovered only through
-`benchmark.include` in `vitest.config.ts` (the `*.bench.ts` name is outside the test `include`). Vitest 5's bench
-statistics have no `p95`, so the benchmark computes it from the raw samples kept by `benchmark.retainSamples`. Numbers
-from a development machine are not phone numbers; the browser check against the real worker is `tests/e2e/dealLatency.spec.ts` (see below) and the
-mid-range-phone check is a documented manual step in Phase 9.
+`rtk npm run bench` (`vitest bench --run`) runs three informational benchmarks. None asserts on a number, exits non-zero
+or belongs to `test:unit`, `test`, `validate`, the git hooks or CI; they are discovered only through `benchmark.include`
+in `vitest.config.ts` (the `*.bench.ts` name is outside the test `include`). Vitest 5's bench statistics have no `p95`,
+so `winnable.bench.ts` computes it from the raw samples kept by `benchmark.retainSamples`. Numbers from a development
+machine are not phone numbers; the browser check against the real worker is `tests/e2e/dealLatency.spec.ts` (see below)
+and the mid-range-phone check is a documented manual step.
 
-Recorded results (2026-09-29, Apple M1 Pro, Node v24.21.0). Verdicts are identical on every run; timings vary by a few
-percent.
+- **`bench/winnable.bench.ts`** prints, at each mode's budget from `src/features/deal/budgets.ts`, the verdict
+  distribution of the search over 100 fixed seeds and the median and 95th percentile of one cold selection
+  (`findWinnable` over a batch of 40 seeds, the selected deal graded, the call the deal service makes for a winnable
+  deal), and Draw 1 again asking for the Hard grade (up to `GRADE_LIMIT` proven candidates graded).
+- **`bench/budgets.bench.ts`** sweeps the search budget per mode over seeds 1 to 100.
+- **`bench/grading.bench.ts`** calibrates grading v1: for the first 60 proven seeds of each mode it prints the score
+  histograms of four parameter variants, the thresholds that split the sample most evenly and the cost of one grading.
+  `GRADING_CALIBRATION=fixture` prints the sample as `[seed, score]` pairs for `fixtures/gradingGolden.ts`.
 
-| Mode   | Budget (nodes) | Verdicts over 100 seeds (win / loss / unknown) | Selection median | Selection p95 |
-| ------ | -------------- | ---------------------------------------------- | ---------------- | ------------- |
-| Draw 1 | 5,000          | 68 / 1 / 31                                    | 8.9 ms           | 159 ms        |
-| Draw 3 | 20,000         | 44 / 8 / 48                                    | 442 ms           | 2.4 s         |
-| Vegas  | 20,000         | 18 / 19 / 63                                   | 2.2 s            | 7.9 s         |
+Deals are dealt for as long as it takes to prove them winnable: latency is reported, not gated, and a cold deal shows the
+dealing overlay. Recorded results (2026-09-30, Apple M1 Pro, Node v24.21.0). Verdicts are identical on every run; timings
+vary by a few percent.
 
-The Draw 1 figures are the baseline for the latency guard on grading (task 7.4). Draw 3 stays under the 1 s median and
-3 s p95 limit that task 6.5 set for the slow modes. Vegas misses both at 20,000 nodes (5,000 nodes measured 0.9 s median
-and 2.6 s p95 with about 1 selection in 40 finding no proven win; 10,000 nodes 1.4 s and 4.0 s). The 20,000 value was
-kept on purpose: the deal pool (D8) and the dealing overlay cover cold Vegas deals, and Draw 3 and Vegas cold numbers
-are informational (KS-PERF-02 is modified, not extended, to them).
+| Mode         | Budget (nodes) | Verdicts over 100 seeds (win / loss / unknown) | Selection median | Selection p95 |
+| ------------ | -------------- | ---------------------------------------------- | ---------------- | ------------- |
+| Draw 1       | 5,000          | 68 / 1 / 31                                    | 132 ms           | 657 ms        |
+| Draw 1, Hard | 5,000          | 68 / 1 / 31                                    | 496 ms           | 1.3 s         |
+| Draw 3       | 20,000         | 44 / 8 / 48                                    | 811 ms           | 3.0 s         |
+| Vegas        | 20,000         | 18 / 19 / 63                                   | 3.2 s            | 9.5 s         |
+
+Search budgets (seeds 1 to 100, mean time of one search): Draw 1 at 5,000 / 20,000 / 50,000 nodes proves 70 / 74 / 78
+deals in 29 / 105 / 244 ms; Draw 3 at 20,000 / 50,000 / 100,000 proves 52 / 59 / 64 in 255 / 569 / 1,074 ms; Vegas proves
+17 / 23 / 28 in 370 / 874 / 1,677 ms. A raise buys a few more proven deals per hundred seeds while the time per proven
+deal doubles or worse, and a selection tries up to 40 seeds, so the budgets stay as they are (a request finds no proven
+deal about once in thousands of tries even in Vegas).
+
+Grading v1 (task 7.4 and 7.5), 60 proven seeds per mode: the mean cost of one grading is 0.2 s in Draw 1, 0.35 s in Draw 3
+and 0.45 s in Vegas (worst 1.8 s). With the pinned thresholds the shares of Easy, Medium and Hard are 35 / 32 / 33% in
+Draw 1, 32 / 32 / 37% in Draw 3 and 27 / 25 / 48% in Vegas.
 
 ## Storage in tests
 

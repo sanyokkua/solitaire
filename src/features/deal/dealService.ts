@@ -141,9 +141,11 @@ export function createDealService(options: DealServiceOptions = {}): DealService
             report();
         }, overlayDelayMs);
         const outcome = await client
-            .findWinnable(plan.seeds, plan.budget, mode, (started) => {
-                attempt = started;
-                report();
+            .findWinnable(plan.seeds, plan.budget, mode, {
+                onProgress: (started) => {
+                    attempt = started;
+                    report();
+                },
             })
             .finally(() => {
                 clearTimeout(timer);

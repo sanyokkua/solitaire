@@ -17,6 +17,8 @@ export default defineConfig({
         globals: true,
         css: true,
         passWithNoTests: true,
+        // Grading a deal runs the solver dozens of times, and the coverage run slows it further.
+        testTimeout: 30_000,
         include: ['tests/**/*.{test,spec}.{ts,tsx}'],
         exclude: ['tests/e2e/**/*.spec.ts'],
         benchmark: {

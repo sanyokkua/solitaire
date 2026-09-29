@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Informational benchmark of the winnable-deal search in every mode (KS-PERF-02, design D11).
+ * Informational benchmark of the winnable-deal selection in every mode (KS-PERF-02, design D11).
  *
  * This is NOT a gate. It never asserts on a timing, so it passes whatever the numbers are, and it is outside
  * `test:unit`, `validate`, the git hooks and CI; run it with `rtk npm run bench`. Numbers from a development machine
@@ -11,9 +11,9 @@
  * budgets.ts`):
  * - the verdict distribution of the search over a fixed set of seeds (identical on every run);
  * - the median and 95th percentile of one cold selection, `findWinnable` over a batch of `MAX_ATTEMPTS` seeds, the
- *   call the deal service makes for a winnable deal. Draw 1 is judged against the KS-PERF-02 targets (300 ms median,
- *   1.5 s p95 on a mid-range phone); Draw 3 and Vegas are informational, with no target (the pool and the overlay
- *   cover cold deals), and task 6.5 of the release change stops if they pass 1 s at the median or 3 s at p95 here.
+ *   call the deal service makes for a winnable deal, with the selected deal graded (grading v1 is solver-checked, so it
+ *   costs seconds on a phone). Every mode is informational: the dealing overlay covers a cold deal and the pool serves
+ *   a warm one. Draw 1 is also run asking for the Hard grade, which grades up to `GRADE_LIMIT` proven candidates.
  *
  * Batches derive from `mulberry32` of fixed bases, so every run measures the same seeds; the iterations cycle through
  * the batches, so the samples span the spread of deals (most win on the first attempts, some need several). Vitest's
@@ -28,10 +28,12 @@ import { mulberry32 } from '../../src/domain/prng';
 import type { Mode } from '../../src/domain/types';
 import {
     DRAW3_WINNABLE_BUDGET,
+    GRADE_LIMIT,
     MAX_ATTEMPTS,
     VEGAS_WINNABLE_BUDGET,
     WINNABLE_BUDGET,
 } from '../../src/features/deal/budgets';
+import type { Grade } from '../../src/solver/grading';
 import { search } from '../../src/solver/search';
 import { findWinnable } from '../../src/solver/winnable';
 
@@ -50,10 +52,13 @@ interface ModeRun {
     /** Iterations of the selection benchmark: two passes over the batches for Draw 1, one for the slower modes. */
     readonly iterations: number;
     readonly targets: boolean;
+    /** The grade asked for; `any` when absent. */
+    readonly target?: Grade;
 }
 
 const RUNS: readonly ModeRun[] = [
-    { mode: 'draw1', budget: WINNABLE_BUDGET, iterations: BATCH_COUNT * 2, targets: true },
+    { mode: 'draw1', budget: WINNABLE_BUDGET, iterations: BATCH_COUNT * 2, targets: false },
+    { mode: 'draw1', budget: WINNABLE_BUDGET, iterations: BATCH_COUNT, targets: false, target: 'hard' },
     { mode: 'draw3', budget: DRAW3_WINNABLE_BUDGET, iterations: BATCH_COUNT, targets: false },
     { mode: 'vegas', budget: VEGAS_WINNABLE_BUDGET, iterations: BATCH_COUNT, targets: false },
 ];
@@ -85,9 +90,9 @@ function verdicts(mode: ModeRun['mode'], budget: number): string {
     return `${String(counts.win)} win, ${String(counts.loss)} loss, ${String(counts.unknown)} unknown of ${String(seeds.length)}`;
 }
 
-for (const { mode, budget, iterations, targets } of RUNS) {
+for (const { mode, budget, iterations, targets, target } of RUNS) {
     test(
-        `winnable search in ${mode} (informational)`,
+        `winnable search in ${mode}, target ${target ?? 'any'} (informational)`,
         async ({ bench }) => {
             const batches = BASES.map(seedBatch);
             let call = 0;
@@ -95,7 +100,9 @@ for (const { mode, budget, iterations, targets } of RUNS) {
             const result = await bench(
                 `findWinnable(${String(MAX_ATTEMPTS)} seeds, ${mode}, ${String(budget)} nodes)`,
                 () => {
-                    findWinnable(batches[call++ % batches.length] ?? [], budget, mode);
+                    findWinnable(batches[call++ % batches.length] ?? [], budget, mode, {
+                        selection: { target: target ?? 'any', gradeLimit: GRADE_LIMIT },
+                    });
                 },
             ).run({ iterations });
 
@@ -106,7 +113,7 @@ for (const { mode, budget, iterations, targets } of RUNS) {
 
             // Written straight to stdout: Vitest's agent-aware default reporter drops console output of passing tests.
             const lines = [
-                `winnable search, ${mode}, ${String(budget)} nodes, ${String(result.latency.samplesCount)} selections over ${String(batches.length)} seed batches (informational, not a gate)`,
+                `winnable search, ${mode}, target ${target ?? 'any'}, ${String(budget)} nodes, ${String(result.latency.samplesCount)} selections over ${String(batches.length)} seed batches (informational, not a gate)`,
                 `  verdicts: ${verdicts(mode, budget)}`,
                 `  median:   ${timing(result.latency.p50, targets ? TARGET_MEDIAN_MS : undefined)}`,
                 `  p95:      ${timing(percentile(samples, 0.95), targets ? TARGET_P95_MS : undefined)}`,

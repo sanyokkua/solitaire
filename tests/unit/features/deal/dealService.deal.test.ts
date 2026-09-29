@@ -124,6 +124,8 @@ describe('deal service: provenance per mode', () => {
             seed: lastSeed,
             verdict: 'random',
             attempts: MAX_ATTEMPTS,
+            grade: undefined,
+            spares: [],
         });
 
         expect(await deal).toEqual({
@@ -281,7 +283,15 @@ describe('deal service: overlay timing (silent stub, fake timers)', () => {
         const stub = stubAt(factory.stubs, 0);
 
         await vi.advanceTimersByTimeAsync(100);
-        stub.reply({ id: stub.idOf(0), type: 'findWinnable', seed: seeds[0] ?? 0, verdict: 'win', attempts: 1 });
+        stub.reply({
+            id: stub.idOf(0),
+            type: 'findWinnable',
+            seed: seeds[0] ?? 0,
+            verdict: 'win',
+            attempts: 1,
+            grade: 'easy',
+            spares: [],
+        });
 
         expect(await deal).toEqual({
             status: 'dealt',

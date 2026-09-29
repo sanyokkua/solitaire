@@ -3,7 +3,7 @@ import '@vitest/web-worker';
 import { afterEach, describe, expect, it } from 'vitest';
 import { solverHint } from '../../../src/solver/hint';
 import type { SolverRequest, SolverResponse } from '../../../src/solver/protocol';
-import { findWinnable } from '../../../src/solver/winnable';
+import { findWinnable, type Outcome } from '../../../src/solver/winnable';
 import { corpusSeeds, MIDGAME_POSITIONS, midgameState } from '../../fixtures/solverCorpus';
 
 const FIND_BUDGET = 5000;
@@ -57,12 +57,15 @@ describe('solver.worker round-trip', () => {
             budget: FIND_BUDGET,
             mode: 'draw1',
         });
-        const direct = findWinnable(seeds, FIND_BUDGET, 'draw1');
+        const outcomes: Outcome[] = [];
+        const direct = findWinnable(seeds, FIND_BUDGET, 'draw1', { onOutcome: (outcome) => outcomes.push(outcome) });
 
         expect(direct.attempts).toBe(2);
         expect(messages).toEqual([
             { id: REQUEST_ID, type: 'progress', attempt: 1 },
+            { id: REQUEST_ID, type: 'outcome', outcome: outcomes[0] },
             { id: REQUEST_ID, type: 'progress', attempt: 2 },
+            { id: REQUEST_ID, type: 'outcome', outcome: outcomes[1] },
             { id: REQUEST_ID, type: 'findWinnable', ...direct },
         ]);
     });

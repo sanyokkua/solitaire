@@ -57,7 +57,15 @@ function realHarness(): DealHarness {
         settleDeal: (index, { mode, winnableOnly }) => {
             if (mode !== 'daily' && !(mode === 'draw1' && winnableOnly)) return;
             const { stub, request } = entry('findWinnable', index);
-            stub.reply({ id: request.id, type: 'findWinnable', seed: DEAL_SEED, verdict: 'win', attempts: 1 });
+            stub.reply({
+                id: request.id,
+                type: 'findWinnable',
+                seed: DEAL_SEED,
+                verdict: 'win',
+                attempts: 1,
+                grade: 'easy',
+                spares: [],
+            });
         },
         progress: (index, attempt) => {
             const { stub, request } = entry('findWinnable', index);

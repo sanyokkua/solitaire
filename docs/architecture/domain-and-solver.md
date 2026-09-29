@@ -111,9 +111,13 @@ them for display. Numbers are listed in [game-rules.md](../reference/game-rules.
   `autoFoundation`) that replays through `applyCommand`.
 - `src/solver/search.ts#search(state, budget)` is the one entry for every mode: a position that draws three cards goes
   to `solveOrdered` (below), one that draws a single card to `solve`.
-- `src/solver/winnable.ts#findWinnable(seeds, budget, mode, onAttempt?)` deals each seed in `mode`, searches it with
-  `search`, and returns the first proven win with its 1-based attempt number; if none wins it returns the last seed as `random` with
-  `attempts = seeds.length`. It throws `RangeError` for an empty list and uses no randomness.
+- `src/solver/winnable.ts#findWinnable(seeds, budget, mode, options?)` deals each seed in `mode` and searches it with
+  `search` (unless `options.known` already says how the seed fares). A proven win is graded (below). With the target
+  `any`, the default, it returns the first win with its 1-based attempt number. With a grade it returns the first win
+  of that grade or, once `gradeLimit` wins have been graded or the seeds run out, the win whose grade is closest to the
+  target (the earlier on a tie), labelled with its own grade; the other graded wins come back as `spares`. If none wins
+  it returns the last seed as `random`, ungraded, with `attempts = seeds.length`. It throws `RangeError` for an empty
+  list and uses no randomness.
 - `src/solver/hint.ts#solverHint` turns the first command of the `search` winning line into a hint (`move`, `draw` or
   `recycle`), or `undefined` when no win is proven. The position's own mode picks the search.
 
@@ -150,18 +154,34 @@ built to make a `loss` a proof.
   `budget + 1` means `unknown`. A position that fails `isValidGameState`, or draws one card, gives `unknown` with no
   nodes; a won position gives `win` with an empty line.
 
+### Grading v1
+
+`src/solver/grading.ts#gradeDeal` says how forgiving a proven-winnable deal is (Easy, Medium or Hard). Deals that only
+one narrow line wins are hard; deals that stay winnable through many plausible mistakes are easy.
+
+- Eight seeded playouts of a simulated player that sees only face-up cards (`hintCandidates`, the hint priorities,
+  with a take probability of 0.6 and a 5% chance of an unforced draw) walk the deal. The playout of index `i` is seeded
+  by `playoutSeed(seed, i)`, so a deal always grades the same.
+- After every 10th command the solver (`search`, 3,000 nodes) is asked whether the position is still provably
+  winnable; a playout stops at the first checkpoint it cannot prove, and a playout that wins survives every checkpoint
+  it had left. Up to ten checkpoints count per playout, so the score runs from 0 to 80.
+- The mode's thresholds turn the score into a grade: Easy from 62, Hard up to 43 in Draw 1 (and Daily); 30 and 12 in
+  Draw 3; 8 and 0 in Vegas. They were calibrated so that each grade holds at least 15% of the proven-winnable deals
+  (`tests/fixtures/gradingGolden.ts`); changing any parameter, rule or threshold is a new grading version.
+
 ### Worker protocol
 
 `src/solver/protocol.ts` defines the messages; `src/solver/solver.worker.ts` is a three-line binding to
 `src/solver/protocol.ts#handleRequest`. Every message carries the request `id`.
 
-| Direction | Message        | Fields                                                |
-| --------- | -------------- | ----------------------------------------------------- |
-| request   | `findWinnable` | `id`, `seeds`, `budget`, `mode`                       |
-| request   | `hint`         | `id`, `state`, `budget`                               |
-| response  | `progress`     | `id`, `attempt` (posted as each attempt starts)       |
-| response  | `findWinnable` | `id`, `seed`, `verdict`, `attempts`                   |
-| response  | `hint`         | `id`, `hint` (key always present, may be `undefined`) |
+| Direction | Message        | Fields                                                  |
+| --------- | -------------- | ------------------------------------------------------- |
+| request   | `findWinnable` | `id`, `seeds`, `budget`, `mode`, `selection?`, `known?` |
+| request   | `hint`         | `id`, `state`, `budget`                                 |
+| response  | `progress`     | `id`, `attempt` (posted as each attempt starts)         |
+| response  | `outcome`      | `id`, `outcome` (posted for each seed really searched)  |
+| response  | `findWinnable` | `id`, `seed`, `verdict`, `attempts`, `grade`, `spares`  |
+| response  | `hint`         | `id`, `hint` (key always present, may be `undefined`)   |
 
 `src/features` reaches the worker only by URL and type-only imports; value imports of solver code from
 `src/features` are lint errors.

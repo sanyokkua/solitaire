@@ -6,7 +6,7 @@
 import type { GameState, Mode } from '../../domain/types';
 import type { SolverHint } from '../../solver/hint';
 import type { SolverRequest, SolverResponse } from '../../solver/protocol';
-import type { WinnableResult } from '../../solver/winnable';
+import type { Outcome, Selection, WinnableResult } from '../../solver/winnable';
 
 /** The narrow worker surface the client uses; tests supply stubs that implement it. */
 export type WorkerLike = Pick<Worker, 'postMessage' | 'terminate' | 'addEventListener'>;
@@ -23,16 +23,26 @@ export type SolverHintOutcome =
     | { readonly status: 'ok'; readonly hint: SolverHint | undefined }
     | { readonly status: 'cancelled' | 'timeout' | 'busy' | 'failed' };
 
+/** What a `findWinnable` call may add: the selection, the verdicts it can skip, and the reports it wants. */
+export interface DealOptions {
+    readonly selection?: Selection | undefined;
+    readonly known?: readonly Outcome[] | undefined;
+    readonly onProgress?: (attempt: number) => void;
+    readonly onOutcome?: (outcome: Outcome) => void;
+}
+
 export interface SolverClient {
     /**
      * Cancels every pending request, then asks the worker to deal `seeds` in `mode`, in order, and try each at `budget`
-     * nodes. `onProgress` receives the attempt number as each attempt starts, in order, until the request settles. No timeout.
+     * nodes, selecting as `options.selection` says (any proven deal by default). `onProgress` receives the attempt
+     * number as each attempt starts, and `onOutcome` each seed the worker really searched (never a `known` one) once
+     * its verdict and grade are settled, in order, until the request settles. No timeout.
      */
     readonly findWinnable: (
         seeds: readonly number[],
         budget: number,
         mode: Mode,
-        onProgress?: (attempt: number) => void,
+        options?: DealOptions,
     ) => Promise<FindWinnableOutcome>;
     /**
      * Asks the worker for the solver's hint for `state`. Resolves `busy` at once while a deal is pending, `cancelled`
@@ -51,6 +61,7 @@ interface PendingDeal {
     readonly kind: 'deal';
     readonly resolve: (outcome: FindWinnableOutcome) => void;
     readonly onProgress: ((attempt: number) => void) | undefined;
+    readonly onOutcome: ((outcome: Outcome) => void) | undefined;
 }
 
 interface PendingHint {
@@ -66,6 +77,7 @@ const RESPONSE_TYPES: Readonly<Record<SolverResponse['type'], true>> = {
     findWinnable: true,
     hint: true,
     progress: true,
+    outcome: true,
 };
 
 /** Whether `data` has the envelope of a worker reply: an object with a numeric `id` and a known `type`. */
@@ -141,9 +153,10 @@ export function createSolverClient(createWorker: () => WorkerLike = defaultCreat
 
     function onResponse(response: SolverResponse): void {
         const entry = pending.get(response.id);
-        if (response.type === 'progress') {
+        if (response.type === 'progress' || response.type === 'outcome') {
             if (entry?.kind === 'deal') {
-                entry.onProgress?.(response.attempt);
+                if (response.type === 'progress') entry.onProgress?.(response.attempt);
+                else entry.onOutcome?.(response.outcome);
             }
             return;
         }
@@ -154,8 +167,8 @@ export function createSolverClient(createWorker: () => WorkerLike = defaultCreat
         }
         if (response.type === 'findWinnable' && entry.kind === 'deal') {
             pending.delete(response.id);
-            const { seed, verdict, attempts } = response;
-            entry.resolve({ status: 'ok', result: { seed, verdict, attempts } });
+            const { seed, verdict, attempts, grade, spares } = response;
+            entry.resolve({ status: 'ok', result: { seed, verdict, attempts, grade, spares } });
         } else if (response.type === 'hint' && entry.kind === 'hint') {
             pending.delete(response.id);
             clearTimeout(entry.timer);
@@ -207,13 +220,21 @@ export function createSolverClient(createWorker: () => WorkerLike = defaultCreat
         seeds: readonly number[],
         budget: number,
         mode: Mode,
-        onProgress?: (attempt: number) => void,
+        { selection, known, onProgress, onOutcome }: DealOptions = {},
     ): Promise<FindWinnableOutcome> {
         cancel();
         return new Promise((resolve) => {
             const id = nextId++;
-            pending.set(id, { kind: 'deal', resolve, onProgress });
-            dispatch({ id, type: 'findWinnable', seeds, budget, mode });
+            pending.set(id, { kind: 'deal', resolve, onProgress, onOutcome });
+            dispatch({
+                id,
+                type: 'findWinnable',
+                seeds,
+                budget,
+                mode,
+                ...(selection === undefined ? {} : { selection }),
+                ...(known === undefined ? {} : { known }),
+            });
         });
     }
 

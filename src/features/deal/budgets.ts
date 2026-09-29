@@ -8,3 +8,5 @@ export const VEGAS_WINNABLE_BUDGET = 20_000;
 export const MAX_ATTEMPTS = 40;
 /** Nodes searched for a solver hint. */
 export const HINT_BUDGET = 3_000;
+/** Proven-winnable candidates one request may grade in search of the requested grade before settling for the closest. */
+export const GRADE_LIMIT = 4;

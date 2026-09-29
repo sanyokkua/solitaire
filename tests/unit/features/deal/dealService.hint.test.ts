@@ -218,7 +218,15 @@ describe('deal service: a newer request wins over a hint', () => {
         expect(outcome).toEqual({ status: 'hint', source: 'heuristic', hint: heuristicFor(state) });
         expect(stub.requests.map((request) => request.type)).toEqual(['findWinnable']);
         expect(stub.terminated).toBe(false);
-        stub.reply({ id: stub.idOf(0), type: 'findWinnable', seed: WIN_SEED, verdict: 'win', attempts: 1 });
+        stub.reply({
+            id: stub.idOf(0),
+            type: 'findWinnable',
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 1,
+            grade: 'easy',
+            spares: [],
+        });
         expect(await deal).toEqual({
             status: 'dealt',
             state: dealFromSeed(WIN_SEED, 'draw1', { verdict: 'win', attempts: 1 }),

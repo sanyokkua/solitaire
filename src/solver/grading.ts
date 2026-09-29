@@ -3,6 +3,7 @@ import { hintCandidates } from '../domain/hint';
 import { mulberry32 } from '../domain/prng';
 import { canRecycle, isWon } from '../domain/rules';
 import type { Command, GameState, Mode } from '../domain/types';
+import { search } from './search';
 
 export type Grade = 'easy' | 'medium' | 'hard';
 
@@ -12,14 +13,14 @@ export const GRADES: readonly Grade[] = ['easy', 'medium', 'hard'];
 /** What a caller asks selection for: a specific grade, or whichever proven deal comes first. */
 export type GradeTarget = 'any' | Grade;
 
-/** Winning playouts that make a deal Easy (at least `easyMin`) or Hard (at most `hardMax`); Medium lies between. */
+/** Survival score that makes a deal Easy (at least `easyMin`) or Hard (at most `hardMax`); Medium lies between. */
 interface Thresholds {
     readonly easyMin: number;
     readonly hardMax: number;
 }
 
 export interface GradingParams {
-    /** Playouts per deal, N. */
+    /** Playouts per deal, M. */
     readonly playouts: number;
     /** The chance the player takes each candidate it reaches while walking the list. */
     readonly takeProbability: number;
@@ -27,23 +28,34 @@ export interface GradingParams {
     readonly unforcedDrawProbability: number;
     /** The most commands one playout may apply. */
     readonly stepCap: number;
-    /** Per mode; a Daily deal is dealt and played like Draw 1, so it reads the Draw 1 row. */
+    /** A playout's position is put to the solver after every this many commands. */
+    readonly checkpointEvery: number;
+    /** The most checkpoints one playout is asked about; surviving them all is the top score of a playout. */
+    readonly maxCheckpoints: number;
+    /** Nodes the solver may search at one checkpoint. */
+    readonly checkpointBudget: number;
+    /** Per mode, over the survival score (0 to `playouts * maxCheckpoints`); Daily reads the Draw 1 row. */
     readonly thresholds: Readonly<Record<Exclude<Mode, 'daily'>, Thresholds>>;
 }
 
 /**
- * Grading v1 (D6): the parameters, the playout rules in `playout` and the thresholds together. Changing any of them is
- * a new grading version, made on purpose by updating the pinned grades in `tests/fixtures/gradingGolden.ts`.
+ * Grading v1 (D6): how forgiving a proven-winnable deal is. Seeded human-like playouts (`playout`) walk the deal, and at
+ * checkpoints the solver says whether the position is still provably winnable; the more checkpoints survive, the easier
+ * the deal. The parameters, the playout rules and the thresholds together are one version: changing any of them is a
+ * new grading version, made on purpose by updating the pinned grades in `tests/fixtures/gradingGolden.ts`.
  */
 export const GRADING_V1: GradingParams = {
-    playouts: 16,
+    playouts: 8,
     takeProbability: 0.6,
     unforcedDrawProbability: 0.05,
     stepCap: 1000,
+    checkpointEvery: 10,
+    maxCheckpoints: 10,
+    checkpointBudget: 3000,
     thresholds: {
-        draw1: { easyMin: 10, hardMax: 2 },
-        draw3: { easyMin: 10, hardMax: 2 },
-        vegas: { easyMin: 10, hardMax: 2 },
+        draw1: { easyMin: 62, hardMax: 43 },
+        draw3: { easyMin: 30, hardMax: 12 },
+        vegas: { easyMin: 8, hardMax: 0 },
     },
 };
 
@@ -63,11 +75,11 @@ export function playoutSeed(seed: number, index: number): number {
     return fmix32((seed + Math.imul(index + 1, 0x9e3779b9)) >>> 0);
 }
 
-/** The grade that `wins` winning playouts give in `mode`. */
-export function gradeOf(wins: number, mode: Mode, params: GradingParams = GRADING_V1): Grade {
+/** The grade that a survival `score` gives in `mode`. */
+export function gradeOf(score: number, mode: Mode, params: GradingParams = GRADING_V1): Grade {
     const { easyMin, hardMax } = params.thresholds[mode === 'daily' ? 'draw1' : mode];
-    if (wins >= easyMin) return 'easy';
-    return wins <= hardMax ? 'hard' : 'medium';
+    if (score >= easyMin) return 'easy';
+    return score <= hardMax ? 'hard' : 'medium';
 }
 
 const DRAW: Command = { type: 'draw' };
@@ -99,9 +111,15 @@ export interface Playout {
 /**
  * Plays `start` as a human-like player that sees only face-up cards, drawing every random value from `rng`. It stops at
  * a win, when it has no move, draw or recycle left, at a stall (the talon returns to an arrangement it had since the
- * last board move, so a full cycle played nothing) or after `params.stepCap` commands; only a win counts.
+ * last board move, so a full cycle played nothing), after `params.stepCap` commands, or when `onStep` returns `false`;
+ * `onStep` sees each position that is not yet won, with the number of commands applied so far. Only a win counts.
  */
-export function playout(start: GameState, rng: () => number, params: GradingParams = GRADING_V1): Playout {
+export function playout(
+    start: GameState,
+    rng: () => number,
+    params: GradingParams = GRADING_V1,
+    onStep?: (state: GameState, commands: number) => boolean,
+): Playout {
     const commands: Command[] = [];
     let state = start;
     let seen = new Set([talonKey(state)]);
@@ -117,21 +135,48 @@ export function playout(start: GameState, rng: () => number, params: GradingPara
             if (seen.has(key)) break;
             seen.add(key);
         }
+        if (!isWon(state) && onStep?.(state, commands.length) === false) break;
     }
     return { won: isWon(state), commands };
 }
 
-export interface DealGrade {
-    readonly grade: Grade;
-    /** Winning playouts out of `params.playouts`. */
-    readonly wins: number;
+/** What the solver says of a position within a node budget: the shape of `search(...).verdict`. */
+export type Judge = (state: GameState, budget: number) => 'win' | 'loss' | 'unknown';
+
+const solverJudge: Judge = (state, budget) => search(state, budget).verdict;
+
+/**
+ * How many checkpoints of playout `index` of `deal` still hold a proven-winnable position, from 0 to
+ * `params.maxCheckpoints`. It stops asking at the first checkpoint the solver cannot prove (`loss` and `unknown` alike),
+ * and a playout that wins survives every checkpoint it had left.
+ */
+export function survival(
+    deal: GameState,
+    index: number,
+    params: GradingParams = GRADING_V1,
+    judge: Judge = solverJudge,
+): number {
+    let survived = 0;
+    const result = playout(deal, mulberry32(playoutSeed(deal.seed, index)), params, (state, commands) => {
+        if (commands % params.checkpointEvery !== 0) return true;
+        if (judge(state, params.checkpointBudget) !== 'win') return false;
+        survived++;
+        return survived < params.maxCheckpoints;
+    });
+    return result.won ? params.maxCheckpoints : survived;
 }
 
-/** Grades the dealt position of a proven-winnable deal: `params.playouts` seeded playouts, read through the mode's row. */
-export function gradeDeal(deal: GameState, params: GradingParams = GRADING_V1): DealGrade {
-    let wins = 0;
+export interface DealGrade {
+    readonly grade: Grade;
+    /** The checkpoints survived, summed over the playouts. */
+    readonly score: number;
+}
+
+/** Grades the dealt position of a proven-winnable deal: the survival of each of `params.playouts` playouts, summed and read through the mode's row. */
+export function gradeDeal(deal: GameState, params: GradingParams = GRADING_V1, judge: Judge = solverJudge): DealGrade {
+    let score = 0;
     for (let index = 0; index < params.playouts; index++) {
-        if (playout(deal, mulberry32(playoutSeed(deal.seed, index)), params).won) wins++;
+        score += survival(deal, index, params, judge);
     }
-    return { grade: gradeOf(wins, deal.mode, params), wins };
+    return { grade: gradeOf(score, deal.mode, params), score };
 }

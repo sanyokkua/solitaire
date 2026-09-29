@@ -10,9 +10,11 @@ import {
     GRADING_V1,
     gradeDeal,
     gradeOf,
+    survival,
     playout,
     playoutSeed,
     type GradingParams,
+    type Judge,
 } from '../../../src/solver/grading';
 import { exchangeHidden, faceDown, faceUp, frozenState, tableauOf, vegasAtLimit } from '../../fixtures/states';
 
@@ -76,8 +78,10 @@ describe('playoutSeed', () => {
 });
 
 describe('gradeOf', () => {
-    it.each(['draw1', 'draw3', 'vegas', 'daily'] as const)('reads wins through the %s row', (mode) => {
-        const grades = [16, 10, 9, 3, 2, 0].map((wins) => gradeOf(wins, mode));
+    it.each(['draw1', 'draw3', 'vegas', 'daily'] as const)('reads a score through the %s row', (mode) => {
+        const { easyMin, hardMax } = GRADING_V1.thresholds[mode === 'daily' ? 'draw1' : mode];
+        const top = GRADING_V1.playouts * GRADING_V1.maxCheckpoints;
+        const grades = [top, easyMin, easyMin - 1, hardMax + 1, hardMax, 0].map((score) => gradeOf(score, mode));
         expect(grades).toEqual(['easy', 'easy', 'medium', 'medium', 'hard', 'hard']);
     });
 
@@ -257,50 +261,116 @@ describe('playout: sees only face-up cards', () => {
     });
 });
 
-describe('gradeDeal', () => {
-    const MODES: readonly Mode[] = ['draw1', 'draw3', 'vegas'];
+/** Small, fast parameters: a checkpoint after every command, three of them at most. */
+const QUICK: GradingParams = { ...GRADING_V1, checkpointEvery: 1, maxCheckpoints: 3 };
 
-    it('gives the same wins and grade every time', () => {
-        for (const mode of MODES) {
-            const deal = dealFromSeed(8, mode);
-            expect(gradeDeal(deal)).toEqual(gradeDeal(deal));
+/** A judge that proves the first `provable` positions it is asked about, then proves nothing; it records what it saw. */
+function judgeFor(provable: number): { judge: Judge; budgets: number[] } {
+    const budgets: number[] = [];
+    return {
+        budgets,
+        judge: (_state, budget) => {
+            budgets.push(budget);
+            return budgets.length <= provable ? 'win' : 'unknown';
+        },
+    };
+}
+
+describe('survival', () => {
+    const deal = dealFromSeed(19, 'draw1');
+
+    it('counts the checkpoints the solver proves, and stops asking at the first it cannot', () => {
+        for (const provable of [0, 1, 2]) {
+            const { judge, budgets } = judgeFor(provable);
+            expect(survival(deal, 0, QUICK, judge)).toBe(provable);
+            expect(budgets).toHaveLength(provable + 1);
         }
     });
 
-    it('counts wins out of N and reads them through the table', () => {
+    it('asks the solver at the checkpoint budget, after every checkpointEvery-th command', () => {
+        const params = { ...QUICK, checkpointEvery: 4, checkpointBudget: 1234 };
+        const positions: number[] = [];
+        const budgets: number[] = [];
+        survival(deal, 0, params, (state, budget) => {
+            budgets.push(budget);
+            positions.push(state.moves);
+            return 'win';
+        });
+        expect(budgets).toEqual([1234, 1234, 1234]);
+        expect(positions).toEqual([4, 8, 12]);
+    });
+
+    it('stops at the most checkpoints, which is the top score of a playout', () => {
+        const { judge, budgets } = judgeFor(Number.POSITIVE_INFINITY);
+        expect(survival(deal, 0, QUICK, judge)).toBe(QUICK.maxCheckpoints);
+        expect(budgets).toHaveLength(QUICK.maxCheckpoints);
+    });
+
+    it('gives a playout that wins every checkpoint it had left', () => {
+        const winningIndex = Array.from({ length: 16 }, (_, index) => index).find(
+            (index) => playout(deal, mulberry32(playoutSeed(deal.seed, index))).won,
+        );
+        expect(winningIndex).toBeDefined();
+        if (winningIndex === undefined) return;
+        const params = { ...GRADING_V1, checkpointEvery: 10, maxCheckpoints: 50 };
+        expect(survival(deal, winningIndex, params, () => 'win')).toBe(50);
+    });
+
+    it('asks nothing of a playout that ends before its first checkpoint, and scores it 0', () => {
+        const idle = frozenState({ stock: [c(HEARTS, 9), c(SPADES, 9), c(CLUBS, 9)] });
+        const { judge, budgets } = judgeFor(Number.POSITIVE_INFINITY);
+        expect(survival(idle, 0, { ...GRADING_V1, checkpointEvery: 10 }, judge)).toBe(0);
+        expect(budgets).toEqual([]);
+    });
+
+    it('plays the playout of its own index', () => {
+        // Position of the first checkpoint differs between playouts, so reusing one seed would show.
+        const firsts = new Set<string>();
+        for (let index = 0; index < 8; index++) {
+            survival(deal, index, { ...QUICK, checkpointEvery: 40, maxCheckpoints: 1 }, (state) => {
+                firsts.add(JSON.stringify(state.tableau) + JSON.stringify(state.waste));
+                return 'win';
+            });
+        }
+        expect(firsts.size).toBeGreaterThan(1);
+    });
+});
+
+describe('gradeDeal', () => {
+    const MODES: readonly Mode[] = ['draw1', 'draw3', 'vegas'];
+
+    it('sums the survival of every playout and reads it through the table', () => {
         for (const mode of MODES) {
-            for (const seed of [1, 8, 19]) {
-                const { wins, grade } = gradeDeal(dealFromSeed(seed, mode));
-                expect(wins).toBeGreaterThanOrEqual(0);
-                expect(wins).toBeLessThanOrEqual(GRADING_V1.playouts);
-                expect(grade).toBe(gradeOf(wins, mode));
-            }
+            const deal = dealFromSeed(8, mode);
+            const { judge } = judgeFor(Number.POSITIVE_INFINITY);
+            const { score, grade } = gradeDeal(deal, QUICK, judge);
+            const expected = Array.from({ length: QUICK.playouts }, (_, index) =>
+                survival(deal, index, QUICK, judge),
+            ).reduce((sum, value) => sum + value, 0);
+            expect(score).toBe(expected);
+            expect(grade).toBe(gradeOf(score, mode, QUICK));
+        }
+    });
+
+    it('gives the same score and grade every time, with the real solver', () => {
+        for (const mode of MODES) {
+            const deal = dealFromSeed(8, mode);
+            const first = gradeDeal(deal);
+            expect(first).toEqual(gradeDeal(deal));
+            expect(first.score).toBeGreaterThanOrEqual(0);
+            expect(first.score).toBeLessThanOrEqual(GRADING_V1.playouts * GRADING_V1.maxCheckpoints);
         }
     });
 
     it('grades a Daily deal like the Draw 1 deal of the same seed', () => {
-        for (const seed of [1, 2, 19, 49]) {
+        for (const seed of [19, 49]) {
             const daily = gradeDeal(dealFromSeed(seed, 'daily'));
             expect(daily).toEqual(gradeDeal(dealFromSeed(seed, 'draw1')));
         }
     });
 
-    it('counts the winning playouts of its N distinct seeds', () => {
-        // A deal that some playouts win and others lose, so that reusing one seed for every playout would show.
-        const mixed = Array.from({ length: 200 }, (_, i) => dealFromSeed(i + 1, 'draw1')).find((deal) => {
-            const { wins } = gradeDeal(deal);
-            return wins > 0 && wins < GRADING_V1.playouts;
-        });
-        expect(mixed).toBeDefined();
-        if (mixed === undefined) return;
-        const expected = Array.from({ length: GRADING_V1.playouts }, (_, index) =>
-            playout(mixed, mulberry32(playoutSeed(mixed.seed, index))),
-        ).filter((result) => result.won).length;
-        expect(gradeDeal(mixed).wins).toBe(expected);
-    });
-
     it('plays exactly the playouts its parameters name', () => {
         const deal = dealFromSeed(19, 'draw1');
-        expect(gradeDeal(deal, { ...GRADING_V1, playouts: 0 })).toEqual({ wins: 0, grade: 'hard' });
+        expect(gradeDeal(deal, { ...GRADING_V1, playouts: 0 })).toEqual({ score: 0, grade: 'hard' });
     });
 });

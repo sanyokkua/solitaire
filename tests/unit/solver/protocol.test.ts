@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { dealFromSeed } from '../../../src/domain/deal';
 import { handleRequest, type SolverRequest, type SolverResponse } from '../../../src/solver/protocol';
 import { solverHint } from '../../../src/solver/hint';
-import { findWinnable } from '../../../src/solver/winnable';
+import { gradeDeal } from '../../../src/solver/grading';
+import { findWinnable, type Outcome } from '../../../src/solver/winnable';
 import { corpusSeeds, MIDGAME_POSITIONS, midgameState } from '../../fixtures/solverCorpus';
 
 const BUDGET = 3000;
-const [WIN_SEED = 0] = corpusSeeds('win');
+const [WIN_SEED = 0, OTHER_WIN_SEED = 0] = corpusSeeds('win');
 const [LOSS_SEED = 0] = corpusSeeds('loss');
 const MIDGAME = MIDGAME_POSITIONS.find((entry) => entry.budget === BUDGET);
 
@@ -37,13 +38,49 @@ describe('handleRequest findWinnable', () => {
 
     it('posts progress as each attempt starts, then one reply, all with the request id', () => {
         const posted = run(request);
-        const direct = findWinnable([LOSS_SEED, WIN_SEED], BUDGET, 'draw1');
+        const outcomes: Outcome[] = [];
+        const direct = findWinnable([LOSS_SEED, WIN_SEED], BUDGET, 'draw1', {
+            onOutcome: (outcome) => outcomes.push(outcome),
+        });
         expect(posted).toEqual([
             { id: 7, type: 'progress', attempt: 1 },
+            { id: 7, type: 'outcome', outcome: outcomes[0] },
             { id: 7, type: 'progress', attempt: 2 },
-            { id: 7, type: 'findWinnable', seed: direct.seed, verdict: direct.verdict, attempts: direct.attempts },
+            { id: 7, type: 'outcome', outcome: outcomes[1] },
+            { id: 7, type: 'findWinnable', ...direct },
         ]);
-        expect(direct).toEqual({ seed: WIN_SEED, verdict: 'win', attempts: 2 });
+        expect(direct).toMatchObject({ seed: WIN_SEED, verdict: 'win', attempts: 2 });
+    });
+
+    it('honours the selection of the request, and replies with the grade and the spares', () => {
+        // Ask for a grade the first win does not have, so the search must go on to the next win.
+        const first = gradeDeal(dealFromSeed(WIN_SEED, 'draw1')).grade;
+        const selection = { target: first === 'hard' ? 'easy' : 'hard', gradeLimit: 2 } as const;
+        const seeds = [LOSS_SEED, WIN_SEED, OTHER_WIN_SEED];
+        const posted = run({ id: 8, type: 'findWinnable', seeds, budget: BUDGET, mode: 'draw1', selection });
+        const direct = findWinnable(seeds, BUDGET, 'draw1', { selection });
+        expect(posted.at(-1)).toEqual({ id: 8, type: 'findWinnable', ...direct });
+        expect(direct.attempts).toBe(3);
+        expect(direct.spares.length + 1).toBe(2);
+        expect(findWinnable(seeds, BUDGET, 'draw1').attempts).toBe(2);
+    });
+
+    it('posts an outcome for each seed it searched, after that attempt starts, and none for a known seed', () => {
+        const seeds = [LOSS_SEED, WIN_SEED];
+        const fresh = run({ id: 9, type: 'findWinnable', seeds, budget: BUDGET, mode: 'draw1' });
+        expect(fresh.map((message) => message.type)).toEqual([
+            'progress',
+            'outcome',
+            'progress',
+            'outcome',
+            'findWinnable',
+        ]);
+        const known = fresh.flatMap((message) => (message.type === 'outcome' ? [message.outcome] : []));
+        expect(known).toHaveLength(2);
+
+        const again = run({ id: 9, type: 'findWinnable', seeds, budget: BUDGET, mode: 'draw1', known });
+        expect(again.map((message) => message.type)).toEqual(['progress', 'progress', 'findWinnable']);
+        expect(again.at(-1)).toEqual(fresh.at(-1));
     });
 
     it('posts no progress for an attempt that is not tried', () => {
@@ -118,12 +155,16 @@ describe('handleRequest in Draw 3 and Vegas', () => {
     it('deals a findWinnable request in its mode, posting progress then the direct result', () => {
         const seeds = [1, 10, 8];
         const posted = run({ id: 3, type: 'findWinnable', seeds, budget: 5000, mode: 'draw3' });
-        const direct = findWinnable(seeds, 5000, 'draw3');
-        expect(direct).toEqual({ seed: 8, verdict: 'win', attempts: 3 });
+        const outcomes: Outcome[] = [];
+        const direct = findWinnable(seeds, 5000, 'draw3', { onOutcome: (outcome) => outcomes.push(outcome) });
+        expect(direct).toMatchObject({ seed: 8, verdict: 'win', attempts: 3 });
         expect(posted).toEqual([
             { id: 3, type: 'progress', attempt: 1 },
+            { id: 3, type: 'outcome', outcome: outcomes[0] },
             { id: 3, type: 'progress', attempt: 2 },
+            { id: 3, type: 'outcome', outcome: outcomes[1] },
             { id: 3, type: 'progress', attempt: 3 },
+            { id: 3, type: 'outcome', outcome: outcomes[2] },
             { id: 3, type: 'findWinnable', ...direct },
         ]);
     });
