@@ -242,8 +242,8 @@ function decodeParsed(parsed: unknown): DecodeResult {
 /**
  * Reads a stored string. `null` (no key) is `empty`; text that is not JSON is `malformed`; a record of a newer format
  * is `future` and is never interpreted; anything else that is not exactly a valid version 1 or version 2 record is
- * `invalid`. A version 1 record decodes to the same value a version 2 record with the default difficulty would. Total:
- * this function never throws.
+ * `invalid`. A version 1 record decodes to the same value a version 2 record would hold with the default difficulty
+ * and no grade on its game. Total: this function never throws.
  */
 export function decodeRecord(raw: string | null): DecodeResult {
     if (raw === null) return { ok: false, reason: 'empty' };
