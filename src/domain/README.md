@@ -9,8 +9,8 @@ The pure Klondike game engine (Phase 2 — Card engine).
 - `rules.ts` — `canDrop`, `legalTargets`, `isMovable`, `groupAt`, `canRecycle`, `passLimit`, `isWon`, guarded pile accessors
 - `engine.ts` — `applyCommand(state, cmd) → { state, events }`
 - `validate.ts` — `isValidGameState(value): value is GameState`, the total, never-throwing shape and
-  invariant check reused by the Phase 4 persistence decoder (design D13); reuses `isCardId` (cards.ts),
-  `MODES` and `modeConfig` (deal.ts) and `isWon` (rules.ts)
+  invariant check reused by the Phase 4 persistence decoder (design D13); rejects a pass count past the mode's
+  `passLimit`; reuses `isCardId` (cards.ts), `MODES` and `modeConfig` (deal.ts), and `isWon` and `passLimit` (rules.ts)
 - `scoring.ts` — `startingScore`, per-event and per-command deltas (`eventDelta`, `commandDelta`), the clamped `applyDelta`, `timePenalty`, `winBonus`, `undoCost`, `displayedScore`
 - `safeMoves.ts` — `isReady`, `isSafe`, `nextSafeMove`, and the shared source-card scan (`Source`, `sourceCards`)
 - `hint.ts` — the hint types (`Hint`, `MoveHint`, `MoveCommand`, `HintPriority`), `findMove` and `hint`

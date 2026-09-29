@@ -264,7 +264,7 @@
 
 ## 4. Domain edge cases
 
-- [ ] 4.1 A game past its mode's pass limit is invalid
+- [x] 4.1 A game past its mode's pass limit is invalid
     - **Implements:** GE "A game state can be checked for validity" (the pass-limit clause). The grade clauses land in 8.2.
     - **Files:** `src/domain/validate.ts`, `src/domain/README.md`.
     - **Tests:**

@@ -520,6 +520,17 @@ describe('invalid records', () => {
         expect(decodeRecord(raw)).toEqual(invalid);
     });
 
+    it.each<[number, boolean]>([
+        [3, true],
+        [4, false],
+    ])('reads a stored Vegas game on pass %i as valid: %s', (passes, valid) => {
+        const raw = edited(validRaw(), (r) => {
+            Object.assign(child(r, 'session', 'current'), { mode: 'vegas', draw: 3, scoring: 'vegas', passes });
+        });
+        expect(decodeRecord(raw).ok).toBe(valid);
+        if (!valid) expect(decodeRecord(raw)).toEqual(invalid);
+    });
+
     it('rejects a position in play that is not a valid game', () => {
         const raw = edited(validRaw(), (r) => (child(r, 'session', 'current').status = 'finished'));
         expect(decodeRecord(raw)).toEqual(invalid);

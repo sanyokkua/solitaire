@@ -1,6 +1,6 @@
 import { DECK_SIZE, isCardId, rankOf, suitOf } from './cards';
 import { MODES, modeConfig } from './deal';
-import { isWon } from './rules';
+import { isWon, passLimit } from './rules';
 import type { CardId, Column, GameState, Mode, Pile, Suit, TableauCard } from './types';
 
 /** A plain, non-null, non-array object — the shape every other check assumes it can read fields from. */
@@ -68,7 +68,7 @@ function hasGameStateShape(value: unknown): value is GameState {
     if (typeof score !== 'number' || !Number.isFinite(score)) return false;
     if (!isNonNegativeInteger(attempts)) return false;
     if (!isNonNegativeInteger(moves)) return false;
-    if (!isNonNegativeInteger(passes) || passes < 1) return false;
+    if (!isNonNegativeInteger(passes) || passes < 1 || passes > passLimit(mode)) return false;
     if (!isNonNegativeInteger(elapsedMs)) return false;
     if (!isNonNegativeInteger(undos)) return false;
 

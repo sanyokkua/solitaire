@@ -130,6 +130,16 @@ describe('isValidGameState', () => {
             expect(isValidGameState({ ...base, undos })).toBe(false);
         });
 
+        it('rejects a Vegas game past its pass limit and accepts it at the limit', () => {
+            const vegas = dealFromSeed(WINNING_LINE.seed, 'vegas');
+            expect(isValidGameState({ ...vegas, passes: 3 })).toBe(true);
+            expect(isValidGameState({ ...vegas, passes: 4 })).toBe(false);
+        });
+
+        it.each(['draw1', 'draw3', 'daily'] as const)('accepts %s at pass 50, as no pass limit applies', (mode) => {
+            expect(isValidGameState({ ...dealFromSeed(WINNING_LINE.seed, mode), passes: 50 })).toBe(true);
+        });
+
         it('rejects an unknown status', () => {
             expect(isValidGameState({ ...base, status: 'paused' })).toBe(false);
         });
