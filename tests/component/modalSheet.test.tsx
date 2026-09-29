@@ -157,6 +157,86 @@ describe('ModalSheet', () => {
         expect(onDismiss).toHaveBeenCalledTimes(1);
     });
 
+    describe('re-rendering an open sheet', () => {
+        /** A sheet whose parent hands it a fresh inline `returnFocusFallback` on every render, like the real sheets. */
+        function Rerendering({
+            opener,
+            fallback,
+        }: {
+            readonly opener: boolean;
+            readonly fallback: (n: number) => void;
+        }) {
+            const [renders, setRenders] = useState(0);
+            const initialFocusRef = useRef<HTMLButtonElement>(null);
+            return (
+                <ModalSheet
+                    heading="Test sheet"
+                    initialFocusRef={initialFocusRef}
+                    onDismiss={vi.fn()}
+                    returnFocusFallback={() => {
+                        fallback(renders);
+                    }}
+                >
+                    <button ref={initialFocusRef} type="button">
+                        First
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setRenders(renders + 1);
+                        }}
+                    >
+                        {opener ? 'Bump with opener' : 'Bump'}
+                    </button>
+                </ModalSheet>
+            );
+        }
+
+        it('does not run the return-focus cleanup until it unmounts, then uses the latest fallback once', async () => {
+            const user = userEvent.setup();
+            const fallback = vi.fn();
+            const { unmount } = renderWithStore(<Rerendering opener={false} fallback={fallback} />);
+
+            await user.click(screen.getByRole('button', { name: 'Bump' }));
+            await user.click(screen.getByRole('button', { name: 'Bump' }));
+
+            expect(fallback).not.toHaveBeenCalled();
+
+            unmount();
+
+            expect(fallback).toHaveBeenCalledTimes(1);
+            expect(fallback).toHaveBeenCalledWith(2);
+        });
+
+        it('does not steal focus back to the opener', async () => {
+            const user = userEvent.setup();
+            const fallback = vi.fn();
+            function Opener() {
+                const [open, setOpen] = useState(false);
+                return (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setOpen(true);
+                            }}
+                        >
+                            Open sheet
+                        </button>
+                        {open && <Rerendering opener={true} fallback={fallback} />}
+                    </>
+                );
+            }
+            renderWithStore(<Opener />);
+
+            await user.click(screen.getByRole('button', { name: 'Open sheet' }));
+            await user.click(screen.getByRole('button', { name: 'Bump with opener' }));
+
+            expect(screen.getByRole('button', { name: 'Bump with opener' })).toHaveFocus();
+            expect(fallback).not.toHaveBeenCalled();
+        });
+    });
+
     it('dismisses on Escape', async () => {
         const user = userEvent.setup();
         const onDismiss = vi.fn();

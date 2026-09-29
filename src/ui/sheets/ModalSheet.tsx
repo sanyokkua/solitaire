@@ -68,6 +68,12 @@ export function ModalSheet({
     const panelRef = useRef<HTMLDivElement>(null);
     const openerRef = useRef<Element | null>(null);
     const fallback = returnFocusFallback ?? onDismiss;
+    const fallbackRef = useRef(fallback);
+
+    // Keep the latest fallback for the unmount cleanup below; declared first so it is current when that cleanup runs.
+    useEffect(() => {
+        fallbackRef.current = fallback;
+    });
 
     // Capture the opener and move focus in, once, when the sheet mounts.
     useEffect(() => {
@@ -82,10 +88,10 @@ export function ModalSheet({
             if (isFocusable(openerRef.current)) {
                 openerRef.current.focus();
             } else {
-                fallback();
+                fallbackRef.current();
             }
         },
-        [fallback],
+        [],
     );
 
     function attemptDismiss(): void {
