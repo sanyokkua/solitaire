@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { STORAGE_KEY } from '../../src/features/persistence/recordCodec';
 import { worstColumnState } from '../fixtures/boardPositions';
 import { seedRecord } from './support/seed';
 
@@ -76,4 +77,40 @@ test('keeps the footer links and the build stamp reachable below the record stri
     await expect(page.getByLabel(/^App build:/)).toHaveAccessibleName(
         /^App build: (Build \d+|Development build) · \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/,
     );
+});
+
+test('chooses Hard in Draw 3 by keyboard, then deals', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'keyboard input is exercised once, in Desktop Chrome');
+    await page.goto('/');
+    const tile = page.getByRole('radio', { name: 'Draw 3' });
+    await tile.click();
+    await tile.focus();
+
+    // Tab leaves the tile for the switch, then lands on the Difficulty group at its checked option.
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('switch', { name: 'Winnable deals only' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    const group = page.getByRole('radiogroup', { name: 'Difficulty' });
+    await expect(group.getByRole('radio', { name: 'Any' })).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await expect(group.getByRole('radio', { name: 'Hard' })).toBeFocused();
+    await expect(group.getByRole('radio', { name: 'Hard' })).toHaveAttribute('aria-checked', 'true');
+    await expect(group.getByRole('radio', { name: 'Any' })).toHaveAttribute('aria-checked', 'false');
+
+    await page.getByRole('button', { name: 'Deal cards' }).click();
+    await expect(page.locator('.board')).toBeVisible();
+    await expect(page.locator('[data-card-id]').first()).toBeAttached();
+
+    await expect
+        .poll(() =>
+            page.evaluate((key) => {
+                const stored = JSON.parse(window.localStorage.getItem(key) ?? 'null') as {
+                    preferences?: { difficulty?: string; selectedMode?: string };
+                } | null;
+                return `${stored?.preferences?.selectedMode ?? ''}:${stored?.preferences?.difficulty ?? ''}`;
+            }, STORAGE_KEY),
+        )
+        .toBe('draw3:hard');
 });

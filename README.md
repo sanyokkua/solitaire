@@ -9,7 +9,7 @@ Source: <https://github.com/sanyokkua/solitaire>
 
 ## Game
 
-- Modes: Draw 1, Draw 3, Vegas and a Daily deal. Draw 1 can be limited to deals the solver found winnable.
+- Modes: Draw 1, Draw 3, Vegas and a Daily deal. Draw 1, Draw 3 and Vegas can be limited to deals the solver found winnable, at a chosen difficulty.
 - Play by tap, drag or keyboard. Undo, redo, hint, finish and pause are available.
 - Deals are deterministic from a seed and can be shared as a deal code.
 - Light, dark and system themes, a four-colour deck, night cards and four card backs; reduced-motion aware.

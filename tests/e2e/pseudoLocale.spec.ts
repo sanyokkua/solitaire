@@ -52,6 +52,8 @@ const HOME_BOXES = [
     '.home-hero',
     '.mode-card',
     '.toggle-card',
+    '.toggle-card .segmented',
+    '.segmented button',
     '.cta-row',
     '.cta-row .action-button',
     '.stat-strip',

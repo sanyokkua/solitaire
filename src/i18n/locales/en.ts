@@ -101,6 +101,10 @@ export const en = {
     'game.chip.deal.winnableShuffles': { one: 'Winnable · {count} shuffle', other: 'Winnable · {count} shuffles' },
     'game.chip.deal.random': 'Random deal',
 
+    'grade.easy': 'Easy',
+    'grade.medium': 'Medium',
+    'grade.hard': 'Hard',
+
     'build.label': 'App build: {value}',
     'build.number': 'Build {number} · {time}',
     'build.dev': 'Development build · {time}',
@@ -136,9 +140,11 @@ export const en = {
     'home.modes.best': 'Best {value}',
     'home.modes.noRecord': 'No record yet',
     'home.winnable.label': 'Winnable deals only',
-    'home.winnable.captionDraw1': 'A built-in solver checks every Draw 1 deal before you see it.',
-    'home.winnable.captionSolver': 'Draw 3 and Vegas deals are not checked by the solver, so they may be unwinnable.',
-    'home.winnable.captionDaily': 'Daily deals are always winnable.',
+    'home.winnable.caption':
+        'A built-in solver checks every deal before it is shown. A deal it cannot prove winnable within the attempt limit is marked “Random deal”.',
+    'home.winnable.captionDaily': 'Daily deals are always checked, so they are always winnable.',
+    'home.difficulty.label': 'Difficulty',
+    'home.difficulty.any': 'Any',
 
     'sheet.close': 'Close',
 

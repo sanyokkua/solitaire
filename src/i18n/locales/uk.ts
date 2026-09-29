@@ -108,6 +108,10 @@ export const uk: Record<MessageKey, Message> = {
     },
     'game.chip.deal.random': 'Випадкова роздача',
 
+    'grade.easy': 'Легка',
+    'grade.medium': 'Середня',
+    'grade.hard': 'Складна',
+
     'build.label': 'Збірка: {value}',
     'build.number': '№ {number} · {time}',
     'build.dev': 'Тестова збірка · {time}',
@@ -143,11 +147,11 @@ export const uk: Record<MessageKey, Message> = {
     'home.modes.best': 'Найкраще: {value}',
     'home.modes.noRecord': 'Ще немає рекорду',
     'home.winnable.label': 'Лише виграшні роздачі',
-    'home.winnable.captionDraw1':
-        'Вбудований розв’язувач перевіряє кожну роздачу з однією картою, ще до того як ти її побачиш.',
-    'home.winnable.captionSolver':
-        'Роздачі з трьома картами та Вегас не перевіряються розв’язувачем, тож їх може бути неможливо виграти.',
-    'home.winnable.captionDaily': 'Щоденні роздачі завжди виграшні.',
+    'home.winnable.caption':
+        'Вбудований розв’язувач перевіряє кожну роздачу, ще до того як ти її побачиш. Роздачу, яку він не зміг довести як виграшну за ліміт спроб, позначено як «Випадкова роздача».',
+    'home.winnable.captionDaily': 'Щоденні роздачі завжди перевірені, тож їх завжди можна виграти.',
+    'home.difficulty.label': 'Складність',
+    'home.difficulty.any': 'Будь-яка',
 
     'sheet.close': 'Закрити',
 

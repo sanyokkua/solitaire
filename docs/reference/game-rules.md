@@ -36,18 +36,20 @@ Source: `src/domain/deal.ts#modeConfig`, `src/domain/rules.ts#passLimit`.
 | Mode   | Draw | Scoring  | Passes through the stock | Deal selection                                              |
 | ------ | ---- | -------- | ------------------------ | ----------------------------------------------------------- |
 | Draw 1 | 1    | Standard | unlimited                | random, or proven winnable when "Winnable deals only" is on |
-| Draw 3 | 3    | Standard | unlimited                | random                                                      |
-| Vegas  | 3    | Vegas    | 3                        | random                                                      |
+| Draw 3 | 3    | Standard | unlimited                | random, or proven winnable when "Winnable deals only" is on |
+| Vegas  | 3    | Vegas    | 3                        | random, or proven winnable when "Winnable deals only" is on |
 | Daily  | 1    | Standard | unlimited                | one deal per UTC day, solver-selected                       |
 
 The Vegas bank is per game; there is no cumulative bankroll.
 
 ### Winnable deals only
 
-A preference (`winnableOnly`, default on). It applies to Draw 1 only: the deal service tries up to 40 fresh seeds,
-searching each with a 5,000-node budget, and uses the first proven win. If none is proven, the last seed is dealt
-as `random`. Draw 3 and Vegas are never verified, and the Home switch is disabled for them
-(`src/ui/screens/home/WinnableToggle.tsx`). See [domain-and-solver.md](../architecture/domain-and-solver.md#deal-service).
+A preference (`winnableOnly`, default on), shared by Draw 1, Draw 3 and Vegas. The deal service tries up to 40 fresh
+seeds, searching each within its budget, and uses the first proven win. If none is proven, the last seed is dealt as
+`random`. The Home switch is live in those three modes and disabled, showing on, in Daily
+(`src/ui/screens/home/WinnableToggle.tsx`). Beside it, the Difficulty control (Any, Easy, Medium, Hard; the
+`difficulty` preference) asks for a grade of winnable deal; it is enabled only while the switch is on outside Daily. See
+[domain-and-solver.md](../architecture/domain-and-solver.md#deal-service).
 
 ### Daily
 

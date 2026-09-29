@@ -153,7 +153,7 @@ describe('Home actions', () => {
     });
 
     it('pins the action row to the bottom, above the safe area, on phones and short screens', () => {
-        const block = blockAfter(HOME_CSS, '@media (max-width: 720px), (max-height: 720px)');
+        const block = blockAfter(HOME_CSS, '@media (max-width: 720px), (max-height: 800px)');
         const row = rulesFor(block, '.cta-row').join(' ');
 
         expect(row).toMatch(/position:\s*sticky/);

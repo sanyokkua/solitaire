@@ -26,9 +26,12 @@ function renderApp(preloadedState: RenderWithStoreOptions['preloadedState'] = {}
     return { store, dealService };
 }
 
-/** The Home top bar's theme toggle and Settings button, the selected mode tile and the Winnable switch come first. */
+/**
+ * The Home top bar's theme toggle and Settings button, the selected mode tile, the Winnable switch and the Difficulty
+ * group's checked option come first.
+ */
 async function tabPastTopbar(user: ReturnType<typeof userEvent.setup>): Promise<void> {
-    for (let stop = 0; stop < 4; stop += 1) {
+    for (let stop = 0; stop < 5; stop += 1) {
         await user.tab();
     }
 }

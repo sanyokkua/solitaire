@@ -635,7 +635,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 10. Difficulty and all-mode UI
 
-- [ ] 10.1 The Winnable card in every mode, with the Difficulty control
+- [x] 10.1 The Winnable card in every mode, with the Difficulty control
     - **Implements:** HO "Winnable deals only switch" (KS-DEAL-03, KS-DEAL-11); D11.
     - **Files:**
       - `src/ui/components/Segmented.tsx` (gains `disabled`; it already has the `radiogroup` and `radio` roles and a roving tabindex; each option keeps a coarse-pointer target of at least 44×44 px);

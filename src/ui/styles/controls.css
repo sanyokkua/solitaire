@@ -104,6 +104,7 @@
 
 .segmented button {
     flex: 1;
+    min-width: 0;
     min-height: 2.2rem;
     padding: 0.4rem 0.5rem;
     border: 0;
@@ -112,12 +113,25 @@
     color: var(--color-on-surface-muted);
     font-size: 0.7rem;
     font-weight: 800;
+    overflow-wrap: break-word;
 }
 
 .segmented button.is-active {
     background: var(--color-surface);
     color: var(--color-primary);
     box-shadow: var(--shadow-sm);
+}
+
+.segmented[aria-disabled='true'] {
+    opacity: 0.45;
+}
+
+/* On a coarse pointer every option is at least 44 x 44 px. */
+@media (pointer: coarse) {
+    .segmented button {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
 }
 
 .swatches {

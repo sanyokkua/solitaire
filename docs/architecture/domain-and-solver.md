@@ -205,7 +205,7 @@ Each `deal` first cancels every pending deal and hint (a busy worker is terminat
 - Fallback: if the worker fails or cannot start, the first candidate seed is dealt as `random`, 1 attempt (for Daily,
   still with its `dayKey`).
 - A superseded request settles `{ status: 'cancelled' }` and delivers nothing.
-- `winnableOnly` has no effect on Draw 3 and Vegas: they are not verified.
+- `winnableOnly` applies to Draw 1, Draw 3 and Vegas; Daily is always searched.
 
 ### Daily seeds
 

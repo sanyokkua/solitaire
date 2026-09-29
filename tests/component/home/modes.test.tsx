@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { played, statsReducer, won, type StatsState } from '../../../src/features/stats/statsSlice';
@@ -23,12 +23,11 @@ describe('Home mode tiles', () => {
         expect(screen.getByText('Choose a game')).toBeVisible();
         const group = screen.getByRole('radiogroup', { name: 'Game mode' });
         expect(group).toBeInTheDocument();
-        expect(screen.getAllByRole('radio').map((radio) => radio.getAttribute('aria-checked'))).toEqual([
-            'true',
-            'false',
-            'false',
-            'false',
-        ]);
+        expect(
+            within(group)
+                .getAllByRole('radio')
+                .map((radio) => radio.getAttribute('aria-checked')),
+        ).toEqual(['true', 'false', 'false', 'false']);
         for (const name of MODE_NAMES) {
             expect(screen.getByRole('radio', { name })).toBeInTheDocument();
         }
@@ -144,7 +143,7 @@ describe('Home Winnable deals only switch', () => {
         const toggle = winnable();
         expect(toggle).toBeEnabled();
         expect(toggle).toHaveAttribute('aria-checked', 'true');
-        expect(toggle).toHaveAccessibleDescription(/solver checks every Draw 1 deal/);
+        expect(toggle).toHaveAccessibleDescription(/solver checks every deal before it is shown/);
     });
 
     it('toggles by click and by keyboard, and writes the preference', async () => {
@@ -166,17 +165,17 @@ describe('Home Winnable deals only switch', () => {
         expect(winnable()).toHaveAttribute('aria-checked', 'false');
     });
 
-    it.each(['draw3', 'vegas'] as const)('is disabled and off for %s, keeping the stored value', async (mode) => {
+    it.each(['draw3', 'vegas'] as const)('is enabled and shows the stored choice for %s', async (mode) => {
         const user = userEvent.setup();
         const { store } = renderHome({ selectedMode: mode, winnableOnly: true });
 
-        expect(winnable()).toBeDisabled();
-        expect(winnable()).toHaveAttribute('aria-checked', 'false');
-        expect(winnable()).toHaveAccessibleDescription(/not checked by the solver/);
+        expect(winnable()).toBeEnabled();
+        expect(winnable()).toHaveAttribute('aria-checked', 'true');
+        expect(winnable()).toHaveAccessibleDescription(/solver checks every deal before it is shown/);
 
         await user.click(winnable());
 
-        expect(store.getState().preferences.winnableOnly).toBe(true);
+        expect(store.getState().preferences.winnableOnly).toBe(false);
         expect(winnable()).toHaveAttribute('aria-checked', 'false');
     });
 
@@ -186,7 +185,7 @@ describe('Home Winnable deals only switch', () => {
 
         expect(winnable()).toBeDisabled();
         expect(winnable()).toHaveAttribute('aria-checked', 'true');
-        expect(winnable()).toHaveAccessibleDescription(/Daily deals are always winnable/);
+        expect(winnable()).toHaveAccessibleDescription(/Daily deals are always checked/);
 
         await user.click(winnable());
 
@@ -198,6 +197,9 @@ describe('Home Winnable deals only switch', () => {
         renderHome();
 
         await user.click(screen.getByRole('radio', { name: 'Vegas' }));
+        expect(winnable()).toBeEnabled();
+
+        await user.click(screen.getByRole('radio', { name: 'Daily deal' }));
         expect(winnable()).toBeDisabled();
 
         await user.click(screen.getByRole('radio', { name: 'Draw 1' }));

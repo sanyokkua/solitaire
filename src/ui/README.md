@@ -143,12 +143,14 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
 - `components/Switch.tsx` — `Switch({ label, checked, onChange })` (D13): a `button.switch[role=switch]` named by
   `label`, with `aria-checked` mirroring `checked`; a click calls `onChange(!checked)`. Native buttons give Enter and
   Space activation for free.
-- `components/Segmented.tsx` — `Segmented<T>({ label, options, value, onChange, firstOptionRef? })` (D13): a named
+- `components/Segmented.tsx` — `Segmented<T>({ label, options, value, onChange, firstOptionRef?, disabled? })` (D13): a named
   `div.segmented[role=radiogroup]` of `button[role=radio]` options, the current `value` marked `aria-checked` and
   `.is-active`. A roving-tabindex group: only the checked option is in the Tab order, and the left/right (and
   up/down) arrows move to and select the neighbouring option, wrapping at the ends, moving DOM focus there too.
   `firstOptionRef`, when given, is set to the first option's button — `SettingsSheet` passes its Theme control's ref
-  through to `ModalSheet.initialFocusRef` this way (I5).
+  through to `ModalSheet.initialFocusRef` this way (I5). `disabled` disables every option, marks the group
+  `aria-disabled` (dimmed to 0.45) and blocks clicks and arrow selection while `value` is still shown. On a coarse
+  pointer every option is at least 44×44 px.
 - `components/Swatches.tsx` — `Swatches<T>({ label, options, value, onChange })` (D13): the same named
   roving-tabindex radiogroup as `Segmented`, rendered as `.swatches` colour tiles (`--sa`/`--sb` custom properties per
   option) instead of labelled buttons. Each swatch's accessible name is its colour's own name (`aria-label`), never
@@ -215,7 +217,7 @@ sessionThunks.ts`), so this sheet repeats none of that. Initial focus (I5, D2) l
 - `screens/home/HomeActions.tsx` — `div.cta-row` (6.3, HO "Home actions"): Deal cards (`action-button--filled
 action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`action-button--tonal`, only while
   `selectResumable`, dispatches `continueGame()`) and How to play (`action-button--outline`, `openSheet('help')`). At
-  `max-width: 720px` or `max-height: 720px` `home.css` pins the row to the bottom with a gradient backdrop above
+  `max-width: 720px` or `max-height: 800px` `home.css` pins the row to the bottom with a gradient backdrop above
   `env(safe-area-inset-bottom)`.
 - `screens/home/RecordStrip.tsx` — the `.stat-strip` LCD group named `t('home.record.label')` (6.3): Played and Won as three
   digits, Win rate `n%` or `--`, Streak `current/best` (just `current` while no best), all from `selectOverallStats`.
@@ -236,10 +238,15 @@ action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`a
   Best is `Best <time>` (`formatTime`, as the Statistics sheet) or, for Vegas, the best bank through `formatBank`; a mode with
   no win shows `home.modes.noRecord`. A roving tabindex (only the selected tile is tabbable); click or the arrow keys
   (wrapping, moving focus) write `preferenceSet({ key: 'selectedMode' })`. Selecting never starts a game.
-- `screens/home/WinnableToggle.tsx` — `WinnableToggle` (6.2, HO "Winnable deals only switch"): a `.toggle-card` with the
-  title, a caption (`#winnable-caption`, the switch's `aria-describedby`) and a `Switch`. Draw 1 reads and writes
-  `winnableOnly`; Draw 3 and Vegas show it off and Daily on, all disabled with an explaining caption, and the stored value
-  is never changed there. `Switch` gained optional `disabled` and `describedBy` props.
+- `screens/home/WinnableToggle.tsx` — `WinnableToggle` (HO "Winnable deals only switch", D11): a `.toggle-card` with a
+  `.toggle-card__row` (title, a caption `#winnable-caption` that is the switch's `aria-describedby`, and a `Switch`) and,
+  under it, a `Segmented` radiogroup named `home.difficulty.label` ("Difficulty": Any, Easy, Medium, Hard; the grade
+  names are the shared `grade.*` keys). The switch is live in Draw 1, Draw 3 and Vegas and reads and writes
+  `winnableOnly`, with one caption (`home.winnable.caption`: the solver checks every deal before it is shown, and a deal
+  it cannot prove within the attempt limit is marked "Random deal"); in Daily it is disabled and reports on with
+  `home.winnable.captionDaily`, and the stored value is never changed there. Difficulty reads and writes `difficulty` and
+  is enabled only with the switch on outside Daily; when disabled it still shows the stored choice and writes nothing.
+  Difficulty is not in Settings.
 - `components/ThemeToggle.tsx` — `ThemeToggle` (6.1): an `.icon-action` that offers the opposite of the theme shown (a moon
   offers dark, a sun offers light; named `home.theme.switchToDark`/`switchToLight`). The shown theme is the `theme`
   preference, or for System the device's `(prefers-color-scheme: dark)` read through `useMediaQuery`. It always stores a
