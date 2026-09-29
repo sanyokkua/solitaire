@@ -348,7 +348,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** change the viewport twice mid-deal. Every card ends at its computed final position, the game state is unchanged, and no page scroll appears.
     - **Verify:** `rtk npx playwright test resize --project=chromium` passes.
 
-- [ ] 5.6 Daily rollover at 00:00 UTC
+- [x] 5.6 Daily rollover at 00:00 UTC
     - **Implements:** RF "Edge cases are proven end to end" ("Daily rollover at midnight UTC", "A missed date ends the daily streak"); DS "Daily deal v1"; KS-DEAL-07, KS-STA-04.
     - **Files:** new `tests/e2e/daily.spec.ts`, which uses `page.clock` on golden dates from `tests/fixtures/dailyGolden.ts`.
     - **Tests:**
