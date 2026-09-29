@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { generateIcons } from '../../../scripts/generate-icons.mjs';
+import { drawIconPng, generateIcons } from '../../../scripts/generate-icons.mjs';
 
 const PUBLIC_DIR = resolve(import.meta.dirname, '../../../public');
 const generated = generateIcons();
@@ -74,9 +74,31 @@ describe('generated icons', () => {
     it('favicon.svg draws the card face and the mark on the same grid', () => {
         const svg = generated.get('favicon.svg') as string;
 
-        expect(svg).toContain('viewBox="0 0 24 24"');
+        expect(svg).toContain('viewBox="0 0 16 16"');
         expect(svg).toContain('shape-rendering="crispEdges"');
         expect(svg).toContain(`fill="${CARD_FACE}"`);
+    });
+
+    it.each([
+        [32, 2, 0],
+        [192, 12, 0],
+        [512, 32, 0],
+        [180, 11, 2],
+    ])('the %i px icon is the 16 px icon at a whole-pixel scale of %i with %i px padding', (size, scale, padding) => {
+        const cells = decodePng(drawIconPng(16, false)).pixels;
+        const { pixels } = decodePng(drawIconPng(size, false));
+
+        for (let y = 0; y < size; y += 1) {
+            for (let x = 0; x < size; x += 1) {
+                const cellX = Math.floor((x - padding) / scale);
+                const cellY = Math.floor((y - padding) / scale);
+                const inside = cellX >= 0 && cellX < 16 && cellY >= 0 && cellY < 16;
+                const expected = inside ? colourAt(cells, 16, cellX, cellY) : BACKGROUND;
+                if (colourAt(pixels, size, x, y) !== expected) {
+                    expect.fail(`pixel (${String(x)}, ${String(y)}) is not a whole-pixel copy of the 16 px icon`);
+                }
+            }
+        }
     });
 });
 

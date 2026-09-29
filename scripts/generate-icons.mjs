@@ -1,5 +1,5 @@
 // Draws the card-fan mark (a checkered card back behind a white card face showing a pixel "A" and a spade) on the
-// harbour background. ONE rectangle list on a 24 x 24 cell grid feeds both the SVG favicon and the PNG icons.
+// harbour background. ONE rectangle list on a 16 x 16 cell grid feeds both the SVG favicon and the PNG icons.
 // Dependency-free: PNGs are encoded with node:zlib. Run `node scripts/generate-icons.mjs` to rewrite public/.
 import { Buffer } from 'node:buffer';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { crc32, deflateSync } from 'node:zlib';
 
-const GRID = 24;
+const GRID = 16;
 const BACKGROUND = '#0b2545';
 const SKY = '#5bc0eb';
 const NAVY = '#1d3f70';
@@ -16,12 +16,12 @@ const RIM = '#f1faee';
 const FACE = '#fbfdfb';
 const INK = '#13315c';
 
-const CARD_WIDTH = 9;
+const CARD_WIDTH = 7;
 const CARD_HEIGHT = 13;
-const BACK_AT = [5, 4];
-const FACE_AT = [10, 7];
+const BACK_AT = [2, 1];
+const FACE_AT = [7, 2];
 
-const LETTER_A = ['.##.', '#..#', '####', '#..#', '#..#'];
+const LETTER_A = ['.###.', '#...#', '#####', '#...#', '#...#'];
 const SPADE = ['..#..', '.###.', '#####', '#####', '..#..'];
 
 /** Rectangles for the `#` cells of a bitmap placed at (x, y); each row's runs of `#` become one rectangle. */
@@ -55,7 +55,7 @@ const RECTS = [
     ...cardBackRects(BACK_AT),
     { x: FACE_AT[0], y: FACE_AT[1], w: CARD_WIDTH, h: CARD_HEIGHT, fill: FACE },
     ...bitmapRects(LETTER_A, [FACE_AT[0] + 1, FACE_AT[1] + 1], INK),
-    ...bitmapRects(SPADE, [FACE_AT[0] + 2, FACE_AT[1] + 7], INK),
+    ...bitmapRects(SPADE, [FACE_AT[0] + 1, FACE_AT[1] + 7], INK),
 ];
 
 /** Bounding box of the mark (everything except the background rectangle), in cells. */
