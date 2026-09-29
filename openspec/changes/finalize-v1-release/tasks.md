@@ -414,7 +414,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/unit/solver/solver.test.ts` passes **unchanged**. `tests/unit/features/deal/daily.test.ts` adapts only its call signature, and its pinned seeds and attempts stay unchanged.
     - **Verify:** `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes.
 
-- [ ] 6.5 Per-mode budgets from the benchmark
+- [x] 6.5 Per-mode budgets from the benchmark
     - **Implements:** DS "Deals per mode record their provenance" (the budget column); RF "Informational solver benchmark outside the validation gate" (verdicts and selection latency per mode; the grading report is 7.3's and the target-grade row is 7.4's).
     - **Files:**
       - new `src/features/deal/budgets.ts`: `WINNABLE_BUDGET` for Draw 1 moves there unchanged from `dealService.ts:18-22`, alongside `MAX_ATTEMPTS`, `HINT_BUDGET` and the Draw 3 and Vegas budgets;

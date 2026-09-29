@@ -115,14 +115,31 @@ shows at 100% in the html report; the text table hides it), so it is not in `cov
 
 ## Benchmark
 
-`rtk npm run bench` (`vitest bench --run`) runs `bench/winnable.bench.ts`, which times `findWinnable` over fixed batches of
-40 seeds at 5,000 nodes and prints the median and the 95th percentile against the KS-PERF-02 targets (300 ms median,
-1.5 s p95 on a mid-range phone). It is informational: it never asserts on a timing and exits zero whatever the numbers
-are. It is not part of `test:unit`, `test`, `validate`, the git hooks or CI, and it is discovered only through
+`rtk npm run bench` (`vitest bench --run`) runs `bench/winnable.bench.ts`. For Draw 1, Draw 3 and Vegas it prints, at the
+mode's budget from `src/features/deal/budgets.ts`, the verdict distribution of the search over 100 fixed seeds and the
+median and 95th percentile of one cold selection (`findWinnable` over a batch of 40 seeds, the call the deal service
+makes for a winnable deal). Draw 1 is judged against the KS-PERF-02 targets (300 ms median, 1.5 s p95 on a mid-range
+phone); Draw 3 and Vegas have no target. It is informational: it never asserts on a timing and exits zero whatever the
+numbers are. It is not part of `test:unit`, `test`, `validate`, the git hooks or CI, and it is discovered only through
 `benchmark.include` in `vitest.config.ts` (the `*.bench.ts` name is outside the test `include`). Vitest 5's bench
 statistics have no `p95`, so the benchmark computes it from the raw samples kept by `benchmark.retainSamples`. Numbers
 from a development machine are not phone numbers; the browser check against the real worker is `tests/e2e/dealLatency.spec.ts` (see below) and the
 mid-range-phone check is a documented manual step in Phase 9.
+
+Recorded results (2026-09-29, Apple M1 Pro, Node v24.21.0). Verdicts are identical on every run; timings vary by a few
+percent.
+
+| Mode   | Budget (nodes) | Verdicts over 100 seeds (win / loss / unknown) | Selection median | Selection p95 |
+| ------ | -------------- | ---------------------------------------------- | ---------------- | ------------- |
+| Draw 1 | 5,000          | 68 / 1 / 31                                    | 8.9 ms           | 159 ms        |
+| Draw 3 | 20,000         | 44 / 8 / 48                                    | 442 ms           | 2.4 s         |
+| Vegas  | 20,000         | 18 / 19 / 63                                   | 2.2 s            | 7.9 s         |
+
+The Draw 1 figures are the baseline for the latency guard on grading (task 7.4). Draw 3 stays under the 1 s median and
+3 s p95 limit that task 6.5 set for the slow modes. Vegas misses both at 20,000 nodes (5,000 nodes measured 0.9 s median
+and 2.6 s p95 with about 1 selection in 40 finding no proven win; 10,000 nodes 1.4 s and 4.0 s). The 20,000 value was
+kept on purpose: the deal pool (D8) and the dealing overlay cover cold Vegas deals, and Draw 3 and Vegas cold numbers
+are informational (KS-PERF-02 is modified, not extended, to them).
 
 ## Storage in tests
 

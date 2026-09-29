@@ -6,13 +6,8 @@ import { decodeDealCode, encodeDealCode } from '../../../../src/domain/dealCode'
 import { cryptoSeed } from '../../../../src/domain/prng';
 import type { Mode } from '../../../../src/domain/types';
 import { dailySeed } from '../../../../src/features/deal/daily';
-import {
-    createDealService,
-    MAX_ATTEMPTS,
-    WINNABLE_BUDGET,
-    type DealProgress,
-    type DealService,
-} from '../../../../src/features/deal/dealService';
+import { MAX_ATTEMPTS, WINNABLE_BUDGET } from '../../../../src/features/deal/budgets';
+import { createDealService, type DealProgress, type DealService } from '../../../../src/features/deal/dealService';
 import type { WorkerLike } from '../../../../src/features/deal/solverClient';
 import { findWinnable } from '../../../../src/solver/winnable';
 import { DAILY_GOLDEN } from '../../../fixtures/dailyGolden';

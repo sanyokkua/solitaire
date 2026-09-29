@@ -11,15 +11,9 @@ import { cryptoSeed, type SeedSource } from '../../domain/prng';
 import { isWon, passLimit } from '../../domain/rules';
 import type { GameState, Mode } from '../../domain/types';
 import type { SolverHint } from '../../solver/hint';
+import { HINT_BUDGET, MAX_ATTEMPTS, WINNABLE_BUDGET } from './budgets';
 import { DAILY_V1, dailySeeds, utcDayKey } from './daily';
 import { createSolverClient, type WorkerLike } from './solverClient';
-
-/** Nodes searched per candidate when a Draw 1 deal must be winnable. */
-export const WINNABLE_BUDGET = 5_000;
-/** Candidate seeds tried for a winnable Draw 1 deal. */
-export const MAX_ATTEMPTS = 40;
-/** Nodes searched for a solver hint. */
-export const HINT_BUDGET = 3_000;
 
 const DEFAULT_OVERLAY_DELAY_MS = 160;
 const DEFAULT_HINT_TIMEOUT_MS = 150;

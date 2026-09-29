@@ -22,8 +22,11 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   `{ status: 'none' }` (won, or no move at all) or `{ status: 'cancelled' }` (a newer hint, any deal or `dispose()`
   replaced it). Draw 1 positions without a pass limit ask the solver (3,000 nodes, 150 ms) and take its first line
   move; no suggestion, a timeout, a failure or a pending deal falls back to the domain heuristic, which is all Draw 3
-  and Vegas use. `dispose()` cancels everything and terminates the worker. Exports `WINNABLE_BUDGET`, `MAX_ATTEMPTS`
-  and `HINT_BUDGET`
+  and Vegas use. `dispose()` cancels everything and terminates the worker.
+- `deal/budgets.ts` — the node budgets and the attempt cap: `WINNABLE_BUDGET` (Draw 1, 5,000), `DRAW3_WINNABLE_BUDGET` and
+  `VEGAS_WINNABLE_BUDGET` (the ordered-talon search, 20,000 each), `MAX_ATTEMPTS` (40 candidates) and `HINT_BUDGET`
+  (3,000). Daily has its own pinned pair in `daily.ts`. The Draw 3 and Vegas values come from the per-mode benchmark
+  recorded in `tests/README.md`.
 - `game/history.ts` — pure undo and redo over `Session` (`{ current, history, future }`, both stacks unbounded).
   `commit(session, next)` starts an undo step (the position in play joins `history`, `future` is cleared);
   `replace(session, next)` updates the position in play inside the current step. `undo` and `redo` restore the last
