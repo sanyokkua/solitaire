@@ -427,7 +427,7 @@ mechanism stays, the signal changed.
     "Difficulty": Any, Easy, Medium, Hard.
   - It is enabled only when the switch is on and the mode is not Daily. While disabled it shows the stored
     choice and never writes it.
-  - It has no animation of its own; the existing colour transition is off under `data-motion='off'`.
+  - It has no animation of its own, so there is nothing for `data-motion='off'` to switch off.
 - **Where Difficulty is not added.** Not to Settings: Home already owns "Winnable deals only", and the two
   belong together.
 - **Checked by** the device-fit and pseudo-locale matrices.

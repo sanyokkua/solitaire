@@ -114,3 +114,31 @@ test('chooses Hard in Draw 3 by keyboard, then deals', async ({ page }, testInfo
         )
         .toBe('draw3:hard');
 });
+
+test.describe('Difficulty option size', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/');
+        const coarse = await page.evaluate(() => window.matchMedia('(pointer: coarse)').matches);
+        test.skip(!coarse, 'Touch targets are only required where the pointer is coarse.');
+    });
+
+    for (const size of [null, { width: 320, height: 480 }] as const) {
+        const label = size ? `${String(size.width)}x${String(size.height)}` : 'the project viewport';
+        test(`every Difficulty option is at least 44x44 in ${label}`, async ({ page }) => {
+            if (size) {
+                await page.setViewportSize(size);
+                await page.goto('/');
+            }
+            const options = page.locator('.toggle-card .segmented button');
+            await expect(options).toHaveCount(4);
+
+            for (const option of await options.all()) {
+                const box = await option.boundingBox();
+                const name = (await option.textContent()) ?? '';
+                expect(box, `${label}: ${name}`).not.toBeNull();
+                expect(box?.width, `${label}: ${name} width`).toBeGreaterThanOrEqual(44);
+                expect(box?.height, `${label}: ${name} height`).toBeGreaterThanOrEqual(44);
+            }
+        });
+    }
+});

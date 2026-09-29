@@ -223,9 +223,9 @@ Deal cards SHALL start a new game in the selected mode and show the Game screen.
 Vegas it SHALL honour Winnable deals only and the chosen Difficulty; in Daily it SHALL deal the day's
 verified deal. If a started, unfinished game exists, that mode's streak breaks. Continue game SHALL
 show the Game screen with the saved game restored. How to play SHALL open its sheet. WHILE Home is
-shown on a phone or in any viewport at most 720 px tall or 720 px wide, the actions SHALL be pinned to
-the bottom of the viewport, above the safe area, so Deal cards and Continue game stay visible without
-scrolling while the rest of Home scrolls. Each action SHALL be at least 44×44 px where the pointer is
+shown in any viewport at most 720 px wide or at most 800 px tall (every phone, and a foldable's
+main screen in landscape), the actions SHALL be pinned to the bottom of the viewport, above the safe
+area, so Deal cards and Continue game stay visible without scrolling while the rest of Home scrolls. Each action SHALL be at least 44×44 px where the pointer is
 coarse.
 
 Input coverage: every action works by tap/click and keyboard (Enter/Space); drag is not an input
@@ -253,7 +253,7 @@ KS-A11Y-04; action look (new))*
 
 #### Scenario: Actions visible on short screens
 
-- **WHEN** Home is shown at 874×350, 390×844 or 1280×720
+- **WHEN** Home is shown at 874×350, 835×752, 390×844 or 1280×720
 - **THEN** Deal cards (and Continue game when present) lie fully inside the viewport and clear of the
   safe area without scrolling
 
