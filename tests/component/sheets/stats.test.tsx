@@ -114,6 +114,7 @@ describe('StatsSheet', () => {
         expect(within(actions as HTMLElement).getByRole('button', { name: 'Close' })).toHaveFocus();
     });
 
+    // covers: KS-STA-05
     it('Reset needs confirmation: shows Confirm/Cancel and clears nothing until Confirm', async () => {
         const user = userEvent.setup();
         const store = testStore({ preloadedState: { stats: mixedStats() } });

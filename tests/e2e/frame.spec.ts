@@ -10,6 +10,7 @@ async function openGame(page: Page, size?: { readonly width: number; readonly he
     await expect(page.locator('[data-card-id]').first()).toBeAttached();
 }
 
+// covers: KS-GEN-06
 test.describe('Game frame profiles', () => {
     test('Phone on its side uses rails', async ({ page }) => {
         await openGame(page, { width: 874, height: 350 });
@@ -46,6 +47,7 @@ test.describe('Game frame profiles', () => {
         await expect(page.locator('.stat-display--timer')).toBeVisible();
     });
 
+    // covers: KS-GEN-05
     test('The Game screen never scrolls', async ({ page }) => {
         for (const size of [
             { width: 874, height: 350 },
@@ -67,6 +69,7 @@ test.describe('Game frame profiles', () => {
     });
 });
 
+// covers: KS-A11Y-04
 test.describe('Touch target size', () => {
     /** The Back, Undo, Redo, Hint, Finish and New deal boxes, keyed by name. */
     async function controlBoxes(page: Page) {

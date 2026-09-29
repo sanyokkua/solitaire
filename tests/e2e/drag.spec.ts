@@ -1,3 +1,5 @@
+// covers: KS-INP-04, KS-INP-06, KS-INP-10
+
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { oneMovePosition, SEVEN_OF_CLUBS, SIX_OF_DIAMONDS } from '../fixtures/boardPositions';
 import { cardOf, cardRect, cardTarget, continueToGame, near, type Point } from './support/cards';

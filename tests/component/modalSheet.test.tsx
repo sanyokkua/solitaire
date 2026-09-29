@@ -1,3 +1,5 @@
+// covers: KS-A11Y-03
+
 import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef, useRef, useState } from 'react';
@@ -237,6 +239,7 @@ describe('ModalSheet', () => {
         });
     });
 
+    // covers: KS-INP-08
     it('dismisses on Escape', async () => {
         const user = userEvent.setup();
         const onDismiss = vi.fn();

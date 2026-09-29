@@ -39,6 +39,7 @@ describe('the drag styles in cards.css', () => {
 });
 
 describe('board.css', () => {
+    // covers: KS-INP-10
     it('keeps the table from scrolling, zooming, selecting text or showing the touch callout', () => {
         const board = ruleBody(boardCss, /\.board\s*$/);
 
@@ -84,6 +85,7 @@ describe('the assistance styles', () => {
         return out;
     }
 
+    // covers: KS-SET-04
     it.each(sheets)('%s neutralises every animation under :root[data-motion=off]', (_file, css) => {
         const neutralised = neutralisedSelectors(css);
         for (const selector of animatedSelectors(css)) {
@@ -143,6 +145,7 @@ describe('the assistance styles', () => {
         expect(hot).toMatch(/z-index:\s*1500\b/);
     });
 
+    // covers: KS-A11Y-03
     it('draws the focus ring of a card as a pseudo-element, so the selection outline on the face stays free', () => {
         expect(ruleBody(cardsCss, /\.board \.card:focus-visible\s*$/)).toMatch(/outline:\s*none/);
         const ring = ruleBody(cardsCss, /\.board \.card:focus-visible::after\s*$/);
@@ -154,6 +157,7 @@ describe('the assistance styles', () => {
         expect(ring).toMatch(/pointer-events:\s*none/);
     });
 
+    // covers: KS-A11Y-03
     it('draws the focus ring of a slot as an outline in the focus colour', () => {
         const body = ruleBody(boardCss, /\.board \.slot:focus-visible\s*$/);
 

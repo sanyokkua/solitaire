@@ -157,6 +157,7 @@ const REMOVED_TOKENS = [
     '--color-card-back-checker',
 ];
 
+// covers: KS-SET-03
 describe('tokens.css', () => {
     it.each(LIGHT_DARK_TOKENS)('defines %s in the light palette', (token) => {
         expect(blocks.light).toContain(`${token}:`);
@@ -237,6 +238,7 @@ describe('tokens.css', () => {
         }
     });
 
+    // covers: KS-PWA-04
     it('contains no third-party runtime host reference', () => {
         expect(tokensCss).not.toMatch(/https?:\/\//);
     });
@@ -265,6 +267,7 @@ describe('stylesheets other than tokens.css', () => {
     });
 });
 
+// covers: KS-SET-04
 describe('the single no-motion switch', () => {
     const stylesheets = readdirSync(STYLES_DIR).filter((file) => file.endsWith('.css'));
 

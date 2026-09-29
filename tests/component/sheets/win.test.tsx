@@ -102,6 +102,7 @@ describe('useWinSheet: opening timing', () => {
         expect(store.getState().app.sheet).toBe('win');
     });
 
+    // covers: KS-SET-04
     it('opens at once with reduced motion', async () => {
         vi.useFakeTimers();
         const { store } = mountApp(nearlyWon());
@@ -154,6 +155,7 @@ describe('useWinSheet: opening timing', () => {
         expect(store.getState().app.sheet).not.toBe('win');
     });
 
+    // covers: KS-GEN-02
     it('replaces a sheet opened during the cascade (Settings) once its delay ends', async () => {
         vi.useFakeTimers();
         const { store } = mountApp(nearlyWon());
@@ -278,6 +280,7 @@ describe('WinSheet content', () => {
     });
 });
 
+// covers: KS-DEAL-11
 describe('WinSheet grade and title', () => {
     it('shows "Hard deal" for a hard grade', () => {
         mountWon({ ...STANDARD_SUMMARY, mode: 'draw3', grade: 'hard' });

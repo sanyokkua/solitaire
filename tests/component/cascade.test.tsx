@@ -122,6 +122,7 @@ describe('the win cascade', () => {
         expect(Number(cardEl(ACE_OF_SPADES).style.zIndex)).toBe(2051);
     });
 
+    // covers: KS-INP-09
     it('ignores a card press and Enter on the board while it runs', async () => {
         const { store, board, cardEl, win } = mount();
         await win();
@@ -224,6 +225,7 @@ describe('the win cascade', () => {
         expect(waapi.calls).toHaveLength(0);
     });
 
+    // covers: KS-SET-04
     it('does not animate with motion off, and the win is announced', async () => {
         const { win } = mount({ reduced: true });
 

@@ -33,6 +33,7 @@ describe('NewDealSheet', () => {
         expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
     });
 
+    // covers: KS-DEAL-08
     it('Restart this deal re-deals the same code: same seed, score 0, moves 0, time 0 and no undo history', async () => {
         const user = userEvent.setup();
         const { store } = storeWithGame();
@@ -64,6 +65,7 @@ describe('NewDealSheet', () => {
         expect(store.getState().app.sheet).toBeNull();
     });
 
+    // covers: KS-STA-03
     it("choosing New deal resets that mode's current streak to 0", async () => {
         const user = userEvent.setup();
         const { store, dealService } = storeWithGame();

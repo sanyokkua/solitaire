@@ -1,3 +1,5 @@
+// covers: KS-I18N-01
+
 import { act, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { preferenceSet } from '../../src/features/preferences/preferencesSlice';

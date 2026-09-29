@@ -10,6 +10,7 @@ const DEAL_TIMEOUT = 60_000;
 const GAME_TIMEOUT = 300_000;
 
 test.describe('Playing every mode to a win', () => {
+    // covers: KS-INP-08, KS-MOVE-07
     test('a Draw 3 game is won by the keyboard alone', async ({ page }, testInfo) => {
         skipOutsideFullGameProjects(testInfo);
         test.setTimeout(GAME_TIMEOUT);
@@ -21,6 +22,7 @@ test.describe('Playing every mode to a win', () => {
         await expectWon(page, DRAW3_LINE);
     });
 
+    // covers: KS-INP-04, KS-INP-06, KS-MOVE-07, KS-SCO-02
     test('a Vegas game is won by dragging, and the bank ends where the line says', async ({ page }, testInfo) => {
         skipOutsideFullGameProjects(testInfo);
         test.setTimeout(GAME_TIMEOUT);
@@ -32,6 +34,7 @@ test.describe('Playing every mode to a win', () => {
         await expectWon(page, VEGAS_LINE);
     });
 
+    // covers: KS-DEAL-07, KS-MOVE-07
     test('the Daily deal, dealt from Home on its UTC date, is won by taps', async ({ page }, testInfo) => {
         skipOutsideFullGameProjects(testInfo);
         test.setTimeout(GAME_TIMEOUT);

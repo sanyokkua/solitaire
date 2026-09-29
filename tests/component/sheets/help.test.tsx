@@ -48,6 +48,7 @@ describe('HelpSheet', () => {
         expect(screen.getByText(/Vegas:/)).toBeInTheDocument();
     });
 
+    // covers: KS-DEAL-11
     describe('Winnable deals passage', () => {
         it.each([
             ['en', 'Winnable deals', /built-in solver/, ['Easy', 'Medium', 'Hard'], /Difficulty on Home/],

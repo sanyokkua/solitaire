@@ -87,6 +87,7 @@ describe('ModeChip', () => {
     });
 });
 
+// covers: KS-DEAL-06, KS-DEAL-11
 describe('DealChip', () => {
     it.each([
         [{ verdict: 'win', attempts: 1, grade: 'medium' }, 'en', 'Winnable · Medium'],

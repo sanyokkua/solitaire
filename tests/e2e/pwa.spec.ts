@@ -58,6 +58,7 @@ async function dealAndDraw(page: Page): Promise<void> {
     await expect(page.locator(MOVES_VALUE)).toHaveText('001');
 }
 
+// covers: KS-GEN-01, KS-PWA-01, KS-PWA-04
 test.describe('Offline', () => {
     test('offline cold start: Home, a Winnable Draw 1 deal, a move and Settings all work', async ({
         context,
@@ -97,6 +98,7 @@ test.describe('Offline', () => {
         expectSameOrigin(requests, baseURL);
     });
 
+    // covers: KS-PER-02
     test('offline, a reload on Game and Continue from Home restore the game', async ({
         context,
         baseURL,
@@ -123,6 +125,7 @@ test.describe('Offline', () => {
     });
 });
 
+// covers: KS-PWA-03
 test('update after saving: Later hides the notice for the session, Update reloads with the game restored', async ({
     page,
 }, testInfo) => {

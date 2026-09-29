@@ -1,3 +1,5 @@
+// covers: KS-GEN-03, KS-I18N-04
+
 import { expect, test, type Page } from '@playwright/test';
 import { BASELINES, DEVICE_CONFIGS } from '../fixtures/viewports';
 import { worstColumnState } from '../fixtures/boardPositions';

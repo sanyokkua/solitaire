@@ -1,3 +1,5 @@
+// covers: KS-DEAL-07, KS-STA-04
+
 import { expect, test, type Page } from '@playwright/test';
 import { encodeDealCode } from '../../src/domain/dealCode';
 import { formatDate } from '../../src/i18n/translate';

@@ -9,6 +9,7 @@ import { failSaves, readStoredSession, seedRaw, seedRecord } from './support/see
 
 const CORRUPT = '{not json';
 
+// covers: KS-PER-03
 test.describe('Corrupt saved data', () => {
     test('starts with the defaults, keeps the unreadable text as a backup, and a new deal plays', async ({ page }) => {
         await seedRaw(page, CORRUPT);
@@ -66,6 +67,7 @@ test.describe('Corrupt saved data', () => {
     });
 });
 
+// covers: KS-PER-06
 test.describe('A version 1 record', () => {
     test('is upgraded: the game resumes, no notice appears and the next save is version 2', async ({ page }) => {
         await seedRaw(page, V1_RECORD);
@@ -95,6 +97,7 @@ test.describe('A version 1 record', () => {
     });
 });
 
+// covers: KS-PER-04
 test.describe('A failing save', () => {
     test('shows the write notice and keeps the game playable', async ({ page }) => {
         await seedRecord(page, { current: oneMovePosition(), preferences: { autoSafe: false } });

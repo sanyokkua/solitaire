@@ -1,3 +1,5 @@
+// covers: KS-AST-07
+
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -145,6 +147,7 @@ describe('Toolbar', () => {
         expect(redoButton()).toBeEnabled();
     });
 
+    // covers: KS-AST-02
     describe('Hint', () => {
         it('requests a hint by pointer', async () => {
             const user = userEvent.setup();
@@ -206,6 +209,7 @@ describe('Toolbar', () => {
         });
     });
 
+    // covers: KS-AST-05
     describe('Finish', () => {
         it('is enabled and highlighted only when the session offers Finish', () => {
             const { store } = renderToolbar(gameOf(allFaceUp()));

@@ -1,3 +1,5 @@
+// covers: KS-A11Y-01
+
 import { act, screen } from '@testing-library/react';
 import { selectCard } from '../../src/features/interaction/interactionThunks';
 import { POSITION, QUEEN_HEARTS, SEVEN_CLUBS, installBoardHarness, mount } from '../support/boardHarness';

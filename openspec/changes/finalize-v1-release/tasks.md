@@ -734,7 +734,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** no assertion changes. A comment is added only where the test really proves that id.
     - **Verify:** `rtk npm run trace` shows no uncovered KS-DEAL, KS-MOVE, KS-SCO or KS-AST id, or lists the gaps for 11.7, and KS-DEAL-11 and KS-DEAL-12 are absent from the informational delta-only list. `rtk npx vitest run tests/unit/repo` passes.
 
-- [ ] 11.5 Annotate the input, accessibility, general and settings tests
+- [x] 11.5 Annotate the input, accessibility, general and settings tests
     - **Implements:** RF traceability (coverage). KS-INP, KS-A11Y, KS-GEN, KS-SET, including the delta-only KS-GEN-11 (build identity: `buildInfo`, `buildStamp`, About and the Home stamp tests).
     - **Files:** `// covers:` comments in `tests/component/**`, `tests/unit/ui/**`, `tests/e2e/**` and `tests/unit/features/preferences/**`, plus the regenerated matrix.
     - **Verify:** as 11.4, for these prefixes.

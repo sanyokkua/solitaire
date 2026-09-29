@@ -1,3 +1,5 @@
+// covers: KS-INP-05, KS-INP-06
+
 import { describe, expect, it } from 'vitest';
 import { FOUNDATION_DISPLAY_ORDER } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';

@@ -31,6 +31,7 @@ describe('cardIndex', () => {
         });
     });
 
+    // covers: KS-MOVE-06
     it('makes only the top waste card movable in Draw 3, and every waste card face up', () => {
         const waste = [cardId(0, 4), cardId(1, 5), cardId(2, 6), cardId(3, 7)];
         const located = cardIndex(makeState({ mode: 'draw3', draw: 3, waste }));

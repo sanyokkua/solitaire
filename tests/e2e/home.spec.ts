@@ -16,6 +16,7 @@ const VIEWPORTS = [
     { width: 2560, height: 1440 },
 ] as const;
 
+// covers: KS-GEN-03, KS-GEN-09
 for (const { width, height } of VIEWPORTS) {
     test.describe(`Home at ${String(width)}x${String(height)}`, () => {
         test('keeps Deal cards and Continue game inside the viewport without scrolling', async ({ page }) => {
@@ -66,6 +67,7 @@ test('stacks the hero, copy above the card fan, at 390x844', async ({ page }) =>
     expect(art.y).toBeGreaterThanOrEqual(copy.y + copy.height - TOLERANCE);
 });
 
+// covers: KS-GEN-11
 test('keeps the footer links and the build stamp reachable below the record strip', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
@@ -79,6 +81,7 @@ test('keeps the footer links and the build stamp reachable below the record stri
     );
 });
 
+// covers: KS-DEAL-11
 test('chooses Hard in Draw 3 by keyboard, then deals', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chromium', 'keyboard input is exercised once, in Desktop Chrome');
     await page.goto('/');
@@ -115,6 +118,7 @@ test('chooses Hard in Draw 3 by keyboard, then deals', async ({ page }, testInfo
         .toBe('draw3:hard');
 });
 
+// covers: KS-A11Y-04
 test.describe('Difficulty option size', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/');

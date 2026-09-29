@@ -1,3 +1,5 @@
+// covers: KS-A11Y-04, KS-GEN-05
+
 import { describe, expect, it } from 'vitest';
 import { isValidGameState } from '../../../../src/domain/validate';
 import { positions } from '../../../../src/ui/board/layout';

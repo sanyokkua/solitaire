@@ -1,3 +1,5 @@
+// covers: KS-INP-08
+
 import { expect, test } from '@playwright/test';
 import {
     ACE_HOME_CARD,
@@ -15,6 +17,7 @@ import { seedRecord } from './support/seed';
 const MOVES_VALUE = '.stat-display--moves .stat-display__value';
 
 test.describe('Playing by keyboard', () => {
+    // covers: KS-MOVE-07
     test('the whole recorded line, played by arrow keys and Enter, wins the game', async ({ page }, testInfo) => {
         skipOutsideFullGameProjects(testInfo);
         test.setTimeout(180_000);
@@ -74,6 +77,7 @@ test.describe('Playing by keyboard', () => {
         await expect(six).toHaveAttribute('aria-pressed', 'false');
     });
 
+    // covers: KS-AST-02
     test('H hints a productive move and marks its card', async ({ page }) => {
         await seedRecord(page, { current: aceHomePosition(), preferences: { tapMode: 'select', autoSafe: false } });
         await continueToGame(page);

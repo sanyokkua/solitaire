@@ -1,3 +1,5 @@
+// covers: KS-INP-08
+
 import { act, fireEvent } from '@testing-library/react';
 import { dealingProgressed, setRoute, sheetOpened } from '../../src/app/appSlice';
 import { dealFromSeed } from '../../src/domain/deal';

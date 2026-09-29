@@ -28,6 +28,7 @@ test.describe('A seeded game on the board', () => {
         await seedRecord(page, { current: worstColumnState() });
     });
 
+    // covers: KS-A11Y-01
     test('renders 52 named cards and a named stock', async ({ page }) => {
         await continueToGame(page);
 
@@ -41,6 +42,7 @@ test.describe('A seeded game on the board', () => {
         await expect(page.locator('.board-panel')).toHaveCSS('isolation', 'isolate');
     });
 
+    // covers: KS-PER-02
     test('survives a reload unchanged', async ({ page }) => {
         await continueToGame(page);
         const before = await snapshotCards(page);

@@ -1,3 +1,5 @@
+// covers: KS-A11Y-01
+
 import { describe, expect, it } from 'vitest';
 import { cardId, DECK_SIZE } from '../../../../src/domain/cards';
 import { CATALOGS } from '../../../../src/i18n/catalog';

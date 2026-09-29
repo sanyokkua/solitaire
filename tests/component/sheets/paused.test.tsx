@@ -1,3 +1,5 @@
+// covers: KS-SCO-07
+
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';

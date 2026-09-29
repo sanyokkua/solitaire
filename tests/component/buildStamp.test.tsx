@@ -1,3 +1,5 @@
+// covers: KS-GEN-11
+
 import { screen } from '@testing-library/react';
 import { BuildStamp } from '../../src/ui/components/BuildStamp';
 import { renderWithStore } from '../support/renderWithStore';

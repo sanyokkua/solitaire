@@ -60,6 +60,7 @@ describe('Home Winnable card: the switch in every mode', () => {
     });
 });
 
+// covers: KS-DEAL-11
 describe('Home Winnable card: the Difficulty control', () => {
     it('is a group named "Difficulty" of Any, Easy, Medium and Hard, each with its checked state', () => {
         renderHome();

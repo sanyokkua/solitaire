@@ -60,6 +60,7 @@ describe('Notices', () => {
         expect(store.getState().app.notices).toEqual([]);
     });
 
+    // covers: KS-MOVE-05
     it('No redeals: shows "No redeals left" and removes it after 3.2 s', () => {
         vi.useFakeTimers();
         const { store } = setup();
@@ -177,6 +178,7 @@ describe('Notices', () => {
     });
 });
 
+// covers: KS-PWA-03
 describe('Update-ready notice', () => {
     it('stays until Later, and Later dismisses it', () => {
         vi.useFakeTimers();
@@ -263,6 +265,7 @@ describe('Update-ready notice', () => {
         expect(store.getState().app.notices).toEqual([]);
     });
 
+    // covers: KS-A11Y-04
     it('Update and Later reuse the notice-dismiss class, which carries the 44x44 coarse-pointer hit area rule', () => {
         const { store } = setup();
         raise(store, 'update-ready');

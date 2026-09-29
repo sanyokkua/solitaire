@@ -1,3 +1,5 @@
+// covers: KS-GEN-02, KS-GEN-04
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { act, screen } from '@testing-library/react';
@@ -181,6 +183,7 @@ function playedGameState(): RenderWithStoreOptions['preloadedState'] {
     return { game: playedGame() };
 }
 
+// covers: KS-PER-02
 describe('Continue game', () => {
     it('is hidden when there is no game', () => {
         renderApp();
@@ -232,6 +235,7 @@ describe('Continue game', () => {
         expect(store.getState().game.current).toEqual(before);
     });
 
+    // covers: KS-A11Y-03
     it('receives keyboard focus and the global stylesheet draws a focus outline on buttons', async () => {
         const user = userEvent.setup();
         renderApp(playedGameState());
@@ -255,6 +259,7 @@ describe('Game frame', () => {
         expect(screen.getByRole('heading', { level: 1, name: 'Klondike' })).toBeInTheDocument();
     });
 
+    // covers: KS-GEN-11
     it('holds the build stamp in the frame footer on Game and once on Home, never twice', async () => {
         const user = userEvent.setup();
         renderApp();

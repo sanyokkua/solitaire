@@ -25,12 +25,14 @@ describe('layout.css', () => {
         expect(globalCss).toMatch(/@import\s+['"]\.\/layout\.css['"]/);
     });
 
+    // covers: KS-A11Y-04
     it('gives every HUD stat display an explicit 44px minimum size', () => {
         const body = rulesFor(layoutCss, '.stat-display').join(' ');
         expect(body).toMatch(/min-height:\s*44px/);
         expect(body).toMatch(/min-width:\s*max\(4\.8rem,\s*44px\)/);
     });
 
+    // covers: KS-GEN-10
     it('pads the Game frame by all four safe-area insets, in every rule that sets its padding', () => {
         const paddings = rulesFor(layoutCss, '.screen--game').flatMap((body) => {
             const values = [...body.matchAll(/padding[a-z-]*:\s*([^;]+);/g)].map((match) => match[1] ?? '');
@@ -41,6 +43,7 @@ describe('layout.css', () => {
         for (const padding of paddings) expectsAllInsets(padding);
     });
 
+    // covers: KS-GEN-10
     it('keeps every safe-area inset in the side-rails profile', () => {
         // The frame's padding is shared: the rails rule may restate it but never with fewer edges.
         for (const body of rulesFor(railsBlock, '.screen--game')) {
@@ -129,6 +132,7 @@ describe('layout.css', () => {
         expect(rulesFor(layoutCss, '.hint-text').join(' ')).toMatch(/text-overflow:\s*ellipsis/);
     });
 
+    // covers: KS-A11Y-04
     it('makes the top-bar Settings and theme buttons 2.75rem square, and the rail Settings 2.75rem tall, under a coarse pointer', () => {
         const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
         const buttons = rulesFor(coarse, '.game-topbar .icon-action').join(' ');
@@ -137,6 +141,7 @@ describe('layout.css', () => {
         expect(rulesFor(coarse, '.rail-top .icon-action').join(' ')).toMatch(/min-height:\s*2\.75rem/);
     });
 
+    // covers: KS-A11Y-04
     it('widens the New deal button to 2.75rem square under a coarse pointer, without resizing .game-face', () => {
         const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
         const button = rulesFor(coarse, '.game-face__button').join(' ');
@@ -145,6 +150,7 @@ describe('layout.css', () => {
         expect(rulesFor(coarse, '.game-face').join(' ')).not.toMatch(/width|height/);
     });
 
+    // covers: KS-A11Y-04
     it('makes Back and the tools at least 2.75rem square under a coarse pointer, in both profiles', () => {
         const coarse = blockAfter(layoutCss, '@media (pointer: coarse)');
         const back = rulesFor(coarse, '.game-back').join(' ');
@@ -174,6 +180,7 @@ describe('layout.css', () => {
         expect(body).toMatch(/clip(?:-path)?:/);
     });
 
+    // covers: KS-SET-04
     it("turns every transition off under :root[data-motion='off']", () => {
         const off = blockAfter(layoutCss, ":root[data-motion='off'] .tool");
 
@@ -204,6 +211,7 @@ describe('layout.css', () => {
             expect(rulesFor(layoutCss, '.notice-dismiss').join(' ')).toMatch(/pointer-events:\s*auto/);
         });
 
+        // covers: KS-GEN-10
         it('keeps clear of the safe area at the bottom and the side it sits on', () => {
             const all = rulesFor(layoutCss, '.notices').join(' ');
             expect(all).toContain('env(safe-area-inset-bottom');

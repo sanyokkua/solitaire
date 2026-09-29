@@ -101,6 +101,7 @@ test.describe('Deal from Home', () => {
     });
 });
 
+// covers: KS-SET-04
 test.describe('Motion reduced', () => {
     test.use({ reducedMotion: 'reduce' });
 

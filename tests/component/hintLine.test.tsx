@@ -59,6 +59,7 @@ describe('HintLine', () => {
         expect(line.querySelector('.hint-keys kbd')?.textContent).toBe('Пробіл');
     });
 
+    // covers: KS-AST-02
     it('shows a hint in place of the text and the tap-mode text again after it clears', () => {
         stubMatchMedia(['(pointer: fine)']);
         const { store, line } = renderLine();

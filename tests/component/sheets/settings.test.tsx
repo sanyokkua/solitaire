@@ -1,3 +1,5 @@
+// covers: KS-SET-01
+
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -144,6 +146,7 @@ describe('SettingsSheet: Appearance and Play', () => {
     });
 });
 
+// covers: KS-I18N-01
 describe('SettingsSheet: Language', () => {
     beforeEach(() => {
         stubMatchMedia([]);
@@ -175,6 +178,7 @@ describe('SettingsSheet: Language', () => {
     });
 });
 
+// covers: KS-I18N-03
 describe('SettingsSheet: Language registry (mocked catalog)', () => {
     beforeEach(() => {
         stubMatchMedia([]);
@@ -209,6 +213,7 @@ describe('SettingsSheet: Language registry (mocked catalog)', () => {
     });
 });
 
+// covers: KS-PER-05, KS-STA-05
 describe('SettingsSheet: Data', () => {
     beforeEach(() => {
         stubMatchMedia([]);

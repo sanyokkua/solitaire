@@ -1,3 +1,5 @@
+// covers: KS-A11Y-02
+
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import type { RejectReason } from '../../../src/domain/types';

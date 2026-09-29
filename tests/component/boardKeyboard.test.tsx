@@ -1,3 +1,5 @@
+// covers: KS-INP-08
+
 import { act, fireEvent } from '@testing-library/react';
 import { cardId } from '../../src/domain/cards';
 import { installed } from '../../src/features/game/gameSlice';

@@ -61,6 +61,7 @@ async function activateCounted(page: Page, activate: Activate, movesAfter: numbe
     await settleAnimations(page);
 }
 
+// covers: KS-MOVE-05
 test.describe('The Vegas pass limit', () => {
     for (const [name, activate] of [
         ['tap', tap],
@@ -100,7 +101,8 @@ test.describe('The Vegas pass limit', () => {
     }
 });
 
-// KS-SCO-01: a Standard Draw 3 recycle costs nothing when it begins pass 2 or 3 and 20 points from pass 4 on.
+// covers: KS-SCO-01
+// A Standard Draw 3 recycle costs nothing when it begins pass 2 or 3 and 20 points from pass 4 on.
 test.describe('The Draw 3 recycle penalty', () => {
     for (const [name, activate] of [
         ['tap', tap],

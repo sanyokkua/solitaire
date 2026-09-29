@@ -1,3 +1,5 @@
+// covers: KS-INP-04, KS-INP-06, KS-MOVE-07
+
 import { test } from '@playwright/test';
 import { continueToGame } from './support/cards';
 import { WINNING_LINE } from '../fixtures/deals';

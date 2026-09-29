@@ -135,6 +135,7 @@ describe('measure card-floor gap shrink', () => {
     });
 });
 
+// covers: KS-GEN-07
 describe('measure geometry choice', () => {
     it('chooses the wide table on a 700x280 landscape phone with a coarse pointer', () => {
         const metrics = measure({ width: 700, height: 280 }, { coarse: true });

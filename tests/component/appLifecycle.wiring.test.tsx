@@ -141,6 +141,7 @@ describe('application lifecycle wiring', () => {
         expect(stored?.ok && stored.record.preferences.cardBack).toBe('coral');
     });
 
+    // covers: KS-SET-04
     it('follows the reduced-motion media query, honours its initial value and copes with none', () => {
         const media = controllableMatchMedia({ [REDUCED_MOTION_QUERY]: true });
         const { app } = start();
@@ -219,6 +220,7 @@ describe('application lifecycle wiring', () => {
         expect(html.getAttribute('data-motion')).toBe('on');
     });
 
+    // covers: KS-SET-02, KS-SET-04
     it('lets the System theme follow the dark query and the motion flag follow the reduced-motion query', () => {
         const media = controllableMatchMedia();
         start();
@@ -293,6 +295,7 @@ describe('application lifecycle wiring', () => {
         expect(now).toHaveBeenCalled();
     });
 
+    // covers: KS-PER-02, KS-PER-03
     it('raises the loader notices and starts on Home with a saved game resumable', () => {
         const corrupt = memoryStorage();
         corrupt.setItem(STORAGE_KEY, 'not json');
@@ -322,6 +325,7 @@ describe('application lifecycle wiring', () => {
         expect(root).toContainElement(screen.getByRole('button', { name: /deal cards/i }));
     });
 
+    // covers: KS-I18N-01, KS-SET-01
     it('follows a stored language on <html lang>, and remembers a change after a reload', () => {
         const saved = memoryStorage();
         saved.setItem(
@@ -343,6 +347,7 @@ describe('application lifecycle wiring', () => {
         expect(stored?.ok && stored.record.preferences.locale).toBe('en');
     });
 
+    // covers: KS-I18N-02
     it('renders a first run in Ukrainian, with no English text, when the browser prefers Ukrainian', async () => {
         const { root } = start(memoryStorage(), { extra: { languages: () => ['uk-UA'] } });
 
@@ -389,6 +394,7 @@ describe('application lifecycle wiring', () => {
             };
         }
 
+        // covers: KS-PWA-03
         it('raises update-ready on a need-refresh, and Update saves then applies', async () => {
             const gateways = fakeGateways();
             const { app } = start(memoryStorage(), { pwa: gateways.pwa });
@@ -416,6 +422,7 @@ describe('application lifecycle wiring', () => {
             expect(screen.queryByRole('button', { name: 'Update' })).toBeNull();
         });
 
+        // covers: KS-PWA-02
         it('shows and hides the Install link as availability changes, and the link prompts', async () => {
             const gateways = fakeGateways();
             start(memoryStorage(), { pwa: gateways.pwa });

@@ -1,3 +1,5 @@
+// covers: KS-GEN-11
+
 import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AboutSheet } from '../../../src/ui/sheets/AboutSheet';

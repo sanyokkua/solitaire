@@ -1,3 +1,5 @@
+// covers: KS-PER-02
+
 import { expect, test, type Page } from '@playwright/test';
 import { applyCommand } from '../../src/domain/engine';
 import { finishPlan } from '../../src/domain/finish';

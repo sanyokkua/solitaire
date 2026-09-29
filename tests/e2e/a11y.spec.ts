@@ -1,3 +1,5 @@
+// covers: KS-A11Y-01, KS-SET-03
+
 import AxeBuilder from '@axe-core/playwright';
 import axe from 'axe-core';
 import { expect, test, type Page } from '@playwright/test';

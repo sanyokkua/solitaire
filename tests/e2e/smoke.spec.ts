@@ -7,6 +7,7 @@ const scrolls = () =>
         vertical: document.documentElement.scrollHeight > window.innerHeight,
     }) as const;
 
+// covers: KS-GEN-02, KS-GEN-05, KS-GEN-09
 test('loads Home, fits the width, and navigates to Game and back', async ({ page }) => {
     await page.goto('/');
 

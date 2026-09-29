@@ -7,7 +7,7 @@ import { expectClockCarriedOn, MOVES_VALUE, placement, placementOf, readGame } f
 import { settleAnimations } from './support/play';
 import { readStoredSession, seedRecord } from './support/seed';
 
-/** Stored steps kept on each side (KS-PERSIST): the newest undo steps and the nearest redo steps. */
+/** Stored steps kept on each side (KS-PER-01): the newest undo steps and the nearest redo steps. */
 const STORED_STEPS = 200;
 /** Draws and recycles played: each one is a counted, undoable move. */
 const COMMANDS = 410;
@@ -42,6 +42,7 @@ async function clickUntilDisabled(page: Page, name: 'Undo' | 'Redo'): Promise<nu
     return clicks;
 }
 
+// covers: KS-AST-07, KS-PER-01
 test.describe('The undo storm', () => {
     // Reduced motion keeps every draw instant; hundreds of key presses and clicks still need room.
     test.use({ reducedMotion: 'reduce' });
@@ -106,6 +107,7 @@ test.describe('The undo storm', () => {
 });
 
 test.describe('A rapid double tap', () => {
+    // covers: KS-INP-01
     test('applies at most one move', async ({ page }, testInfo) => {
         await seedRecord(page, {
             // The 6♦ has two legal homes, so a second move would visibly carry it from one seven to the other.

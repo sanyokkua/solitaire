@@ -1,3 +1,5 @@
+// covers: KS-INP-01, KS-INP-02, KS-INP-03
+
 import { expect, test } from '@playwright/test';
 import { ACE_HOME_CARD, aceHomePosition, oneMovePosition, SIX_OF_DIAMONDS } from '../fixtures/boardPositions';
 import { WINNING_LINE } from '../fixtures/deals';
@@ -6,6 +8,7 @@ import { expectWon, playLine, seedWinningGame, skipOutsideFullGameProjects } fro
 import { seedRecord } from './support/seed';
 
 test.describe('Playing by tapping', () => {
+    // covers: KS-MOVE-07
     test('the whole recorded line, played by select-and-place and stock taps, wins the game', async ({
         page,
     }, testInfo) => {

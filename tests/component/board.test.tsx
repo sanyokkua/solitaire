@@ -164,6 +164,7 @@ describe('Board', () => {
         expect(cardNodes(container).map((node) => [node.dataset.pile, node.dataset.index])).not.toEqual(before);
     });
 
+    // covers: KS-A11Y-01
     it('names the slots and shows the stock count of a fresh deal', () => {
         const { container } = renderBoard({ game: gameOf(dealFromSeed(1, 'draw1')) });
 
@@ -249,6 +250,7 @@ describe('Board', () => {
         expect(screen.getByRole('button', { name: 'Stock, empty' })).not.toHaveClass('is-spent');
     });
 
+    // covers: KS-SET-05
     it('moves the stock slot to the right when the mirror preference is on', () => {
         const game = gameOf(dealFromSeed(1, 'draw1'));
         const stockX = () => parseFloat(screen.getByRole('button', { name: /^Stock/ }).style.getPropertyValue('--x'));
@@ -262,6 +264,7 @@ describe('Board', () => {
         expect(stockX()).toBeGreaterThan(leftX);
     });
 
+    // covers: KS-GEN-08
     describe('Re-layout on viewport change', () => {
         it('applies the first size like a resize: transitions are off for one frame', () => {
             const frames = stubFrames();

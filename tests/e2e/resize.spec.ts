@@ -1,3 +1,5 @@
+// covers: KS-GEN-08
+
 import { expect, test, type Page } from '@playwright/test';
 import { dealFromSeed } from '../../src/domain/deal';
 import { encodeDealCode } from '../../src/domain/dealCode';

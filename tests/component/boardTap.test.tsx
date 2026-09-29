@@ -1,3 +1,5 @@
+// covers: KS-INP-01, KS-INP-02, KS-INP-03, KS-INP-09
+
 import { act } from '@testing-library/react';
 import { cardId } from '../../src/domain/cards';
 import type { CardId, GameState } from '../../src/domain/types';
@@ -524,6 +526,7 @@ function tapStockSlot(m: Mounted) {
     tapAt(m, { x: area.x + 10, y: area.y + 10 });
 }
 
+// covers: KS-MOVE-03, KS-MOVE-04, KS-MOVE-05
 describe.each([
     ['smart', {}],
     ['select', SELECT],

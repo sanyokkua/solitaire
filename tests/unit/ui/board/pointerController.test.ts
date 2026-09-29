@@ -1,3 +1,5 @@
+// covers: KS-INP-03, KS-INP-04, KS-INP-07
+
 import { describe, expect, it } from 'vitest';
 import {
     initialPointerState,

@@ -1,3 +1,5 @@
+// covers: KS-DEAL-04
+
 import { act, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { dealingProgressed } from '../../src/app/appSlice';

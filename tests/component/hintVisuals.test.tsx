@@ -1,3 +1,5 @@
+// covers: KS-AST-02
+
 import { act } from '@testing-library/react';
 import { setRoute } from '../../src/app/appSlice';
 import { cardId } from '../../src/domain/cards';
