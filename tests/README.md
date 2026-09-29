@@ -154,6 +154,23 @@ Grading v1 (task 7.4 and 7.5), 60 proven seeds per mode: the mean cost of one gr
 and 0.45 s in Vegas (worst 1.8 s). With the pinned thresholds the shares of Easy, Medium and Hard are 35 / 32 / 33% in
 Draw 1, 32 / 32 / 37% in Draw 3 and 27 / 25 / 48% in Vegas.
 
+## Winning lines
+
+`tests/fixtures/deals.ts` pins one full winning line per mode: `WINNING_LINE` (Draw 1), `DRAW3_LINE`, `VEGAS_LINE` and
+`DAILY_LINE` (which also names its golden UTC `day`). `tests/unit/fixtures/winningLines.test.ts` replays each through
+`applyCommand` without the solver and checks the won state, the recorded moves, score and passes, and that no line takes
+a card back from a foundation. The end-to-end specs play the same lines through real input.
+
+Recipe for a new line (a throwaway script or a temporary test, never committed):
+
+1. For each seed 1 to 50 (Daily: each pinned golden date with `attempts: 1` in `tests/fixtures/dailyGolden.ts`), run
+   `search(dealFromSeed(seed, mode), 20_000)` from `src/solver/search.ts`. It routes Draw 3 and Vegas to the ordered-talon
+   search and spells every draw and recycle out as a `draw` command.
+2. Keep the results whose verdict is `win` and whose line has no `move` from a foundation, so that every line plays
+   through the same gestures as a hand-played game. Take the shortest (ties: the lowest seed).
+3. Write the commands as tokens (`d`, or `SRC:INDEX>DST`; see `parseLine`), replay them through `applyCommand` and record
+   the stored `moves`, `score` and `passes`. Every command, draws included, is a counted move.
+
 ## Storage in tests
 
 No in-process test reads or writes ambient browser storage. A test that saves or loads injects a gateway

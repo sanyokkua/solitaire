@@ -689,7 +689,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 11. Proof: full-game wins, traceability and the verification sweep
 
-- [ ] 11.1 Winning-line fixtures for Draw 3, Vegas and Daily
+- [x] 11.1 Winning-line fixtures for Draw 3, Vegas and Daily
     - **Implements:** RF "Input is proven end to end" (fixtures); D16.
     - **Files:**
       - `tests/fixtures/deals.ts`: new `DRAW3_LINE`, `VEGAS_LINE` and `DAILY_LINE`. Each is the shortest line with no foundation → column move among the winnable seeds 1–50 of its mode. Daily uses a golden date's seed from `tests/fixtures/dailyGolden.ts`;
