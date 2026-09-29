@@ -342,7 +342,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - a rapid double tap on a movable card applies at most one move, and the move counter rises by at most one.
     - **Verify:** `rtk npx playwright test history --project=chromium --project=galaxy-s25` passes.
 
-- [ ] 5.5 Resize during the deal
+- [x] 5.5 Resize during the deal
     - **Implements:** RF "Edge cases are proven end to end" ("Resize during the deal"); GM and board-motion re-layout (KS-GEN-08).
     - **Files:** `tests/e2e/resize.spec.ts` (new case).
     - **Tests:** change the viewport twice mid-deal. Every card ends at its computed final position, the game state is unchanged, and no page scroll appears.
