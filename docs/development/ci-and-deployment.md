@@ -91,7 +91,7 @@ The pre-commit hook lints only staged files, so it does not replace `validate`. 
 ## `ci.yml`
 
 Triggers: every `push` and every `pull_request`. Permissions: `contents: read`. One job, `validate`, on
-`ubuntu-latest`, with `BUILD_TIMESTAMP` set to `github.run_started_at`. Steps:
+`ubuntu-latest`. GitHub Actions supplies `GITHUB_RUN_NUMBER` itself, so the build carries a build number. Steps:
 
 1. `actions/checkout`.
 2. `actions/setup-node` with Node 22.22.2 and the npm cache.
@@ -120,7 +120,7 @@ Triggers: push to `master` and manual `workflow_dispatch`. Concurrency group `pa
 
 Playwright is not run in `pages.yml`; the end-to-end suite runs in `ci.yml` (pushes and pull requests). Whether master is
 protected so that Pages deploys only after a green CI: TODO: confirm (repository settings are not in the repo).
-The repository's Pages source must be set to GitHub Actions: TODO: confirm.
+The repository's Pages source is GitHub Actions (`build_type: workflow`, read from the GitHub Pages API).
 
 ## Base path `/solitaire/`
 
@@ -136,19 +136,22 @@ The site lives at a sub-path, so every URL must carry it.
 
 Dev server: `npm run dev` serves at <http://localhost:5173/solitaire/>.
 
-## Build timestamp and version
+## Build identity and version
 
 `vite.config.ts` defines two compile-time constants:
 
-| Constant                  | Value                                                                     |
-| ------------------------- | ------------------------------------------------------------------------- |
-| `__APP_BUILD_TIMESTAMP__` | `process.env.BUILD_TIMESTAMP`, else the string `dev version`.             |
-| `__APP_VERSION__`         | `version` from `package.json` (read with `readFileSync`, not hard-coded). |
+| Constant          | Value                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `__APP_BUILD__`   | `resolveBuildInfo(process.env, new Date())` from `scripts/build-info.mjs`: `{ number, time }`. |
+| `__APP_VERSION__` | `version` from `package.json` (read with `readFileSync`, not hard-coded).                      |
 
-Both CI workflows set `BUILD_TIMESTAMP` to `github.run_started_at`. The build stamp component
-(`src/ui/components/BuildStamp.tsx#BuildStamp`) shows the timestamp, or a localised "dev" text when Vite did not define it
-(as under Vitest); the About sheet shows the version. To reproduce a deployed stamp locally:
-`BUILD_TIMESTAMP=2026-01-01T00:00:00Z npm run build`.
+`number` is `GITHUB_RUN_NUMBER` (trimmed; unset, empty or blank means no number, `null`). `time` is the moment the build
+ran in UTC, formatted `YYYY-MM-DD HH:mm UTC` whatever the machine's time zone. Neither workflow passes anything
+itself: GitHub Actions sets `GITHUB_RUN_NUMBER`, so both the CI end-to-end build and the deployed Pages build carry a
+number. The build stamp component (`src/ui/components/BuildStamp.tsx#BuildStamp`) shows "App build: Build 57 ·
+2026-09-28 14:03 UTC", or "App build: Development build · 2026-09-28 14:03 UTC" when there is no number; the number and
+time are never translated. Vitest defines a fixed `__APP_BUILD__` (`vitest.config.ts`). The About sheet shows the
+stamp and the version. To reproduce a CI stamp locally: `GITHUB_RUN_NUMBER=7 npm run build`.
 
 ## GitHub Pages deployment
 

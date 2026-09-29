@@ -11,8 +11,8 @@ const LICENCE_URL = 'https://github.com/sanyokkua/solitaire/blob/master/LICENSE'
 /**
  * About (5.10, D2, SH "About sheet", AS "Build identification"): a static reference sheet, registered in `SheetHost`
  * as `about`. Shows the app name (`t('app.title')`), the running version (`__APP_VERSION__` behind the same
- * `typeof … === 'string'` guard `components/BuildStamp.tsx` uses for `__APP_BUILD_TIMESTAMP__`, falling back to
- * `t('about.versionDev')` under Vitest and any build that does not define it) and the reused `BuildStamp`, then a
+ * `typeof … === 'string'` guard, falling back to `t('about.versionDev')` under Vitest and any build that does not
+ * define it) and the reused `BuildStamp` (the CI build number and UTC build time), then a
  * source-repository link and a licence link (both `rel="noopener noreferrer"`, opening in the same tab — this is a
  * link to read, not a hand-off the player needs a new tab for), whose visible text is also their accessible name
  * ("View source on GitHub", "View the MIT licence"), and a one-line privacy statement. Like `HelpSheet`, this is a

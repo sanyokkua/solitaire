@@ -1,10 +1,14 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AboutSheet } from '../../../src/ui/sheets/AboutSheet';
 import { renderWithStore } from '../../support/renderWithStore';
 import { testStore } from '../../support/testStore';
 
 describe('AboutSheet', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
     it('shows the app name', () => {
         renderWithStore(<AboutSheet />, { store: testStore() });
 
@@ -19,10 +23,24 @@ describe('AboutSheet', () => {
         expect(screen.getByText('Version dev')).toBeInTheDocument();
     });
 
-    it('shows the build stamp', () => {
+    it('shows the build stamp with the build number and UTC time', () => {
         renderWithStore(<AboutSheet />, { store: testStore() });
 
-        expect(screen.getByText(/App build:/)).toBeInTheDocument();
+        expect(screen.getByText('App build: Build 57 · 2026-09-28 14:03 UTC')).toBeInTheDocument();
+    });
+
+    it('shows the development build stamp when there is no build number', () => {
+        vi.stubGlobal('__APP_BUILD__', { number: null, time: '2026-09-28 14:03 UTC' });
+
+        renderWithStore(<AboutSheet />, { store: testStore() });
+
+        expect(screen.getByText('App build: Development build · 2026-09-28 14:03 UTC')).toBeInTheDocument();
+    });
+
+    it('changes only the surrounding words of the build stamp in Ukrainian', () => {
+        renderWithStore(<AboutSheet />, { store: testStore({ preloadedState: { preferences: { locale: 'uk' } } }) });
+
+        expect(screen.getByText('Збірка: № 57 · 2026-09-28 14:03 UTC')).toBeInTheDocument();
     });
 
     it('links to the source repository with an accessible name describing the destination', () => {

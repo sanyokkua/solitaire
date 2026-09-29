@@ -7,26 +7,32 @@ describe('BuildStamp', () => {
         vi.unstubAllGlobals();
     });
 
-    it('renders the injected build timestamp as text with an accessible name', () => {
-        vi.stubGlobal('__APP_BUILD_TIMESTAMP__', '2026-09-22T10:00:00Z');
+    it('shows the build number and UTC time with an accessible name that matches the text', () => {
+        renderWithStore(<BuildStamp />);
+
+        const stamp = screen.getByText('App build: Build 57 · 2026-09-28 14:03 UTC');
+        expect(stamp).toHaveAccessibleName('App build: Build 57 · 2026-09-28 14:03 UTC');
+    });
+
+    it('shows the development label with the time when there is no build number', () => {
+        vi.stubGlobal('__APP_BUILD__', { number: null, time: '2026-09-28 14:03 UTC' });
 
         renderWithStore(<BuildStamp />);
 
-        const stamp = screen.getByText(/2026-09-22T10:00:00Z/);
-        expect(stamp).toHaveAccessibleName();
+        expect(screen.getByText('App build: Development build · 2026-09-28 14:03 UTC')).toBeInTheDocument();
     });
 
-    it('renders the development placeholder when no build timestamp was supplied', () => {
-        renderWithStore(<BuildStamp />);
+    it('changes only the surrounding words in Ukrainian; number and time read as in English', () => {
+        renderWithStore(<BuildStamp />, { preloadedState: { preferences: { locale: 'uk' } } });
 
-        expect(screen.getByText(/dev version/i)).toBeInTheDocument();
+        expect(screen.getByText('Збірка: № 57 · 2026-09-28 14:03 UTC')).toBeInTheDocument();
     });
 
-    it('renders a translated accessible name in Ukrainian', () => {
-        vi.stubGlobal('__APP_BUILD_TIMESTAMP__', '2026-09-22T10:00:00Z');
+    it('translates the development label in Ukrainian', () => {
+        vi.stubGlobal('__APP_BUILD__', { number: null, time: '2026-09-28 14:03 UTC' });
 
         renderWithStore(<BuildStamp />, { preloadedState: { preferences: { locale: 'uk' } } });
 
-        expect(screen.getByText(/Збірка: 2026-09-22T10:00:00Z/)).toBeInTheDocument();
+        expect(screen.getByText('Збірка: Тестова збірка · 2026-09-28 14:03 UTC')).toBeInTheDocument();
     });
 });

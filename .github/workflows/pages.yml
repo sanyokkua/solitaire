@@ -16,8 +16,6 @@ jobs:
     build:
         runs-on: ubuntu-latest
         if: github.ref == 'refs/heads/master'
-        env:
-            BUILD_TIMESTAMP: ${{ github.run_started_at }}
         steps:
             - uses: actions/checkout@v7.0.1
             - uses: actions/setup-node@v7.0.0

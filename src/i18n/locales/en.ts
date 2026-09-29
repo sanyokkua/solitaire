@@ -102,7 +102,8 @@ export const en = {
     'game.chip.deal.random': 'Random deal',
 
     'build.label': 'App build: {value}',
-    'build.dev': 'dev version',
+    'build.number': 'Build {number} · {time}',
+    'build.dev': 'Development build · {time}',
 
     'home.deal': 'Deal cards',
     'home.continue': 'Continue game',

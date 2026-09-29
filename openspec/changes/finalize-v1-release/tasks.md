@@ -216,7 +216,7 @@
 
 ## 3. Build identity and the card icon
 
-- [ ] 3.1 Build number and UTC build time
+- [x] 3.1 Build number and UTC build time
     - **Implements:**
       - AS "Build identification" (KS-GEN-11);
       - SH "About sheet" (the build line);

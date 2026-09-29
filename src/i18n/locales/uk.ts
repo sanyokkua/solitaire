@@ -109,7 +109,8 @@ export const uk: Record<MessageKey, Message> = {
     'game.chip.deal.random': 'Випадкова роздача',
 
     'build.label': 'Збірка: {value}',
-    'build.dev': 'тестова версія',
+    'build.number': '№ {number} · {time}',
+    'build.dev': 'Тестова збірка · {time}',
 
     'home.deal': 'Роздати карти',
     'home.continue': 'Продовжити гру',

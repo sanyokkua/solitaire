@@ -22,7 +22,8 @@ wrapper); the underlying commands are the same.
 | `npm run validate:artifact`          | `scripts/validate-artifact.mjs`: checks the built `dist/` (run after `build`).                                                                                               |
 | `npm run validate`                   | `format:check && lint && typecheck && validate:lifecycle-storage && vitest run tests/unit tests/component --coverage && build && validate:artifact`                          |
 
-Other files in `scripts/`: `generate-icons.mjs` (regenerates the icons in `public/icons/`; not an npm script, run with
+Other files in `scripts/`: `build-info.mjs` (`resolveBuildInfo`, the build number and UTC time `vite.config.ts` embeds as
+`__APP_BUILD__`; imported by the config, not run directly), `generate-icons.mjs` (regenerates the icons in `public/icons/`; not an npm script, run with
 `node scripts/generate-icons.mjs`).
 
 What the two validation scripts check is described in [CI and deployment](../development/ci-and-deployment.md).

@@ -73,5 +73,7 @@ test('keeps the footer links and the build stamp reachable below the record stri
     for (const name of ['Statistics', 'Settings', 'Play a deal code', 'About']) {
         await expect(page.getByRole('navigation', { name: 'More' }).getByRole('button', { name })).toBeAttached();
     }
-    await expect(page.getByLabel(/^App build:/)).toBeAttached();
+    await expect(page.getByLabel(/^App build:/)).toHaveAccessibleName(
+        /^App build: (Build \d+|Development build) · \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/,
+    );
 });

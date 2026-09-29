@@ -67,8 +67,9 @@ snapshots; they never apply game rules.
   `finish`. Native buttons give Enter and Space and the global focus ring; `styles/layout.css` sizes and arranges it
   (each tool keeps a 44 px floor under a coarse pointer, and four fit at 320 px wide and in the side-rails column).
 - `components/BuildStamp.tsx` — `BuildStamp`, a `footer` naming the running build: `t('build.label', { value })`,
-  where `value` is `__APP_BUILD_TIMESTAMP__` when Vite defines it, otherwise `t('build.dev')`. Both the text content
-  and the `aria-label` are the same localised string.
+  where `value` is `t('build.number', { number, time })` ("Build 57 · 2026-09-28 14:03 UTC") or, without a build
+  number, `t('build.dev', { time })`, from `__APP_BUILD__` (`scripts/build-info.mjs`, D13). The number and time are never
+  translated. Both the text content and the `aria-label` are the same localised string.
 - `sheets/PausedSheet.tsx` — `PausedSheet`, registered in `SheetHost` as `paused` (5.7, D6, SH "Paused sheet").
   Opened by `pause()` (the HUD Time control or P). Shows the frozen time (`formatTime`, read from the game the same
   way `Hud` reads it — the clock cannot advance while any sheet is open) in a `div.stat-display.stat-display--timer`,
@@ -103,7 +104,7 @@ true }` this component dispatches `closeSheet()` itself, since the thunk install
   the same way `WinSheet` does: the Game screen's heading after a valid code, or the Home screen's heading otherwise.
 - `sheets/AboutSheet.tsx` — `AboutSheet`, registered in `SheetHost` as `about` (5.10, D2, SH "About sheet", AS "Build
   identification"). A static reference sheet: the app name (`t('app.title')`), the running version (`__APP_VERSION__`
-  behind the same `typeof … === 'string'` guard `BuildStamp` uses for `__APP_BUILD_TIMESTAMP__`, falling back to
+  behind a `typeof … === 'string'` guard, falling back to
   `t('about.versionDev')` when Vite has not defined it, as under Vitest), the reused `BuildStamp`, a source-repository
   link and a licence link (`https://github.com/sanyokkua/solitaire` and its `LICENSE` file, both `rel="noopener
 noreferrer"`, their visible text also their accessible name), and a privacy line stating no data leaves the device.

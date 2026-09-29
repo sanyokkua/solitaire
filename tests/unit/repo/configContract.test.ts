@@ -41,6 +41,25 @@ describe('vite.config.ts app version define', () => {
     });
 });
 
+describe('vite.config.ts build identity define', () => {
+    it('defines __APP_BUILD__ from resolveBuildInfo over the process environment', () => {
+        expect(viteConfig).toContain('__APP_BUILD__: JSON.stringify(resolveBuildInfo(process.env, new Date()))');
+        expect(viteConfig).not.toContain('__APP_BUILD_TIMESTAMP__');
+    });
+
+    it('defines a fixed __APP_BUILD__ for Vitest', () => {
+        expect(vitestConfig).toContain('__APP_BUILD__');
+    });
+
+    it.each([
+        ['ci.yml', ciWorkflow],
+        ['pages.yml', pagesWorkflow],
+    ])('%s neither sets BUILD_TIMESTAMP nor reads github.run_started_at', (_name, text) => {
+        expect(text).not.toContain('BUILD_TIMESTAMP');
+        expect(text).not.toContain('run_started_at');
+    });
+});
+
 describe('package.json scripts', () => {
     it('exposes the lifecycle-storage guard', () => {
         expect(packageJson.scripts['validate:lifecycle-storage']).toBe('node scripts/validate-lifecycle-storage.mjs');

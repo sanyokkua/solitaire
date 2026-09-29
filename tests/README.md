@@ -25,7 +25,7 @@ Layers:
   `localStorage` or `sessionStorage`; `solverPurity.test.ts` and `domainPurity.test.ts` scan layer purity;
   `featuresSolverImport.test.ts` lints virtual `src/features/deal/x.ts(x)` files with the real `eslint.config.js` to
   prove a value import of solver code fails and a type-only import passes; `lifecycleStorageGuard.test.ts` tests
-  `scripts/validate-lifecycle-storage.mjs` (see "Storage in tests"); `validateArtifact.test.ts` runs the four checks of
+  `scripts/validate-lifecycle-storage.mjs` (see "Storage in tests"); `buildInfo.test.ts` tests `resolveBuildInfo` in `scripts/build-info.mjs` (run number, blank-as-absent, UTC time); `validateArtifact.test.ts` runs the four checks of
   `scripts/validate-artifact.mjs` (part of `npm run validate`, after the build) against the mini `dist` trees in
   `tests/fixtures/dist/` (a `good` tree, and broken fixtures holding only the files that differ, laid over it); and `playwrightProjects.test.ts` checks that
   `playwright.config.ts` runs `deviceFit.spec.ts` and `pseudoLocale.spec.ts` only in the `device-fit` project and that each Chromium-only spec

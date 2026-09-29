@@ -24,8 +24,8 @@ npm run build      # tsc -b && vite build -> dist/
 npm run preview    # serves dist/ at http://localhost:4173/solitaire/ by default
 ```
 
-The build injects `__APP_VERSION__` (from `package.json`) and `__APP_BUILD_TIMESTAMP__` (env `BUILD_TIMESTAMP`, default
-`dev version`). The service worker is only generated in the production build; it is not active in `npm run dev`.
+The build injects `__APP_VERSION__` (from `package.json`) and `__APP_BUILD__` (the `GITHUB_RUN_NUMBER` env value, if any,
+and the UTC build time; without a number the stamp reads "Development build"). The service worker is only generated in the production build; it is not active in `npm run dev`.
 
 ## Check your work
 
