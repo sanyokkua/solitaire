@@ -739,7 +739,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Files:** `// covers:` comments in `tests/component/**`, `tests/unit/ui/**`, `tests/e2e/**` and `tests/unit/features/preferences/**`, plus the regenerated matrix.
     - **Verify:** as 11.4, for these prefixes.
 
-- [ ] 11.6 Annotate the persistence, PWA, i18n, statistics and performance tests, and list the manual checks
+- [x] 11.6 Annotate the persistence, PWA, i18n, statistics and performance tests, and list the manual checks
     - **Implements:** RF traceability (coverage); RF "Performance and installability are checked manually and recorded" (the list).
     - **Files:**
       - `// covers:` comments in `tests/unit/{features/persistence,features/stats,pwa,i18n,app}/**` and the matching e2e specs, including the delta-only KS-PER-06 (the v1 upgrade in `recordCodec`, `sessionCodec`, `persistenceLoader` and `storage.spec.ts`);

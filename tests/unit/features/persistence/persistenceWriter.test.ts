@@ -1,3 +1,4 @@
+// covers: KS-PER-01, KS-PER-04
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { noticeDismissed, setRoute } from '../../../../src/app/appSlice';
 import type { AppStore } from '../../../../src/app/store';

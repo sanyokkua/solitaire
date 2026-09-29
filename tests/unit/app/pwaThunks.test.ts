@@ -40,6 +40,7 @@ function setup(
     return { store, calls, flushQuietly, applyUpdateOnPwa, promptInstall };
 }
 
+// covers: KS-PWA-03
 describe('applyUpdate', () => {
     it('flushes the pending save before applying the update', async () => {
         const { store, calls } = setup();
@@ -71,6 +72,7 @@ describe('applyUpdate', () => {
     });
 });
 
+// covers: KS-PWA-02
 describe('installApp', () => {
     it('clears installable only after the prompt resolves', async () => {
         let resolve: (outcome: 'dismissed') => void = () => undefined;
@@ -101,6 +103,7 @@ describe('installApp', () => {
     });
 });
 
+// covers: KS-PWA-03, KS-PER-01, KS-PER-04
 describe('applyUpdate with the real writer over a storage that fails (PW "Updates apply only when the player chooses")', () => {
     beforeEach(() => {
         vi.useFakeTimers();

@@ -1,3 +1,4 @@
+// covers: KS-PWA-02
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';

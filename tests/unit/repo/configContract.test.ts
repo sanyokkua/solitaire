@@ -205,6 +205,7 @@ describe('pages.yml', () => {
     });
 });
 
+// covers: KS-PWA-04
 describe('index.html', () => {
     it('references no third-party runtime host', () => {
         expect(indexHtml).not.toMatch(/https?:\/\//);
@@ -222,6 +223,7 @@ describe('index.html', () => {
     });
 });
 
+// covers: KS-PWA-01, KS-PWA-03
 describe('vite.config.ts PWA plugin', () => {
     it.each([
         "registerType: 'prompt'",

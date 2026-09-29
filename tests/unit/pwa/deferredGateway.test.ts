@@ -1,3 +1,4 @@
+// covers: KS-PWA-03
 import { describe, expect, it, vi } from 'vitest';
 import { createDeferredPwaGateway } from '../../../src/pwa/deferredGateway';
 import type { PwaGateway } from '../../../src/pwa/pwaGateway';

@@ -1,3 +1,4 @@
+// covers: KS-PER-04
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createStorageGateway, type StorageResult } from '../../../../src/features/persistence/storageGateway';
 import { memoryStorage, throwingStorage } from '../../../fixtures/storage';

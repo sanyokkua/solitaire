@@ -1,3 +1,4 @@
+// covers: KS-PER-03
 import { describe, expect, it } from 'vitest';
 import { hasExactKeys, isDayKey, isRecord } from '../../../../src/features/persistence/guards';
 

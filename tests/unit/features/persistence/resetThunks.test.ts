@@ -1,3 +1,4 @@
+// covers: KS-PER-05, KS-STA-05, KS-I18N-02
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { noticeRaised, setRoute, sheetOpened } from '../../../../src/app/appSlice';
 import { createSavePort } from '../../../../src/app/savePort';

@@ -1,4 +1,5 @@
 // @vitest-environment node
+// covers: KS-PERF-02
 /**
  * Informational benchmark of the winnable-deal selection in every mode (KS-PERF-02, design D11).
  *

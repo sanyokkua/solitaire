@@ -25,6 +25,7 @@ function setup(deviceDark: boolean) {
     return { store, dark, matchMedia, controller };
 }
 
+// covers: KS-SET-01, KS-SET-02
 describe('createThemeController', () => {
     it('writes the default appearance before anything changes', () => {
         setup(false);

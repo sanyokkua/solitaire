@@ -1,3 +1,4 @@
+// covers: KS-PER-03, KS-PER-04
 import { describe, expect, it } from 'vitest';
 import {
     initialPersistenceState,

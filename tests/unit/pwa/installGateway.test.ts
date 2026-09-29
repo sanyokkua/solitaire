@@ -1,3 +1,4 @@
+// covers: KS-PWA-02
 import { describe, expect, it, vi } from 'vitest';
 import { createInstallGateway } from '../../../src/pwa/installGateway';
 

@@ -1,3 +1,4 @@
+// covers: KS-PER-02, KS-PER-03, KS-PER-06, KS-I18N-02
 import { describe, expect, it } from 'vitest';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import { applyCommand } from '../../../../src/domain/engine';

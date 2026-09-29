@@ -1,3 +1,4 @@
+// covers: KS-STA-04
 import { describe, expect, it } from 'vitest';
 import { todayKey } from '../../../../src/features/stats/statsThunks';
 import { testStore } from '../../../support/testStore';

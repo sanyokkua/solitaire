@@ -1,3 +1,4 @@
+// covers: KS-I18N-01, KS-I18N-03
 import type { MessageKey } from '../../../src/i18n/locales/en';
 import type { Message } from '../../../src/i18n/translate';
 

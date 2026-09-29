@@ -1,3 +1,4 @@
+// covers: KS-STA-01, KS-STA-02
 import { describe, expect, it } from 'vitest';
 import {
     played,

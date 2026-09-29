@@ -1,4 +1,5 @@
 // @vitest-environment node
+// covers: KS-DEAL-10
 import { ESLint } from 'eslint';
 import { describe, expect, it } from 'vitest';
 

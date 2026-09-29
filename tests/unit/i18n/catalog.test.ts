@@ -1,3 +1,4 @@
+// covers: KS-I18N-01, KS-I18N-03
 import { describe, expect, it } from 'vitest';
 import { CATALOGS, SUPPORTED_LOCALES, type Locale } from '../../../src/i18n/catalog';
 import { en, type MessageKey } from '../../../src/i18n/locales/en';

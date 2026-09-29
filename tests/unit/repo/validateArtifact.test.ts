@@ -1,3 +1,4 @@
+// covers: KS-PWA-01, KS-PWA-02, KS-PWA-04, KS-GEN-01
 import { spawnSync } from 'node:child_process';
 import { cpSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
