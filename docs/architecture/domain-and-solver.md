@@ -216,13 +216,10 @@ changing any of them changes every past and future Daily deal, so it would be a 
 ### `hint(state)`
 
 - Won position: `none`.
-- Draw 1 with no pass limit: asks the solver (3,000 nodes, `HINT_BUDGET`); its answer is used if it arrives within
-  150 ms. Otherwise (no suggestion, timeout, failure, or a deal pending) the domain heuristic
-  `src/domain/hint.ts#hint` answers.
-- Draw 3 and Vegas: heuristic only.
+- Any other position, in every mode (Draw 1, Draw 3, Vegas, Daily): asks the solver (3,000 nodes, `HINT_BUDGET`); its
+  answer is used if it arrives within 150 ms. Otherwise (no proof, timeout, failure, or a deal pending) the domain
+  heuristic `src/domain/hint.ts#hint` answers.
 - A newer hint, any deal, or `dispose()` settles the older hint as `cancelled`; a hint never cancels a deal.
-
-The service repeats the solver's support check itself because `src/features` may not import solver code.
 
 ## Related
 

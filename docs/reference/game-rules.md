@@ -114,7 +114,7 @@ started (first accepted command) and is not won. Source: `src/features/game/cloc
   foundation. Drag and keyboard reach every move as well.
 - **Auto-move safe cards** (`autoSafe`, default off): after a move, cards that cannot be needed on the tableau are
   sent to the foundations one at a time, as part of the same undo step (`src/domain/safeMoves.ts#isSafe`).
-- **Hint**: solver's first winning-line move in Draw 1 and Daily when it answers in time, otherwise the heuristic
+- **Hint**: solver's first winning-line move in every mode when it proves a win in time, otherwise the heuristic
   priorities in [domain-and-solver.md](../architecture/domain-and-solver.md#hints-safe-moves-dead-end-finish).
   Hints cost nothing.
 - **Dead end**: reported once per position when no productive move remains and no stock or waste card that drawing can

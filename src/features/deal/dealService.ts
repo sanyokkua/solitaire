@@ -3,13 +3,13 @@
  * only" on, Draw 1, Draw 3 and Vegas deals are chosen by the solver on its worker, and so is every Daily deal; each
  * reports progress for the dealing overlay and records the grade it was dealt. With the switch off a deal is one fresh
  * seed dealt at once on the input thread. A newer deal cancels every pending request, and a failed worker
- * never leaves a deal undelivered. A hint asks the solver only where it applies and falls back to the domain heuristic.
+ * never leaves a deal undelivered. A hint asks the solver in every mode and falls back to the domain heuristic.
  * Reaches the solver only through `./solverClient` and type-only imports.
  */
 import { hint as heuristicHint } from '../../domain/hint';
 import { dealFromSeed } from '../../domain/deal';
 import { cryptoSeed, type SeedSource } from '../../domain/prng';
-import { isWon, passLimit } from '../../domain/rules';
+import { isWon } from '../../domain/rules';
 import type { GameState, Mode } from '../../domain/types';
 import type { GradeTarget } from '../../solver/grading';
 import type { SolverHint } from '../../solver/hint';
@@ -85,11 +85,10 @@ export interface DealService {
      */
     readonly deal: (request: DealRequest, onProgress?: (progress: DealProgress) => void) => Promise<DealOutcome>;
     /**
-     * The hint for `state`. A won position has none. A Draw 1 position with no pass limit (Draw 1, Daily) asks the
-     * solver at {@link HINT_BUDGET} nodes; its suggestion wins if it arrives within `hintTimeoutMs`, and the domain
-     * heuristic answers when it offers none, is late, fails, or a deal is pending. Draw 3 and Vegas use the heuristic
-     * only. Settles `cancelled` when a newer `hint()`, any `deal()` or `dispose()` replaced it; a hint never cancels a
-     * deal. Never rejects.
+     * The hint for `state`. A won position has none. Any other position, in every mode, asks the solver at
+     * {@link HINT_BUDGET} nodes; its suggestion wins if it arrives within `hintTimeoutMs`, and the domain heuristic
+     * answers when it offers none, is late, fails, or a deal is pending. Settles `cancelled` when a newer `hint()`,
+     * any `deal()` or `dispose()` replaced it; a hint never cancels a deal. Never rejects.
      */
     readonly hint: (state: GameState) => Promise<HintOutcome>;
     /** Cancels every pending request, stops the overlay timer and terminates the worker. Safe to call again. */
@@ -208,13 +207,6 @@ export function createDealService(options: DealServiceOptions = {}): DealService
         if (isWon(state)) {
             client.cancelHints();
             return { status: 'none' };
-        }
-        // The solver supports only Draw 1 without a pass limit; it repeats its own check here because this layer may
-        // not import solver code (D9).
-        if (state.draw !== 1 || Number.isFinite(passLimit(state.mode))) {
-            // Nothing asks the solver, so nothing else would replace an older solver hint: settle it now.
-            client.cancelHints();
-            return heuristicOutcome(state);
         }
         const outcome = await client.hint(state, HINT_BUDGET, hintTimeoutMs);
         if (outcome.status === 'cancelled' || mine !== hintGeneration) {

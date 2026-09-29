@@ -75,6 +75,22 @@ describe('deal service hints from the solver', () => {
         expect(await service.hint(state)).toEqual({ status: 'hint', source: 'solver', hint: expected });
     });
 
+    it.each<{ readonly label: string; readonly mode: 'draw3' | 'vegas' }>([
+        { label: 'Draw 3', mode: 'draw3' },
+        { label: 'Vegas', mode: 'vegas' },
+    ])('asks the solver for a $label position and marks its suggestion as coming from the solver', async ({ mode }) => {
+        const state = dealFromSeed(WIN_SEED, mode);
+        const factory = stubFactory();
+        const service = track(createDealService({ createWorker: factory.create, hintTimeoutMs: HUGE_TIMEOUT_MS }));
+
+        const outcome = service.hint(state);
+        const stub = stubAt(factory.stubs, 0);
+        expect(stub.requests).toEqual([{ id: stub.idOf(0), type: 'hint', state, budget: HINT_BUDGET }]);
+        stub.reply({ id: stub.idOf(0), type: 'hint', hint: { kind: 'draw' } });
+
+        expect(await outcome).toEqual({ status: 'hint', source: 'solver', hint: { kind: 'draw' } });
+    });
+
     it('answers two hints in a row with the first cancelled and only the second answered', async () => {
         const state = midgameAtHintBudget();
         const factory = realFactory();
@@ -93,15 +109,37 @@ describe('deal service hints from the heuristic', () => {
     it.each<{ readonly label: string; readonly mode: 'draw3' | 'vegas' }>([
         { label: 'Draw 3', mode: 'draw3' },
         { label: 'Vegas', mode: 'vegas' },
-    ])('answers a $label position with the heuristic and never starts a worker', async ({ mode }) => {
+    ])('answers a $label position the solver offers no suggestion for with the heuristic', async ({ mode }) => {
         const state = dealFromSeed(WIN_SEED, mode);
-        const createWorker = vi.fn<() => WorkerLike>(realFactory().create);
-        const service = track(createDealService({ createWorker }));
+        const factory = stubFactory();
+        const service = track(createDealService({ createWorker: factory.create, hintTimeoutMs: HUGE_TIMEOUT_MS }));
 
-        const outcome = await service.hint(state);
+        const outcome = service.hint(state);
+        const stub = stubAt(factory.stubs, 0);
+        stub.reply({ id: stub.idOf(0), type: 'hint', hint: undefined });
 
-        expect(outcome).toEqual({ status: 'hint', source: 'heuristic', hint: heuristicFor(state) });
-        expect(createWorker).not.toHaveBeenCalled();
+        expect(await outcome).toEqual({ status: 'hint', source: 'heuristic', hint: heuristicFor(state) });
+    });
+
+    it('answers a slow Vegas position with the heuristic at the timeout, leaving the worker running', async () => {
+        vi.useFakeTimers();
+        const state = dealFromSeed(WIN_SEED, 'vegas');
+        const factory = stubFactory();
+        const service = track(createDealService({ createWorker: factory.create, hintTimeoutMs: HINT_TIMEOUT_MS }));
+        const settled = vi.fn();
+
+        const outcome = service.hint(state).then(settled);
+        await vi.advanceTimersByTimeAsync(HINT_TIMEOUT_MS - 1);
+        expect(settled).not.toHaveBeenCalled();
+        await vi.advanceTimersByTimeAsync(1);
+        await outcome;
+
+        expect(settled).toHaveBeenCalledExactlyOnceWith({
+            status: 'hint',
+            source: 'heuristic',
+            hint: heuristicFor(state),
+        });
+        expect(stubAt(factory.stubs, 0).terminated).toBe(false);
     });
 
     it('answers a Draw 1 position the solver proves lost with the heuristic', async () => {
@@ -257,31 +295,29 @@ describe('deal service: a newer request wins over a hint', () => {
         expect(deal.status).toBe('dealt');
     });
 
-    it('cancels an older pending solver hint when a newer heuristic-only hint replaces it', async () => {
+    it('cancels an older pending solver hint when a newer solver hint replaces it', async () => {
         const factory = stubFactory();
         const service = track(createDealService({ createWorker: factory.create, hintTimeoutMs: HUGE_TIMEOUT_MS }));
         const drawThree = dealFromSeed(WIN_SEED, 'draw3');
 
         const older = service.hint(dealFromSeed(WIN_SEED, 'draw1'));
-        const newer = await service.hint(drawThree);
+        const newer = service.hint(drawThree);
         const stub = stubAt(factory.stubs, 0);
         stub.reply({ id: stub.idOf(0), type: 'hint', hint: { kind: 'draw' } });
+        stub.reply({ id: stub.idOf(1), type: 'hint', hint: { kind: 'draw' } });
 
-        expect(newer).toEqual({ status: 'hint', source: 'heuristic', hint: heuristicFor(drawThree) });
         expect(await older).toEqual({ status: 'cancelled' });
+        expect(await newer).toEqual({ status: 'hint', source: 'solver', hint: { kind: 'draw' } });
     });
 
-    it.each<{ readonly label: string; readonly newer: () => GameState }>([
-        { label: 'Draw 3', newer: () => dealFromSeed(WIN_SEED, 'draw3') },
-        { label: 'Vegas', newer: () => dealFromSeed(WIN_SEED, 'vegas') },
-        { label: 'won', newer: () => makeState({ foundations: foundationsOf(13, 13, 13, 13), status: 'won' }) },
-    ])('cancels a silent pending solver hint at once when a $label hint replaces it', async ({ newer }) => {
+    it('cancels a silent pending solver hint at once when a won position replaces it', async () => {
         const factory = stubFactory();
         const service = track(createDealService({ createWorker: factory.create, hintTimeoutMs: HUGE_TIMEOUT_MS }));
 
         const older = service.hint(dealFromSeed(WIN_SEED, 'draw1'));
-        void service.hint(newer());
+        const won = await service.hint(makeState({ foundations: foundationsOf(13, 13, 13, 13), status: 'won' }));
 
+        expect(won).toEqual({ status: 'none' });
         expect(await older).toEqual({ status: 'cancelled' });
         expect(stubAt(factory.stubs, 0).terminated).toBe(false);
     });

@@ -564,7 +564,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `tests/unit/features/game/startRestart.test.ts`: the Difficulty is read at start, and changing it afterwards leaves the game and its grade alone.
     - **Verify:** `rtk npx vitest run tests/unit/features` passes.
 
-- [ ] 9.2 Solver hints in every mode
+- [x] 9.2 Solver hints in every mode
     - **Implements:** DS "Hints use the solver with a heuristic fallback"; IN "Hints come from the solver line or the heuristic"; D12.
     - **Files:** `src/features/deal/dealService.ts:199` (remove the gate), `src/features/README.md`.
     - **Tests:**
@@ -588,7 +588,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - dispose.
     - **Verify:** `rtk npx vitest run tests/unit/features/deal` passes.
 
-- [ ] 9.4 The seed verdict cache
+- [x] 9.4 The seed verdict cache
     - **Implements:** DS "A small in-memory verdict cache"; D8.
     - **Files:** new `src/features/deal/verdictCache.ts` (`createVerdictCache(limit = 256)`: a least-recently-used map from mode, budget and seed to the worker's `Outcome`; `known(mode, budget, seeds)` returns the entries it holds for those seeds, `record(mode, budget, outcome)` stores one; a Daily list, which is the same all day, is the case it serves best); `src/features/README.md`.
     - **Tests:** new `tests/unit/features/deal/verdictCache.test.ts`: a recorded outcome is returned for its mode, budget and seed and for nothing else; a different budget or mode misses; the least recently used entry goes first at the limit; a read counts as a use; `known` returns only the seeds asked for.

@@ -23,9 +23,12 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   `YYYY-MM-DD` its candidate seeds were derived from (worker-verified or the worker-failure fallback alike); every other
   mode omits `dayKey`. `hint(state)` settles as `{ status: 'hint', source, hint }`,
   `{ status: 'none' }` (won, or no move at all) or `{ status: 'cancelled' }` (a newer hint, any deal or `dispose()`
-  replaced it). Draw 1 positions without a pass limit ask the solver (3,000 nodes, 150 ms) and take its first line
-  move; no suggestion, a timeout, a failure or a pending deal falls back to the domain heuristic, which is all Draw 3
-  and Vegas use. `dispose()` cancels everything and terminates the worker.
+  replaced it). Every position that is not won, in every mode, asks the solver (3,000 nodes, 150 ms) and takes its first
+  line move; no proof, a timeout, a failure or a pending deal falls back to the domain heuristic. `dispose()` cancels everything and terminates the worker.
+- `deal/verdictCache.ts` — `createVerdictCache(limit = 256)`: an in-memory least-recently-used map from mode, budget and seed to the
+  worker's `Outcome` (verdict, and grade for a win). `known(mode, budget, seeds)` returns the entries held for exactly those seeds
+  (a read counts as a use); `record(mode, budget, outcome)` stores one, dropping the least recently used at the limit. An entry at
+  another mode or budget never matches; nothing is stored. Not yet used by the deal service.
 - `deal/budgets.ts` — the node budgets and the attempt cap: `WINNABLE_BUDGET` (Draw 1, 5,000), `DRAW3_WINNABLE_BUDGET` and
   `VEGAS_WINNABLE_BUDGET` (the ordered-talon search, 20,000 each), `MAX_ATTEMPTS` (40 candidates) and `HINT_BUDGET`
   (3,000); `winnableBudget(mode)` picks the winnable budget for Draw 1, Draw 3 and Vegas, and `GRADE_LIMIT` caps the proven candidates graded in search of the requested grade. Daily has its own pinned pair in `daily.ts`. The Draw 3 and Vegas values come from the per-mode benchmark

@@ -120,9 +120,7 @@ flowchart TD
     D -- "no" --> F{"same epoch and position already pending"}
     F -- "yes" --> Z
     F -- "no" --> G["pendingHintSet, dealService.hint"]
-    G --> H{"draw 1 and no pass limit"}
-    H -- "yes" --> I["solver hint, 3000 nodes, 150 ms"]
-    H -- "no" --> J["heuristic hint"]
+    G --> I["solver hint in every mode, 3000 nodes, 150 ms"]
     I --> K{"answer in time"}
     K -- "yes" --> L["hint from solver"]
     K -- "no or none" --> J
