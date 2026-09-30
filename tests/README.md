@@ -335,14 +335,26 @@ The visual-parity files carry no numbers; the first column of the table below is
 Procedure: `npm run build && npm run preview`, then Lighthouse with the mobile preset on `http://localhost:4173/solitaire/`
 in a clean profile (Incognito, no extensions). The target is a performance score of at least 90.
 
-| Date       | Tool                                     | Performance | FCP   | LCP   | Notes                                                                         |
-| ---------- | ---------------------------------------- | ----------- | ----- | ----- | ----------------------------------------------------------------------------- |
-| 2026-09-28 | DevTools, Chrome 154 (Lighthouse 13.4.1) | 76          | 4.0 s | 4.2 s | Before the font change; accessibility 100, best practices 100, SEO 100        |
-| 2026-09-28 | CLI, Lighthouse 13.4.1, median of 3      | 94          | 2.3 s | 2.6 s | After shipping smaller fonts (Inter subset 87 KB, Press Start 2P WOFF2 30 KB) |
+| Date       | Tool                                     | Performance | FCP   | LCP   | Notes                                                                                |
+| ---------- | ---------------------------------------- | ----------- | ----- | ----- | ------------------------------------------------------------------------------------ |
+| 2026-09-28 | DevTools, Chrome 154 (Lighthouse 13.4.1) | 76          | 4.0 s | 4.2 s | Before the font change; accessibility 100, best practices 100, SEO 100               |
+| 2026-09-28 | CLI, Lighthouse 13.4.1, median of 3      | 94          | 2.3 s | 2.6 s | After shipping smaller fonts (Inter subset 87 KB, Press Start 2P WOFF2 30 KB)        |
+| 2026-09-30 | Edge 154, Lighthouse 13.4.1, mobile      | 95          |       |       | Final check, production preview; desktop 100; accessibility, best practices, SEO 100 |
 
 Cause of the first result: the two bundled fonts (about 470 KB) start loading before the first paint, which the simulated
 slow-4G first paint waits for. The fix is in `src/assets/fonts/README.md`. Installability was confirmed by hand: the
 install prompt appears in Chrome and Edge and the installed app runs. Lighthouse 13 has no separate PWA category.
+
+## Integration run (task 14.1)
+
+Run on 2026-09-30 (Apple M1 Pro) on the release candidate, after grading v2:
+
+| Command                                          | Result                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------- |
+| `rtk npm run validate`                           | exit 0; coverage 99.29% lines, 95.39% branches, 99.5% functions             |
+| `rtk npm run e2e` (all seven projects)           | 585 passed, 402 skipped (guards outside their projects), 0 failed (6.5 min) |
+| `rtk npm run bench`                              | exit 0, informational; 3 files, 10 benchmarks (22 min)                      |
+| `rtk npm run trace`, then `git diff --exit-code` | traceability matrix unchanged                                               |
 
 ## Flake sweep
 

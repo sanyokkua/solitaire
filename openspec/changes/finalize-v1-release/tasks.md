@@ -916,7 +916,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 14. Integration checks
 
-- [ ] 14.1 Full verification run
+- [x] 14.1 Full verification run
     - **Implements:** the integration of every group.
     - **Checks:**
       - `rtk npm run validate`;
@@ -925,7 +925,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - `rtk npm run trace && git diff --exit-code docs/reference/traceability.md`.
     - **Verify:** every command exits 0, and the results are recorded in `tests/README.md`.
 
-- [ ] 14.2 Lighthouse re-check
+- [x] 14.2 Lighthouse re-check
     - **Implements:** RF "Performance and installability are checked manually and recorded" (KS-PERF-03, KS-PWA-02).
     - **Procedure:** run `rtk npm run build && rtk npm run preview`, then Lighthouse with mobile emulation on `/solitaire/`, with the pool controller active.
     - **Files:** `docs/reference/manual-checks.md`: installability and a performance score of at least 90, with the date and the browser version.
