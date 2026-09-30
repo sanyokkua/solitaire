@@ -10,10 +10,10 @@ context: |
   `finalize-v1-release` carries Phases 9-11. Trust what's actually implemented (src/,
   package.json, CI) over this text.
 
-  Source of truth, in order: (1) current source/config/tests/CI, (2) docs/spec/specification.md
-  (KS-* EARS requirements), (3) docs/spec/research.md (R§n game-rules/UX/a11y facts),
-  (4) docs/spec/phased-design.md (architecture, data model, phase plan), (5) the mockup
-  (visual reference only, never copy its code structure). AGENTS.md at the repo root is the
+  Source of truth, in order: (1) current source/config/tests/CI, (2) openspec/specs (the
+  requirements, with their KS-* ids), (3) docs/ (architecture, development and reference
+  docs), (4) the committed reference screenshots in docs/assets/screenshots (the look and feel is
+  fixed). AGENTS.md at the repo root is the
   canonical, detailed instruction set - read it before proposing or implementing anything;
   this block only summarizes it and must not be treated as a substitute for reading it.
 
@@ -28,7 +28,7 @@ context: |
   and fully offline; every move reachable by tap, drag and keyboard; every animation has a
   no-motion path; accessible by default (names, live regions, focus, 4.5:1 contrast); one
   versioned, defensively-decoded storage record; docs updated in the same change as
-  behavior; mockup is visual reference only.
+  behavior; look and feel is fixed and reviewed against the committed reference screenshots.
 
   Engineering conventions: reuse before adding; DRY/YAGNI/KISS; SOLID without
   over-abstracting; small scoped modules, no god objects; new code goes in its correct
@@ -45,11 +45,11 @@ context: |
 # Per-artifact rules (optional)
 rules:
   proposal:
-    - Scope each proposal to one coherent capability or slice of the phase plan (docs/spec/phased-design.md §7); do not bundle unrelated capabilities into one change.
+    - Scope each proposal to one coherent capability or slice of the roadmap; do not bundle unrelated capabilities into one change.
     - In "Capabilities", use kebab-case capability paths that mirror the src/ layer they primarily touch (e.g. specs/domain/foundation-cards, specs/features/deal-service, specs/ui/board-render), so spec.md's location matches the architecture.
-    - The "Impact" section must name which of src/domain, src/solver, src/features, src/app, src/i18n, src/pwa, src/ui, tests/*, docs/spec are touched, and call out explicitly any change to an existing constitution/architecture principle.
+    - The "Impact" section must name which of src/domain, src/solver, src/features, src/app, src/i18n, src/pwa, src/ui, tests/*, docs are touched, and call out explicitly any change to an existing constitution/architecture principle.
   specs:
-    - Every "### Requirement:" SHALL/MUST statement must trace to a KS-* id from docs/spec/specification.md, or introduce a new one explicitly marked "(new)".
+    - Every "### Requirement:" SHALL/MUST statement must trace to a KS-* id cited by the requirements in openspec/specs, or introduce a new one explicitly marked "(new)".
     - Any requirement describing a player-facing move or interaction must cover tap, drag, and keyboard input (as separate scenarios or WHEN/THEN bullets within one), per constitution principle 5 - unless the requirement is provably input-agnostic, in which case state why inline.
     - Requirements touching domain/solver logic must state their determinism expectation (seeded input -> seeded output), per constitution principle 2.
     - Requirements touching UI must state the accessible-name/live-region/focus/contrast expectation where relevant (principle 7), and the no-motion fallback wherever an animation is introduced (principle 6).
@@ -60,7 +60,7 @@ rules:
     - Each numbered task (`N.M`) is scoped to exactly one complete, independently testable piece of functionality - never a fragment of one (e.g. "add the type" without "and its test") and never a bundle of several unrelated pieces.
     - Each task's description states (a) which KS-* requirement(s) and/or spec.md "### Requirement:" name(s) it implements, (b) the concrete test(s) to add or change (file path + what they assert, at the correct layer - unit for domain/solver, component for ui, e2e for cross-layer flows), and (c) every file expected to be touched, including non-code docs (README/docs/AGENTS.md, when the task changes documented behavior per constitution principle 9).
     - Each task states its own verification inline (e.g. "`rtk npm run test:unit -- <pattern>` passes" or a named observable behavior), so completion can be confirmed without re-deriving it from the proposal.
-    - Size each task so its full working set - files it touches plus the docs/spec files and existing tests it must read for context - fits comfortably inside a single ~128k-token planning session; prefer several narrow, single-layer/single-module tasks over one broad multi-file sweep. If a piece of functionality can't be verified within that budget as one task, split it at a natural sub-capability boundary and record the split in "What Changes" - never by leaving a task half-tested.
+    - Size each task so its full working set - files it touches plus the docs files and existing tests it must read for context - fits comfortably inside a single ~128k-token planning session; prefer several narrow, single-layer/single-module tasks over one broad multi-file sweep. If a piece of functionality can't be verified within that budget as one task, split it at a natural sub-capability boundary and record the split in "What Changes" - never by leaving a task half-tested.
     - Order tasks by dependency (e.g. domain/solver before features before ui) so each is implementable and independently testable once the prior tasks in the list are complete.
     - Write tasks "ready for planning" - give enough structure (requirement refs, test targets, file list, verification) that a planning pass can expand them into concrete steps, but do not pre-write the implementation steps themselves - that expansion is planning's job, not the task list's.
 
