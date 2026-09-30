@@ -7,9 +7,10 @@ snapshots; they never apply game rules.
   log (KS-A11Y-02, KS-I18N-01). Descriptors carry no text; the words reuse `cardName` from `board/names.ts` and a
   private `place(t, ref)` for the mid-sentence pile phrase ("Seven of Clubs moved to column 4", "Moved 3 cards to
   the foundations", "No redeals left" for a `pass-limit` refusal, "Hint: move the Four of Hearts onto column 6").
-- `components/` — small shared components (`Announcer.tsx`, `BuildStamp.tsx`, `DealChip.tsx`, `Hud.tsx`,
-  `Icon.tsx`, `ModeChip.tsx`, `NewDealButton.tsx`, `Notices.tsx`, `Segmented.tsx`, `SettingRow.tsx`,
-  `SettingsButton.tsx`, `Swatches.tsx`, `Switch.tsx`, `ThemeToggle.tsx` and `Toolbar.tsx`, described below).
+- `components/` — small shared components (`Announcer.tsx`, `BuildStamp.tsx`, `ConfirmAction.tsx`, `DealChip.tsx`,
+  `DealCode.tsx`, `DealingOverlay.tsx`, `HintLine.tsx`, `Hud.tsx`, `Icon.tsx`, `ModeChip.tsx`, `NewDealButton.tsx`,
+  `Notices.tsx`, `Segmented.tsx`, `SettingRow.tsx`, `SettingsButton.tsx`, `Swatches.tsx`, `Switch.tsx`,
+  `ThemeToggle.tsx` and `Toolbar.tsx`, described below).
 - `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`), Home's parts in `screens/home/`
   (`HomeTopbar.tsx`, `HomeHero.tsx`, `ModeTiles.tsx`, `WinnableToggle.tsx`, `HomeActions.tsx`, `RecordStrip.tsx`, `HomeLinks.tsx`) and `profiles.ts`, described below.
 - `sheets/` — the sheet host (D2): `ModalSheet.tsx`, the one generic dialog every sheet wraps its content in (a
@@ -28,7 +29,7 @@ snapshots; they never apply game rules.
   the shared sheet/HUD controls — settings row, switch, segmented, swatch, action buttons (including the pixel
   "Deal cards" look), `.sub-label`, key chips and the LCD-styled record strip (`controls.css`) — the modal sheet
   chrome: backdrop and panel, reusing `layout.css`'s `sheet-in` keyframes (`sheets.css`), Home's top bar, hero and
-  floating card fan (`home.css`), and global rules (`global.css`, which imports the other eight sheets).
+  floating card fan (`home.css`), and global rules (`global.css`, which imports the eight other stylesheets).
 - `board/` — the table: pure layout geometry and naming, listed below, the React card, slot, badge and `Board`
   components, the board size hook and the board selectors.
 - `format.ts` — the pure HUD text formatters: `formatScore` and `formatMoves` (three-digit zero pad), `formatBank`
@@ -135,7 +136,7 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   went shows for the full time). The storage ids (`storage-read`, `storage-read-only`, `storage-write`) are each a
   `role="status"` with a `button.notice-dismiss` named through `t('notice.dismiss')` that dispatches
   `noticeDismissed`, and stay until dismissed. `update-ready` is its own `role="status"`, kept until Update (the
-  `onUpdate` prop `Notices` takes; App passes a no-op until Phase 8 wires the real PWA update thunk) or Later
+  `onUpdate` prop `Notices` takes; `App` passes one that dispatches `applyUpdate()` from `app/pwaThunks.ts`) or Later
   (`noticeDismissed('update-ready')`); its text warns that the current game will not be kept when
   `persistence.readOnly` or `persistence.lastError === 'write'`. No notice ever takes focus or blocks the board.
   Mounted once by `App`, outside every screen (NT "Transient notices"), not by `GameScreen`.
@@ -227,7 +228,7 @@ action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`a
 - `screens/home/RecordStrip.tsx` — the `.stat-strip` LCD group named `t('home.record.label')` (6.3): Played and Won as three
   digits, Win rate `n%` or `--`, Streak `current/best` (just `current` while no best), all from `selectOverallStats`.
 - `screens/home/HomeLinks.tsx` — `nav.footlinks` (6.3): Statistics, Settings, Play a deal code and About buttons, each
-  dispatching `openSheet(...)`. Task 8.3 adds the Install app link here.
+  dispatching `openSheet(...)`. An Install app link, dispatching `installApp()` (`app/pwaThunks.ts`), joins them only while `app.installable` is set.
 - `screens/home/HomeTopbar.tsx` — `header.topbar` (6.1, HO "Home top bar"): the decorative `.pixel-dot` logo mark and
   `t('app.title')`, a spacer, `ThemeToggle`, and a Settings `button.icon-action` (gear `Icon`, named `t('settings.heading')`)
   that dispatches `openSheet('settings')`. `ModalSheet` returns focus to it on close.
@@ -385,7 +386,7 @@ double }`, `dragStart { card }`, `dragMove { dx, dy }` (the offset from the pres
 
 **`board/constants.ts`** holds the constants that more than one board component needs and that have no other home:
 `TEXT_PRESENTATION` (the U+FE0E suffix that keeps a suit glyph text, used by `CardView` and `PileSlot`), `BADGE_Z` (the
-stock badge's stacking order, above every card) and `CARD_RADIUS_FACTOR` (`0.09`, the card corner radius as a fraction
+stock badge's stacking order, above every card), `SHAKE_CLEAR_MS` (how long a refused card keeps `is-shake`) and `CARD_RADIUS_FACTOR` (`0.09`, the card corner radius as a fraction
 of the card width, which `Board` applies as `--cr`). It has no imports and is a plain constants file, not a geometry
 module. `CARD_RADIUS_FACTOR` and `animations.ts`'s exported `DEAL_STEP_MS` mirror `--card-radius-factor` and
 `--motion-deal-step`; `tests/unit/ui/motionConstants.test.ts` fails if either drifts from `styles/tokens.css`.
@@ -406,7 +407,9 @@ purity rule below.
   omits.
 - `styles/cards.css` — the card styles: `transform: translate(var(--x), var(--y))`, sizes in `--cw` units,
   the 3D flip structure with `-webkit-backface-visibility`, `--ink-*` inks per suit, the `--back-a` / `--back-b`
-  checker (a fixed 8 px) with the `--color-back-rim` rim, and `box-shadow: none` on a buried card. It also holds the
+  checker (a fixed 8 px) with the `--color-back-rim` rim, and `box-shadow: none` on a buried card. The corner index is
+  large so that a 5 and an 8, or a 1 and a 7, read apart on a small screen: the rank is `0.18 × --cw` in the pixel
+  typeface and the suit glyph `0.23 × --cw`. It also holds the
   card transitions (see "Motion model" below) and `.card.is-dragging`: no transition, `z-index` of
   `calc(var(--drag-z-base) + var(--k, 0))` (with `!important`, because React owns the inline `z-index` and rewrites it
   on every render; `--k` is the card's place in the dragged run), a `transform` that adds `--dx` / `--dy` to `--x` /
@@ -484,8 +487,8 @@ corner, and a change under 1 px never reaches the effect because `useBoardSize` 
 `cards.css` turns both card transitions off, so the cards jump to their new places in the same frame. `playDeal`'s
 release also removes the attribute, because its park already keeps the cards off the corner; otherwise a deal due at the
 first size would release with transitions off. There is no `visualViewport` listener: browser bars showing or hiding
-change the board's size, which the board's `ResizeObserver` already reports. Cancelling a drag is added with dragging in
-Phase 6.
+change the board's size, which the board's `ResizeObserver` already reports. A size change also cancels a drag in
+progress (`useBoardPointer` feeds `resize` to the pointer controller).
 
 **The deal.** `useDealAnimation` has one layout effect, keyed on `[epoch, started, ready, reducedMotion, store]` (`ready` is the
 board and its cards rendered; the latest deal order is read from a ref written by an earlier layout effect, so a resize
@@ -607,13 +610,23 @@ is part of the purity rule below.
 - Two guards enforce this: an ESLint override on `src/ui/board/{metrics,layout,names,locate,landing,pointerController,keyboardController,cascadeFrames}.ts` (`eslint.config.js`) and
   `tests/unit/repo/boardPurity.test.ts`, which scans every module listed above.
 
+## Fonts and glyph coverage
+
+Two fonts are bundled (`src/assets/fonts/`, see its README): Inter for text and Press Start 2P (`--font-pixel`) for the
+wordmark, card ranks, scores, the record strip, key caps, mode-tile detail lines, the deal and build footers and the
+dealing counter. A character a font lacks would be drawn in a fallback face, so `tests/unit/ui/pixelFont.test.ts`
+reads the code points of both WOFF2 files (`tests/support/fontCoverage.ts#woff2CodePoints`) and fails when a catalog
+message that is drawn in Press Start 2P has a character it does not cover, or any catalog character is missing from
+Inter (the suit symbols excepted, which come from a symbol font on purpose). Press Start 2P has no minus sign, which is
+why the Vegas detail line and the negative bank use a hyphen.
+
 ## Dealing overlay (7.3)
 
 `components/DealingOverlay.tsx` renders nothing unless `selectDealing` has `overlay` set (the deal service sets it once a
 verified deal has been pending for 160 ms). Then `div.deal-overlay` covers `.board-panel` (mounted inside it by `Board`,
 `position: absolute; inset: 0`, so the panel never changes size and the previous table stays rendered underneath) with
-`.deal-overlay__box`: an `aria-hidden` `.spinner`, `t('game.dealingOverlay.title')` and the attempt counter
-`t('game.dealingOverlay.attempt', { count })` ("deal #N"). It has no live region: the one polite status in
+`.deal-overlay__box`: an `aria-hidden` `.spinner`, `t('game.dealingOverlay.title')` ("Shuffling cards before the
+game…") and the attempt counter `t('game.dealingOverlay.attempt', { count })` ("deal #N", set in the pixel typeface). It has no live region: the one polite status in
 `GameScreen` keeps announcing "Dealing…", and the counter is not announced per attempt. `board.css` owns the styles and
 the `spin-card` keyframes; `:root[data-motion='off'] .spinner` stops the spin and leaves the spinner visible. The
 overlay sits inside the panel's isolated stacking context, so the sheet layer stays above it.

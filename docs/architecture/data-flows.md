@@ -123,7 +123,7 @@ Notes:
   its candidates again.
 - If the worker fails, the first candidate seed is dealt unverified and ungraded (`random`, 1 attempt, no grade), in every mode.
 - A requested grade that is not found within `GRADE_LIMIT` proven candidates deals the closest one, labelled with its own grade.
-- With the switch off, every mode skips the worker: one `cryptoSeed`, `dealFromSeed`, `installed`; the Difficulty is ignored.
+- With the switch off, every mode but Daily skips the worker: one `cryptoSeed`, `dealFromSeed`, `installed`; the Difficulty is ignored.
 - `restart` and `playDealCode` also install directly with `dealFromSeed`, without the service.
 
 ## Deal pool
@@ -181,16 +181,16 @@ flowchart TD
     A["requestHint"] --> B{"game present, not won, not busy"}
     B -- "no" --> Z["return"]
     B -- "yes" --> C["advise(current)"]
-    C --> D{"dead end"}
-    D -- "yes" --> E["notice dead-end and announce deadEnd"]
-    D -- "no" --> F{"same epoch and position already pending"}
+    C --> D{"advice"}
+    D -- "none, nothing can move" --> Z
+    D -- "dead end" --> E["notice dead-end and announce deadEnd"]
+    D -- "a hint" --> F{"same epoch and position already pending"}
     F -- "yes" --> Z
     F -- "no" --> G["pendingHintSet, dealService.hint"]
     G --> I["solver hint in every mode, 3000 nodes, 150 ms"]
     I --> K{"answer in time"}
     K -- "yes" --> L["hint from solver"]
-    K -- "no or none" --> J
-    J --> L2["hint from heuristic"]
+    K -- "no proof, timeout, failure or busy" --> L2["hint from heuristic"]
     L --> M{"game and position unchanged"}
     L2 --> M
     M -- "no" --> Z
@@ -232,6 +232,7 @@ sequenceDiagram
     Start->>Ctl: apply theme, lang, title
     Start->>Start: start clock ticker and writer, connect save port
     Start->>Start: attach visibilitychange, pagehide, media query listeners
+    Start->>Start: subscribe to the PWA gateways, start the deal pool controller
     Start->>R: render App
 ```
 

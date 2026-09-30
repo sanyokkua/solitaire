@@ -1,6 +1,7 @@
 # Solver layer
 
-The bounded-DFS Klondike solver. Lands in Phase 3 — Solver & deal service (change `add-solver-deal-service`).
+The Klondike solver: bounded depth-first searches (one for Draw 1, one for Draw 3 and Vegas), deal grading and the
+worker protocol.
 
 Modules currently in this layer (each is listed as a backticked `name.ts` bullet, and the layer holds
 exactly the modules listed here plus this README):
@@ -46,7 +47,7 @@ exactly the modules listed here plus this README):
   the `progress` posted as each selection attempt starts and the `outcome` posted for each seed it really searched;
   every reply echoes its request `id`; the `findWinnable` reply carries the grade and the spares) and
   `handleRequest(request, post)`, which runs one request and posts its messages. It keeps no state between requests.
-- `solver.worker.ts` — the module Web Worker entry point, a three-line binding: it hands each message it receives to
+- `solver.worker.ts` — the module Web Worker entry point, a short binding: it hands each message it receives to
   `handleRequest` and posts every message back with `self.postMessage`. It holds no logic of its own.
 
 ## Layer rules

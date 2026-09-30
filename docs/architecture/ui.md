@@ -49,8 +49,8 @@ Enforcement: an ESLint override on exactly these eight files (`eslint.config.js`
 order, plus `PileSlot`, `StockBadge`, `Ghosts`), hooks (`useBoardSize`, `useResizeSettle`, `useDealAnimation`,
 `useCascade`, `useWinSheet`, `useBoardActions`, `useBoardPointer`, `useBoardKeyboard`, `useGameShortcuts`), selectors
 (`selectors.ts`) and runners (`animations.ts`, `cascade.ts`). `constants.ts` holds a few shared constants;
-`tests/unit/ui/motionConstants.test.ts` fails if `CARD_RADIUS_FACTOR` or `DEAL_STEP_MS` drifts from
-`--card-radius-factor` / `--motion-deal-step` in `tokens.css`.
+`tests/unit/ui/motionConstants.test.ts` fails if `CARD_RADIUS_FACTOR` (in `constants.ts`) or `DEAL_STEP_MS` (in
+`animations.ts`) drifts from `--card-radius-factor` / `--motion-deal-step` in `tokens.css`.
 
 ```mermaid
 flowchart LR
@@ -84,6 +84,10 @@ flowchart LR
 - On a size change, `useResizeSettle` sets `data-resizing="true"` on the board for one frame so cards jump instead of
   gliding.
 - Deal: while `data-dealing="park"` is set, cards sit on the stock with transitions off, then glide out in deal order.
+- Dealing overlay: when a search for a winnable deal is still pending after 160 ms, `src/ui/components/DealingOverlay.tsx`
+  (mounted inside the board panel by `Board`) covers the table with a spinner, "Shuffling cards before the game…" and
+  the attempt counter ("deal #N"). It is visual only; the Game screen's polite status line says "Dealing…". A deal
+  served from the pool shows no overlay.
 - Win cascade: `useCascade` plays once when a game turns from playing to won in the same epoch. The Win sheet opens
   2,400 ms later, or at once under reduced motion (`src/ui/board/useWinSheet.ts`).
 
@@ -127,7 +131,7 @@ The `tapMode` preference selects the behaviour: `smart` (default; a tap sends th
 
 ## Screens and layout profiles
 
-- **Home** (`src/ui/screens/HomeScreen.tsx`): top bar, hero, mode tiles, Winnable switch, actions (Deal cards, Continue
+- **Home** (`src/ui/screens/HomeScreen.tsx`): top bar, hero, mode tiles, Winnable switch with the Difficulty choice, actions (Deal cards, Continue
   game, How to play), LCD record strip, links (Statistics, Settings, Play a deal code, About, and Install app when the
   browser offers it).
 - **Game** (`src/ui/screens/GameScreen.tsx`): a hidden `h1`, a dealing status line, the top bar (Back, mode and deal
@@ -173,6 +177,15 @@ return to the opener). While a sheet is open, `App` marks the screen behind it `
   `no-redeals` and `code-copied` disappear after `NOTICE_MS` (3,200 ms). Storage notices and `update-ready` stay until
   dismissed. A notice never takes focus or blocks the board.
 - Both are mounted once by `App`, outside every screen.
+
+## Fonts and card corners
+
+`src/assets/fonts/` bundles Inter (text) and Press Start 2P (`--font-pixel`: wordmark, card ranks, scores, key caps,
+footers, the dealing counter). The card corner index is large on purpose: the rank is `0.18` and the suit glyph `0.23` of
+the card width (`src/ui/styles/cards.css`), so a 5 and an 8, or a 1 and a 7, read apart on a small screen.
+`tests/unit/ui/pixelFont.test.ts` reads both fonts' glyph tables (`tests/support/fontCoverage.ts`) and fails when a
+catalog message drawn in the pixel font has a character the font lacks, so no text falls back to another face
+unnoticed.
 
 ## CSS tokens, themes and appearance preferences
 

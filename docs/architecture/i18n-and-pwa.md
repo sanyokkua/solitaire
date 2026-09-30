@@ -53,8 +53,11 @@ and an ESLint override covers `src/i18n`. Module-level notes: [`src/i18n/README.
    registry entry, and the stored-locale check follows it.
 5. Run `rtk npm run validate`. `catalog.test.ts` checks that every registered catalog has every English key, no empty
    messages, and valid plural categories.
-6. Check layout: the device-fit suite runs Ukrainian, and a pseudo-locale pass (text 30% longer) guards against
-   clipping. See [testing](../development/testing.md). Whether a new language needs its own device-fit run: TODO: confirm.
+6. Check layout: the device-fit suite (`tests/e2e/deviceFit.spec.ts`) runs English and Ukrainian, and a pseudo-locale
+   catalog (`tests/support/pseudoLocale.ts`, every message 30% longer) is exercised by
+   `tests/component/pseudoLocale.test.tsx` and `tests/e2e/pseudoLocale.spec.ts`, which guard against clipping. See
+   [testing](../development/testing.md). A new language is not in the device-fit run until it is added to its
+   `LOCALES` list.
 
 Adding a key: add it to `en.ts` first (it defines `MessageKey`), then to every other catalog. `tests/component/pseudoLocale.test.tsx`
 fails if any UI text bypasses the catalogs.
@@ -119,8 +122,8 @@ flowchart TD
 - Install: `src/pwa/installGateway.ts#createInstallGateway` captures `beforeinstallprompt` (calling `preventDefault`),
   clears it on `appinstalled`, and exposes `onAvailabilityChange(cb)` and `prompt()` (`accepted`, `dismissed` or
   `unavailable`). `lifecycle.tsx` sets `app.installable`; `src/ui/screens/home/HomeLinks.tsx` shows an Install app link
-  while it is true; `installApp` shows the prompt and then hides the link whatever the player chose. Which browsers fire
-  `beforeinstallprompt`: TODO: confirm (the code only reacts to the event).
+  while it is true; `installApp` shows the prompt and then hides the link whatever the player chose. The code only reacts
+  to `beforeinstallprompt`: a browser that never fires it never shows the link.
 
 ### Offline behaviour
 

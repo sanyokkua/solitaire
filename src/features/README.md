@@ -1,10 +1,11 @@
 # Features layer
 
-Application services and Redux slices built on top of the domain and solver layers.
-`deal/` landed in Phase 3 (Solver & deal service); `preferences/`, `stats/`, `game/` and `persistence/` landed in
-Phase 4 (State, persistence & timer). The `persistence/` layer includes the versioned codec (version 2, reading version 1), storage gateway,
-loader for defensive decode and hydration, writer for debounced persistence, and reset thunks. `interaction/` (the
-runtime-only interaction state: selection, hint, announcements, dead ends and the input gate) landed with the Phase 6 change `add-board-interaction`.
+Application services and Redux slices built on top of the domain and solver layers, in six folders: `deal/` (the deal
+service, its graded-spare pool and verdict cache, the solver client and the Daily seeds), `game/` (the game session,
+history, clock and the game, session and navigation thunks), `interaction/` (the runtime-only interaction state:
+selection, hint, announcements, dead ends, the win summary and the input gate), `preferences/`, `stats/` and
+`persistence/` (the versioned codec, version 2 reading version 1, the storage gateway, the loader for defensive decode
+and hydration, the writer for debounced persistence, and the reset thunks), plus `shared/` (the timers).
 
 - `deal/daily.ts` — UTC day key and daily v1 seed list
 - `deal/solverClient.ts` — lazy solver Web Worker client: request ids, cancellation (`cancel`, and `cancelHints` for hints alone) and timeout rules, malformed replies fail the client, never-rejecting results; its `hint` settles as a `SolverHintOutcome` (`ok`, `cancelled`, `timeout`, `busy` or `failed`), distinct from the deal service's `HintOutcome`
@@ -78,7 +79,7 @@ GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (tie
   `replaced(next)` (over `history.ts`'s `commit` and `replace`), `undone()` / `redone()` (ignored while `busy`),
   `accrued({ atMs, eligible })`, `busySet`, `countedSet` and `cleared()` (no game, epoch + 1). Selectors take the
   structural shape `{ game }`: `selectCanUndo`, `selectCanRedo`, `selectResumable` (started and still playing), `selectDisplayedScore` (charges
-  applied), `selectCanFinish` (not busy and `finishPlan` exists, memoised on the piles plus draw, passes, mode and status, so clock ticks never recompute the plan), `selectEpoch` and `selectCurrentGame` (moved here from `src/app/selectors.ts`, since they read only `game` state). `selectGameControlsIdle` (structural `{ app, game }`) is false while `busy` or `app.dealing` is non-null, used by the HUD New deal control and Time (Phase 7). `accrued` settles play
+  applied), `selectCanFinish` (not busy and `finishPlan` exists, memoised on the piles plus draw, passes, mode and status, so clock ticks never recompute the plan), `selectEpoch` and `selectCurrentGame` (moved here from `src/app/selectors.ts`, since they read only `game` state). `selectGameControlsIdle` (structural `{ app, game }`) is false while `busy` or `app.dealing` is non-null, used by the HUD New deal control and Time. `accrued` settles play
   time at an injected-clock reading: while `eligible` and an anchor is set it adds the whole milliseconds since the
   anchor to `current.elapsedMs` (so it stays an integer on a fractional clock), capped at 1 s per step and never
   negative, then moves the anchor forward by what was added (the sub-millisecond remainder carries over; a larger or
@@ -192,8 +193,7 @@ GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (tie
   `{ dispose }`, which clears the interval and unsubscribes (idempotent)
 - `src/app/savePort.ts` (outside this layer) — `createSavePort()` returns a `SavePort` (`{ flush, cancel }`) that does
   nothing until `connect(writer)` gives it a real writer; `startApp` creates one before the store and connects it once
-  the writer exists, and the store's `ThunkExtra.saver` is that same instance, so any thunk (a Settings reset, later
-  the PWA update thunk `src/app/pwaThunks.ts`) can flush or cancel the pending save without reaching the writer directly (D8)
+  the writer exists, and the store's `ThunkExtra.saver` is that same instance, so any thunk (a Settings reset, the PWA update thunk `src/app/pwaThunks.ts`) can flush or cancel the pending save without reaching the writer directly (D8)
 - `src/app/pwaThunks.ts` (outside this layer) — `applyUpdate()` flushes the pending save through `saver`, then calls
   `pwa.applyUpdate()` (it still applies when persistence is read-only or the flush throws); `installApp()` prompts
   through `pwa.promptInstall()`, then clears `app.installable`. `ThunkExtra.pwa` is inert by default; `main.tsx` passes
@@ -304,7 +304,8 @@ winnableOnly })` when the selected mode or the switch changes or the page become
 The store hands every thunk a `ThunkExtra` (`src/app/thunkExtra.ts`): `dealService` (created lazily, so a store that
 never deals, hints or prefetches never starts a solver worker; `pause()` never creates it), `now` (`performance.now`), `delay` (`setTimeout`), `today`
 (`new Date()`), `gateway` (a storage gateway over the browser's local storage), `saver` (a `SavePort`, unconnected
-until `startApp` wires it to the real writer) and `languages` (`navigator.languages` by default). The store has six
+until `startApp` wires it to the real writer), `pwa` (a `PwaPort`, inert until `main.tsx` supplies the real gateways)
+and `languages` (`navigator.languages` by default). The store has six
 slices: `app`, `preferences`, `stats`, `game`, `interaction` and `persistence`. `createAppStore({ preloadedState, deps })` starts
 from the loaded state (see `persistenceLoader.ts`) and replaces any of the thunk dependencies, which is how tests
 inject `fakeDealService()` or a fake clock. The store's development state checks skip `game.history` and
@@ -320,7 +321,8 @@ default deal service's Daily deal reads. An explicitly injected `deps.dealServic
 also reads the browser languages for the loader through `extra.languages()`, so a test injects `languages` instead of
 patching `navigator.languages`.
 
-This layer may depend on `src/domain` and Redux Toolkit. It reaches `src/solver` only through the worker
+This layer may depend on `src/domain`, Redux Toolkit, the data-only `src/i18n/catalog.ts` registry and, for its slice,
+thunk type and store types, `src/app` (`appSlice.ts`, `appThunk.ts`, `selectors.ts` and type-only `store.ts`). It reaches `src/solver` only through the worker
 URL (a `new URL(...)` string, not an import) and typed messages, so solver code never loads on the input
 thread: type-only imports from `src/solver` are allowed, value imports are lint errors
 (`@typescript-eslint/no-restricted-imports` in `eslint.config.js`). It never imports from

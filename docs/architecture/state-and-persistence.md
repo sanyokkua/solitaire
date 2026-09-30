@@ -123,6 +123,30 @@ flowchart TD
   `src/features/persistence/sessionCodec.ts`. The record is version 2 (`RECORD_VERSION`); the decoder also reads
   version 1 and upgrades it in memory, so an older record loads without a backup or a notice and the next save writes
   version 2. The format is in [storage-format.md](../reference/storage-format.md).
+- Upgrade: `decodeRecord` reads a version 1 record and gives the value a version 2 record would hold (the
+  `difficulty` preference set to `any`, the stored game given no grade), so the upgrade is lossless and silent.
+
+```mermaid
+flowchart TD
+    Raw["stored string"] --> Parse{"JSON parses"}
+    Parse -- "no" --> Malformed["malformed"]
+    Parse -- "yes" --> Ver{"version"}
+    Ver -- "above 2" --> Future["future, never interpreted"]
+    Ver -- "1" --> KeysV1["exact keys of version 1:<br/>12 preferences, 17 game keys"]
+    Ver -- "2" --> KeysV2["exact keys of version 2:<br/>13 preferences, 18 game keys"]
+    Ver -- "anything else" --> Invalid["invalid"]
+    KeysV1 --> UpV1["upgradeV1: difficulty 'any',<br/>game grade null"]
+    UpV1 --> Check["validate stats, isValidGameState,<br/>every undo and redo step"]
+    KeysV2 --> Check
+    Check -- "a fault" --> Invalid
+    Check -- "ok" --> Decoded["DecodedRecord, in memory"]
+    Decoded --> Store["preloadedState: no backup, no notice"]
+    Store --> Save["next save: encodeRecord writes version 2"]
+    Malformed --> Backup["loader keeps a backup copy, defaults"]
+    Future --> Backup
+    Invalid --> Backup
+```
+
 - Loader: `src/features/persistence/persistenceLoader.ts#loadInitialState` reads before the store exists and returns
   `preloadedState` plus notices to raise. It never throws and never touches the main record. Its only write is one
   copy of an unreadable record to the backup key.

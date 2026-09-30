@@ -301,7 +301,7 @@ with `target` `any`, `easy`, `medium` or `hard`.
 
 ### Worker protocol
 
-`src/solver/protocol.ts` defines the messages; `src/solver/solver.worker.ts` is a three-line binding to
+`src/solver/protocol.ts` defines the messages; `src/solver/solver.worker.ts` is a short binding to
 `src/solver/protocol.ts#handleRequest`. Every message carries the request `id`.
 
 | Direction | Message        | Fields                                                  |

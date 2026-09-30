@@ -1,8 +1,8 @@
 # Domain layer
 
-The pure Klondike game engine (Phase 2 — Card engine).
+The pure Klondike game engine.
 
-- `cards.ts` — card id `0..51`, the validity check `isCardId` (for the Phase 4 persistence decoder), suit/rank/colour helpers (`suitOf`, `rankOf`, `cardId`, `colorOf`), labels (`cardLabels`), foundation display order (`FOUNDATION_DISPLAY_ORDER`, ♥ ♣ ♦ ♠, distinct from the ♥ ♦ ♣ ♠ suit encoding), and the shared pile and suit lists `TABLEAU_COLS` and `SUITS`
+- `cards.ts` — card id `0..51`, the validity check `isCardId` (for the persistence decoder), suit/rank/colour helpers (`suitOf`, `rankOf`, `cardId`, `colorOf`), labels (`cardLabels`), foundation display order (`FOUNDATION_DISPLAY_ORDER`, ♥ ♣ ♦ ♠, distinct from the ♥ ♦ ♣ ♠ suit encoding), and the shared pile and suit lists `TABLEAU_COLS` and `SUITS`
 - `prng.ts` — `mulberry32`, `cryptoSeed()` (injectable `SeedSource`; the only domain module that may reference `crypto`)
 - `dealCode.ts` — `encodeDealCode` / `decodeDealCode`: seed+mode ↔ `"1-K7Q29XD"`
 - `deal.ts` — `orderedDeck`, Fisher–Yates `shuffle`, `MODES` (the four game modes, the one list the validator, the record codec and the statistics sheet share), `GRADES` (the three grades, easiest first), `modeConfig`, `dealFromSeed(seed, mode, { verdict, attempts, grade })` (records the seed reduced to unsigned 32 bits and the deal's provenance; `grade` defaults to `null`)
@@ -10,7 +10,7 @@ The pure Klondike game engine (Phase 2 — Card engine).
 - `engine.ts` — `applyCommand(state, cmd) → { state, events }`; a draw is one `stepTalon`
 - `talon.ts` — `stepTalon(stock, waste, draw)`, the one draw-or-recycle rule (it knows no pass limit), and `reachableTops(state)`, the stock and waste cards that drawing alone can bring to the waste top, each once and in draw order, within the pass limit (Draw 3 reaches only the top card of each group of three; the dead end uses it)
 - `validate.ts` — `isValidGameState(value): value is GameState`, the total, never-throwing shape and
-  invariant check reused by the Phase 4 persistence decoder (design D13); rejects a pass count past the mode's
+  invariant check reused by the persistence decoder; rejects a pass count past the mode's
   `passLimit`, and a `grade` that is not `null` or a known grade, or is set while the verdict is not `win`; reuses
   `isCardId` (cards.ts), `GRADES`, `MODES` and `modeConfig` (deal.ts), and `isWon` and `passLimit` (rules.ts)
 - `scoring.ts` — `startingScore`, per-event and per-command deltas (`eventDelta`, `commandDelta`), the clamped `applyDelta`, `timePenalty`, `winBonus`, `undoCost`, `displayedScore`
