@@ -8,7 +8,7 @@ function take(rng: () => number, count: number): number[] {
 
 describe('mulberry32', () => {
     it('matches the reference vector for seed 12345', () => {
-        // Seed 12345; values produced by the mockup's mulberry32 (docs/spec/mockup/klondike-mockup.html, D18).
+        // Seed 12345; values produced by the reference mulberry32 (`git show d72187f:docs/spec/mockup/klondike-mockup.html`).
         expect(take(mulberry32(12345), 8)).toEqual([
             0.9797282677609473, 0.3067522644996643, 0.484205421525985, 0.817934412509203, 0.5094283693470061,
             0.34747186047025025, 0.07375754183158278, 0.7663964673411101,

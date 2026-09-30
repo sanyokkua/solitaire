@@ -4,9 +4,9 @@
  * Character i is the verdict for seed i + 1: `w` win, `l` loss, `u` unknown. Each seed is dealt with
  * `dealFromSeed(seed, 'draw1')` and searched at 5,000 nodes.
  *
- * Recipe (design D2): a throwaway Node script, never committed, copying verbatim from
- * docs/spec/mockup/klondike-mockup.html `suitOf`/`rankOf`/`isRed`, `mulberry32`, `shuffle` and `dealFrom`
- * (:630-662) and `solveDraw1` (:667-758), then `solveDraw1(dealFrom(shuffle(mulberry32(seed))), 5000)` for
+ * Recipe (design D2): a throwaway Node script, never committed, copying verbatim from the reference,
+ * `git show d72187f:docs/spec/mockup/klondike-mockup.html`, `suitOf`/`rankOf`/`isRed`, `mulberry32`, `shuffle` and
+ * `dealFrom` (:630-662) and `solveDraw1` (:667-758), then `solveDraw1(dealFrom(shuffle(mulberry32(seed))), 5000)` for
  * seeds 1-200. Recorded on Node 24, run twice with identical verdicts and node counts.
  *
  * Totals: 142 w / 1 l / 57 u. The only loss is seed 91. Fastest wins: seed 19 = 26 nodes, seed 109 = 27,

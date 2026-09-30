@@ -2,8 +2,8 @@
  * Pinned Daily v1 selections for ten fixed UTC dates: month ends, year ends and two dates that need a second attempt.
  *
  * Each entry is the seed `findWinnable(dailySeeds(day), DAILY_V1.budget)` picks and the attempt that won. Recipe
- * (design D2, D7): the reference solver copied verbatim from docs/spec/mockup/klondike-mockup.html (`mulberry32`,
- * `shuffle`, `dealFrom`, `solveDraw1`), run at a 20,000-node budget over the Daily step's candidates
+ * (design D2, D7): the reference solver copied verbatim from `git show d72187f:docs/spec/mockup/klondike-mockup.html`
+ * (`mulberry32`, `shuffle`, `dealFrom`, `solveDraw1`), run at a 20,000-node budget over the Daily step's candidates
  * `(YYYYMMDD * 131 + attempt * 7919) >>> 0` for attempts 1 to 40, stopping at the first proven win. The values come
  * from the reference, never from the implementation under test; a mismatch means the solver, the deal or the formula
  * changed a published Daily, so fix the code and do not edit this table. The `grade` column is different: no reference

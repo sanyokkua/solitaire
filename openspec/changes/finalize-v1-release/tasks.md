@@ -797,7 +797,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 12. Visual review before retiring the mockup
 
-- [ ] 12.1 Compare every screen with the mockup, and fix polish
+- [x] 12.1 Compare every screen with the mockup, and fix polish
     - **Implements:** the stand-alone look statements of HO ("Home top bar", "Home hero", "Mode choice", "Home record strip"), GM ("Two chrome profiles", "HUD values and the Time control", "Game top bar actions"), SH ("Settings sheet", "Statistics sheet"), BR "Card faces", BK "Shortcuts", AS ("Continue game on Home", "Semantic colour tokens for the three palettes") and AP "Night cards change the cards only". The app must match what these requirements now state on their own.
     - **Files:**
       - CSS and markup polish only, in `src/ui/**` and `src/ui/styles/**`;
@@ -823,7 +823,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
 
 ## 13. Retire the spec pack; docs and release
 
-- [ ] 13.1 Move the facts that still apply out of the spec pack
+- [x] 13.1 Move the facts that still apply out of the spec pack
     - **Implements:** D18 (facts); RF "No references to the retired spec pack" (fixtures cite the git revision); D1S "Search results match the reference solver" and CM "Deterministic pseudo-random sequence" and "Unbiased shuffle" (their pinned references now cite the revision or state the vector).
     - **Files:**
       - `docs/reference/game-rules.md`: rules as implemented, Microsoft Windows Solitaire parity, the scoring rationale, the undo and Vegas decisions, the draw and recycle mechanics;
