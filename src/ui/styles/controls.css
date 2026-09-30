@@ -319,6 +319,7 @@ kbd {
     color: var(--color-lcd-score);
 }
 
+:root[data-motion='off'] .switch,
 :root[data-motion='off'] .switch::after,
 :root[data-motion='off'] .action-button,
 :root[data-motion='off'] .icon-action {

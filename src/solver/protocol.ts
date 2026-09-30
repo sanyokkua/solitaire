@@ -34,9 +34,10 @@ export type SolverResponse =
 
 /**
  * Runs one request and posts its messages through `post`, in order: a `findWinnable` request posts `progress` as each
- * attempt starts, an `outcome` for each seed it really searched (not the `known` ones) and then its reply; a `hint` request posts its single reply, whose `hint` key is always present
- * (`undefined` when the solver offers none). Every message carries the request's `id`. Keeps no state between calls,
- * so the same request always posts the same messages, and touches no worker global: the worker entry supplies `post`.
+ * attempt starts, an `outcome` for each seed it really searched (not the `known` ones) and then its reply; a `hint`
+ * request posts its single reply, whose `hint` key is always present (`undefined` when the solver offers none). Every
+ * message carries the request's `id`. Keeps no state between calls, so the same request always posts the same
+ * messages, and touches no worker global: the worker entry supplies `post`.
  * Propagates what `findWinnable` and `solverHint` throw (an empty `seeds`, for one).
  */
 export function handleRequest(request: SolverRequest, post: (response: SolverResponse) => void): void {

@@ -181,9 +181,9 @@
       - `tests/unit/app/savePort.test.ts` is folded into `tests/unit/app/pwaThunks.test.ts`, which flushes through a real writer;
       - `tests/unit/support/testStore.test.ts` keeps only the non-trivial override merge;
       - the existing `tests/support/matchMedia.ts` (`stubMatchMedia`, `controllableMatchMedia`; 13 files use it) becomes the only `matchMedia` fake. Fold in the copies in `tests/setup.ts:6-39` (`stubMediaQueryList`), `tests/component/appLifecycle.wiring.test.tsx:19-67` (`fakeMediaQuery`, `installMatchMedia`) and `tests/unit/app/themeController.test.ts:11-45` (plus its inline `vi.fn` at `:184`);
-      - `tests/README.md` (test-double policy, naming the three justified module mocks and why).
-    - **Tests:** the listed suites, with the same behaviour covered. The only module mocks left are the three justified ones: `hint.defensive.test.ts` (the solver entry), `pseudoLocale.test.tsx` and `tests/component/sheets/settings.test.tsx:190` (`vi.doMock`), which both register an extra language in the static catalog registry.
-    - **Verify:** `rtk npm run test:unit` passes, and `rg "vi\.(do)?[mM]ock\(" tests` lists only the three justified files.
+      - `tests/README.md` (test-double policy, naming the four justified module mocks and why).
+    - **Tests:** the listed suites, with the same behaviour covered. The only module mocks left are the four justified ones: `hint.defensive.test.ts` (the solver entry), `winnable.selection.test.ts` (only `gradeDeal`, to script the grades), `pseudoLocale.test.tsx` and `tests/component/sheets/settings.test.tsx:190` (`vi.doMock`), which both register an extra language in the static catalog registry.
+    - **Verify:** `rtk npm run test:unit` passes, and `rg "vi\.(do)?[mM]ock\(" tests` lists only the four justified files.
 
 - [x] 2.10 A `DealService` contract suite for the real service and the fake
     - **Implements:** D15 (contract suite).
@@ -931,7 +931,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Files:** `docs/reference/manual-checks.md`: installability and a performance score of at least 90, with the date and the browser version.
     - **Verify:** the result is recorded. If the score is below 90, stop and surface it rather than lowering the bar.
 
-- [ ] 14.3 Independent final review
+- [x] 14.3 Independent final review
     - **Implements:** AGENTS.md "Sub-agent driven workflow"; global review rules.
     - **Checks:** a fresh-context reviewer compares the whole diff with the delta specs, `design.md` and the AGENTS.md principles:
       - the Draw 1 search, `SOLVER_CORPUS` and the Daily golden seeds and attempts are untouched;
@@ -941,7 +941,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - there are no spec-pack references;
       - every string comes from the catalogs;
       - every animation has a no-motion path;
-      - no test mocks our own modules beyond the three justified ones (2.9);
+      - no test mocks our own modules beyond the four justified ones (2.9);
       - the deal's grade is named `grade` in data, and `difficulty` only names the preference (D9);
       - stored undo and redo steps carry no provenance of their own (D9, D10).
     - **Verify:** no open Blocking or Important findings, and every fix is committed after `rtk npm run validate`.
