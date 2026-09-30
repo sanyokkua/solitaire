@@ -1,7 +1,8 @@
 # CI and deployment
 
 The app is a static site deployed to GitHub Pages under `/solitaire/`. Two workflows exist:
-`.github/workflows/ci.yml` (checks) and `.github/workflows/pages.yml` (deploy). Both run the same `validate` script.
+`.github/workflows/ci.yml` (checks) and `.github/workflows/pages.yml` (deploy). Neither runs Playwright on the release: the
+end-to-end suite runs locally in full and in `ci.yml` in a lean profile.
 
 ## Flow
 
@@ -13,13 +14,16 @@ flowchart TD
     Remote --> CI["ci.yml: any push or pull_request"]
     Remote -->|"push to master or manual dispatch"| Pages["pages.yml"]
 
-    subgraph CIJob["ci.yml, job validate"]
+    subgraph CIValidate["ci.yml, job validate"]
         C1["npm ci"] --> C2["npm run validate"]
-        C2 --> C3["playwright install chromium firefox webkit"]
-        C3 --> C4["npm run e2e"]
-        C4 --> C5["upload artifacts"]
+    end
+    subgraph CIE2E["ci.yml, job e2e: one machine per browser, in parallel"]
+        E1["npm ci, cached browsers"] --> E2["playwright install one browser"]
+        E2 --> E3["E2E_PROFILE=ci playwright test --project=browser"]
+        E3 --> E4["on failure: upload report"]
     end
     CI --> C1
+    CI --> E1
 
     subgraph PagesBuild["pages.yml, job build (master only)"]
         P1["npm ci"] --> P2["npm run validate"]
@@ -92,21 +96,32 @@ The pre-commit hook lints only staged files, so it does not replace `validate`. 
 
 ## `ci.yml`
 
-Triggers: every `push` and every `pull_request`. Permissions: `contents: read`. One job, `validate`, on
-`ubuntu-latest`. GitHub Actions supplies `GITHUB_RUN_NUMBER` itself, so the build carries a build number. Steps:
+Triggers: every `push` and every `pull_request`. Permissions: `contents: read`. Two kinds of job run in parallel on
+`ubuntu-latest` (neither waits for the other, so the run takes as long as the slowest). GitHub Actions supplies
+`GITHUB_RUN_NUMBER` itself, so the build carries a build number.
 
-1. `actions/checkout`.
-2. `actions/setup-node` with Node 22.22.2 and the npm cache.
-3. `npm ci`.
-4. `npm run validate`.
-5. `npx playwright install --with-deps chromium firefox webkit`.
-6. `npm run e2e` (all seven projects; 2 retries; `forbidOnly`). Playwright's `webServer` runs `npm run build` and
-   `npm run preview` again on port 5173, because CI does not reuse an existing server.
-7. On failure: upload `playwright-report/` and `test-results/` as artifact `playwright-report`.
-8. Always: upload `test-results/visual-parity/` as artifact `visual-parity` (screenshots written by
-   `visualParity.spec.ts` for review by eye against the committed reference screenshots in
-   `docs/assets/screenshots/`; `if-no-files-found: warn`). CI never rewrites those reference screenshots:
-   `npm run screenshots` is opt-in and local.
+- **`validate`** (15 min cap): checkout, `actions/setup-node` (Node 22.22.2, npm cache), `npm ci`, `npm run validate`.
+  No Playwright.
+- **`e2e`** (25 min cap), a matrix of `chromium`, `firefox` and `webkit` with `fail-fast: false`, so each browser has its
+  own machine: checkout, setup-node, `npm ci`, `actions/cache` for `~/.cache/ms-playwright`,
+  `npx playwright install --with-deps <browser>`, then `npx playwright test --project=<browser>` with
+  `E2E_PROFILE=ci`. Playwright's `webServer` builds and previews the app on port 5173. On failure it uploads
+  `playwright-report/` and `test-results/` as `playwright-report-<browser>`.
+
+The **lean CI profile** (`E2E_PROFILE=ci`, read by `playwright.config.ts`; a dedicated variable because `CI` is also set
+in the `validate` job, where the config tests need every project) differs from a local run in these ways:
+
+| Local (`npm run e2e`, pre-push hook)                    | CI profile                                                                                   |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| seven projects: three engines, three phones, device-fit | `chromium`, `firefox`, `webkit` only                                                         |
+| every spec                                              | no keyboard titles (`grepInvert: /keyboard/i`), no `dealLatency`, `dragPerf`, `visualParity` |
+| no retries (2 on any `CI`)                              | 1 retry, 3 workers, `maxFailures: 10`                                                        |
+
+Why: the informational specs and the phone projects took most of a 57-minute run on a 4-core runner, and a hung test
+repeated three times cost nine minutes. Reproduce a shard locally with
+`E2E_PROFILE=ci npx playwright test --project=webkit`. CI does not write the `visual-parity` screenshots; review them
+locally with `npx playwright test visualParity --project=chromium`, and regenerate the committed reference screenshots
+with `npm run screenshots` (opt-in and local).
 
 Actions are pinned to exact versions; `tests/unit/repo/configContract.test.ts` checks the pins. Per the project rule, look
 up the latest versions before updating them.
@@ -122,7 +137,8 @@ Triggers: push to `master` and manual `workflow_dispatch`. Concurrency group `pa
 - Job `deploy`: `needs: build`; the only job with `pages: write` and `id-token: write`; environment `github-pages`
   whose URL is the deployment's `page_url`; uses `actions/deploy-pages`.
 
-Playwright is not run in `pages.yml`; the end-to-end suite runs in `ci.yml` (pushes and pull requests). Whether master is
+Playwright is not run in `pages.yml` (the job has a 15 min cap): a release is normally a merged pull request whose branch
+already passed `ci.yml`, so the release only re-validates and deploys. Whether master is
 protected so that Pages deploys only after a green CI is a repository setting that is not recorded in the repo.
 The repository's Pages source is GitHub Actions (`build_type: workflow`, read from the GitHub Pages API).
 

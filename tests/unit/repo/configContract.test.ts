@@ -183,6 +183,9 @@ describe('.prettierignore', () => {
 });
 
 describe('ci.yml', () => {
+    const e2eJob = ciWorkflow.slice(ciWorkflow.indexOf('\n    e2e:'));
+    const validateJob = ciWorkflow.slice(ciWorkflow.indexOf('\n    validate:'), ciWorkflow.indexOf('\n    e2e:'));
+
     it('grants only read access to repository contents', () => {
         expect(ciWorkflow).toContain('contents: read');
     });
@@ -192,30 +195,38 @@ describe('ci.yml', () => {
         expect(ciWorkflow).toMatch(/\bpull_request:/);
     });
 
-    it.each([
-        'uses: actions/checkout@',
-        'uses: actions/setup-node@',
-        'node-version: 22.22.2',
-        'run: npm ci',
-        'run: npm run validate',
-        'run: npx playwright install --with-deps chromium firefox webkit',
-        'run: npm run e2e',
-        'uses: actions/upload-artifact@',
-        'if: failure()',
-    ])('contains the required step %s', (step) => {
-        expect(ciWorkflow).toContain(step);
+    it.each(['uses: actions/checkout@', 'uses: actions/setup-node@', 'node-version: 22.22.2', 'run: npm ci'])(
+        'both jobs contain the required step %s',
+        (step) => {
+            expect(validateJob).toContain(step);
+            expect(e2eJob).toContain(step);
+        },
+    );
+
+    it('validates without Playwright in its own job', () => {
+        expect(validateJob).toContain('run: npm run validate');
+        expect(validateJob).not.toContain('playwright');
     });
-});
 
-describe('ci.yml visual-parity upload', () => {
-    const steps = ciWorkflow.split(/\n\s+- (?=\S)/);
-    const uploadStep = steps.find((step) => step.includes('name: visual-parity')) ?? '';
+    it('runs each desktop browser on its own machine, in parallel with validate', () => {
+        expect(e2eJob).toContain('browser: [chromium, firefox, webkit]');
+        expect(e2eJob).toContain('fail-fast: false');
+        expect(e2eJob).not.toContain('needs:');
+        expect(e2eJob).toContain('run: npx playwright install --with-deps ${{ matrix.browser }}');
+        expect(e2eJob).toContain('run: npx playwright test --project=${{ matrix.browser }}');
+    });
 
-    it('uploads the screenshots on every run, after the e2e step', () => {
-        expect(ciWorkflow.indexOf('name: visual-parity')).toBeGreaterThan(ciWorkflow.indexOf('run: npm run e2e'));
-        expect(uploadStep).toContain('uses: actions/upload-artifact@v');
-        expect(uploadStep).toContain('if: always()');
-        expect(uploadStep).toContain('path: test-results/visual-parity/');
+    it('uses the lean CI profile and caches the Playwright browsers', () => {
+        expect(e2eJob).toContain('E2E_PROFILE: ci');
+        expect(e2eJob).toContain('uses: actions/cache@');
+        expect(e2eJob).toContain('path: ~/.cache/ms-playwright');
+    });
+
+    it('caps every job and uploads the report of a failed browser', () => {
+        expect(ciWorkflow.match(/timeout-minutes:/g)).toHaveLength(2);
+        expect(e2eJob).toContain('uses: actions/upload-artifact@');
+        expect(e2eJob).toContain('if: failure()');
+        expect(e2eJob).toContain('name: playwright-report-${{ matrix.browser }}');
     });
 });
 

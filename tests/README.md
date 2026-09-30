@@ -393,4 +393,6 @@ Flakes found and fixed, each reproduced first and fixed at its cause; no retry w
   Home on the mode under test, which avoids the change of mode; the product behaviour is left as the deal-service spec has it,
   and is noted for the author.
 
-CI reruns: pending. The three reruns on GitHub Actions need a push, which the author has not yet approved.
+CI reruns: pending. CI now runs a lean profile (`E2E_PROFILE=ci`: the three desktop engines, one machine each, without the
+keyboard titles and the informational specs; see `docs/development/ci-and-deployment.md`), so the three reruns would
+use that profile; the full matrix above stays the local, pre-push run.

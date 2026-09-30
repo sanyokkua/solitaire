@@ -186,7 +186,7 @@ use it.
 
 Configured in `playwright.config.ts`:
 
-- `testDir: ./tests/e2e`, `fullyParallel`, `forbidOnly` and 2 retries on CI, `baseURL` `http://127.0.0.1:5173/solitaire/`.
+- `testDir: ./tests/e2e`, `fullyParallel`, `forbidOnly` on CI, 2 retries on CI (1 in the lean `E2E_PROFILE=ci` profile, see [CI and deployment](ci-and-deployment.md)), `baseURL` `http://127.0.0.1:5173/solitaire/`.
 - Reporters: `list` and `html` (`playwright-report/`). Trace, screenshot and video are kept on failure.
 - `webServer`: `npm run build && npm run preview -- --host 127.0.0.1 --port 5173`; an existing server is reused when not
   on CI. So e2e runs against the production build, not the dev server.
@@ -234,7 +234,7 @@ Chromium-only specs skip themselves in other projects: `visualParity`, `dealLate
 - `playByTap`, `playByDrag`, `playByKeyboard`: each plays a recorded winning line to a win by one input path.
 - `dragPerf`: an informational drag trace on a phone viewport with the CPU slowed 4×; it attaches the Chromium trace and reports frame times as annotations without asserting on them.
 - `playModes`: Draw 3 by keyboard, Vegas by drag and the Daily deal (dealt from Home on its golden date) by tap, each to a win.
-- `visualParity`: writes seventeen screenshots to `test-results/visual-parity/`; CI uploads them as an artifact for review by eye. It asserts only that each file exists.
+- `visualParity`: writes seventeen screenshots to `test-results/visual-parity/`; CI does not run it (lean profile); run it locally for review by eye. It asserts only that each file exists.
 - `screenshots`: opt-in regeneration of the committed reference screenshots (see [Reference screenshots](#reference-screenshots)).
 - `dealLatency`: informational, for Draw 1, Draw 3 and Vegas; asserts only that a background solver ran. It reports two
   paths per mode: on demand (the deal pool is held, so every measured deal is a cold search) and from a warm pool (the
@@ -263,7 +263,7 @@ Prefix with `rtk` as usual. Browsers must be installed once: `npx playwright ins
 | --------------------------------- | ----------------------------------------------------------- | ----------------------- |
 | Vitest unit and component         | pre-commit hook, `validate` (with coverage)                 | inside `validate`       |
 | Repo guard tests                  | inside `test:unit`                                          | inside `validate`       |
-| Playwright, all projects          | pre-push hook, `npm run e2e`                                | after `validate`        |
+| Playwright                        | pre-push hook, `npm run e2e` (all projects)                 | lean profile, 3 engines |
 | Coverage                          | `validate` (unit and component suites)                      | inside `validate`       |
 | Reference screenshots             | `npm run screenshots` (opt-in)                              | not run                 |
 | Docs link and no-spec-pack guards | inside `test:unit`                                          | inside `validate`       |

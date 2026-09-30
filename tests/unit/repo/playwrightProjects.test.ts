@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { devices } from '@playwright/test';
 import config from '../../../playwright.config';
 import { FULL_GAME_PROJECTS } from '../../e2e/support/projects';
@@ -73,5 +73,42 @@ describe('Playwright projects', () => {
         const games = source.match(/skipOutsideFullGameProjects\(testInfo\)/g) ?? [];
         expect(games.length).toBeGreaterThan(0);
         expect(hasChromiumGuard(source)).toBe(false);
+    });
+});
+
+describe('Playwright CI profile (E2E_PROFILE=ci)', () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+        vi.resetModules();
+    });
+
+    async function ciConfig(): Promise<typeof config> {
+        vi.stubEnv('E2E_PROFILE', 'ci');
+        vi.resetModules();
+        return (await import('../../../playwright.config')).default;
+    }
+
+    it('is off by default: every project, no keyboard filter', () => {
+        expect(config.projects?.map((project) => project.name)).toHaveLength(7);
+        expect(config.grepInvert).toBeUndefined();
+    });
+
+    it('keeps the three desktop engines, and none of the phone or device-fit projects', async () => {
+        const ci = await ciConfig();
+        expect(ci.projects?.map((project) => project.name)).toEqual(['chromium', 'firefox', 'webkit']);
+    });
+
+    it('retries once, stops early, and skips the keyboard titles', async () => {
+        const ci = await ciConfig();
+        expect(ci.retries).toBe(1);
+        expect(ci.maxFailures).toBeGreaterThan(0);
+        expect(ci.grepInvert).toEqual(/keyboard/i);
+    });
+
+    it.each(['dealLatency', 'dragPerf', 'visualParity'])('ignores the informational spec %s', async (spec) => {
+        const ci = await ciConfig();
+        for (const project of ci.projects ?? []) {
+            expect(project.testIgnore, project.name).toContain(`**/${spec}.spec.ts`);
+        }
     });
 });
