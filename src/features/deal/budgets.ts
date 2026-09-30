@@ -6,8 +6,11 @@ export const WINNABLE_BUDGET = 5_000;
 export const DRAW3_WINNABLE_BUDGET = 20_000;
 /** Nodes searched per candidate when a Vegas deal must be winnable (the ordered-talon search). */
 export const VEGAS_WINNABLE_BUDGET = 20_000;
-/** Candidate seeds tried for a winnable deal, in every mode. */
-export const MAX_ATTEMPTS = 40;
+/**
+ * Candidate seeds tried for a winnable deal, in every mode: 20% more than the 40 the first release tried, so a request
+ * finds a proven deal (and one of the requested grade) more often. The Daily v1 selection keeps its own pinned 40.
+ */
+export const MAX_ATTEMPTS = 48;
 /** Nodes searched for a solver hint. */
 export const HINT_BUDGET = 3_000;
 /** Proven-winnable candidates one request may grade in search of the requested grade before settling for the closest. */

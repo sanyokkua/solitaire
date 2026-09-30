@@ -208,8 +208,8 @@ other modes' deals SHALL be made as follows:
 
 | Request | Seeds tried | Search budget | Verdict, attempts and grade |
 | --- | --- | --- | --- |
-| Draw 1, "Winnable deals only" on | up to 40 fresh seeds | 5,000 nodes each | as selection reports them for the target difficulty |
-| Draw 3 or Vegas, "Winnable deals only" on | up to 40 fresh seeds | 20,000 nodes each | as selection reports them for the target difficulty |
+| Draw 1, "Winnable deals only" on | up to 48 fresh seeds | 5,000 nodes each | as selection reports them for the target difficulty |
+| Draw 3 or Vegas, "Winnable deals only" on | up to 48 fresh seeds | 20,000 nodes each | as selection reports them for the target difficulty |
 | Draw 1, Draw 3 or Vegas, "Winnable deals only" off | one fresh seed | none | `random`, 1 attempt, no grade |
 
 The Draw 3 and Vegas budgets are set by the per-mode deal benchmark; they live in this table, and
@@ -265,8 +265,8 @@ Deterministic: with the entropy source fixed and no pooled deal for the request,
 
 #### Scenario: Exhausted attempts fall back to a random deal
 
-- **WHEN** none of the 40 candidate deals of a Draw 1, Draw 3 or Vegas request is proven winnable
-- **THEN** the last candidate is dealt with verdict `random`, 40 attempts and no grade
+- **WHEN** none of the 48 candidate deals of a Draw 1, Draw 3 or Vegas request is proven winnable
+- **THEN** the last candidate is dealt with verdict `random`, 48 attempts and no grade
 
 #### Scenario: The deal code reproduces the deal
 
@@ -341,7 +341,7 @@ Deterministic: the same UTC date always yields the same deal code, attempt count
 
 While a verified deal is being chosen, the service SHALL report progress, each report carrying:
 - the attempt now being tried, starting at 1;
-- whether the "Shuffling a winnable deal…" overlay should be visible.
+- whether the "Shuffling cards before the game…" overlay should be visible.
 
 The overlay SHALL become visible only once the request has been pending for 160 ms. It SHALL never
 become visible for a deal delivered sooner. A report SHALL never carry an attempt number that is

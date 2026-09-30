@@ -15,7 +15,7 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   switch on first takes Draw 1, Draw 3 and Vegas deals from the pool: a pooled deal of the target's grade (the oldest
   of any grade for `any`) is dealt at once as `dealFromSeed(seed, mode, { verdict: 'win', attempts, grade })`, with the
   attempts recorded when it was found (1 for a spare), no progress report, no overlay timer and no worker request.
-  Otherwise it searches on the player's worker (40 fresh seeds at the mode's budget from `winnableBudget(mode)`,
+  Otherwise it searches on the player's worker (48 fresh seeds at the mode's budget from `winnableBudget(mode)`,
   selecting `{ target, gradeLimit: GRADE_LIMIT }`), and Daily (the UTC day's v1 candidates at 20,000 nodes, always for
   `any`, whatever the switch or the Difficulty says, and never from the pool) the same way. Every search sends the
   cache's `known(mode, budget, seeds)` verdicts and records each `outcome` the worker reports, so a second Daily
@@ -51,7 +51,7 @@ hint }`, `{ status: 'none' }` (won, or no move at all) or `{ status: 'cancelled'
 attempts }` of that grade, or the oldest of any grade for `any`, and never a deal of another grade; `deposit(mode,
 spares)` keeps a player search's spares that fit, with attempts 1. The filler works on the current choice only
   (`setChoice({ mode, winnableOnly } | undefined)`; Daily, the switch off or `undefined` fills nothing and keeps what is
-  pooled), one request at a time: `findWinnable` with 40 fresh crypto seeds, the mode's budget and `{ target, gradeLimit:
+  pooled), one request at a time: `findWinnable` with 48 fresh crypto seeds, the mode's budget and `{ target, gradeLimit:
 GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (ties easy, medium, hard); it pools the
   selected deal (never a `random` one) with its own grade and attempts, and its spares that fit. `pause()`/`resume()`
   and `setBusy(busy)` stop new fills without cancelling the one in flight, whose deals are pooled under the mode it was
@@ -60,7 +60,7 @@ GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (tie
   in flight and ignores later calls. The deal service builds it over its second client and drives it (`take`,
   `deposit`, `setBusy`, and `setChoice`/`resume`/`pause` through `prefetch` and `pause`).
 - `deal/budgets.ts` — the node budgets and the attempt cap: `WINNABLE_BUDGET` (Draw 1, 5,000), `DRAW3_WINNABLE_BUDGET` and
-  `VEGAS_WINNABLE_BUDGET` (the ordered-talon search, 20,000 each), `MAX_ATTEMPTS` (40 candidates) and `HINT_BUDGET`
+  `VEGAS_WINNABLE_BUDGET` (the ordered-talon search, 20,000 each), `MAX_ATTEMPTS` (48 candidates) and `HINT_BUDGET`
   (3,000); `winnableBudget(mode)` picks the winnable budget for Draw 1, Draw 3 and Vegas, and `GRADE_LIMIT` caps the proven candidates graded in search of the requested grade. Daily has its own pinned pair in `daily.ts`. The Draw 3 and Vegas values come from the per-mode benchmark
   recorded in `tests/README.md`.
 - `game/history.ts` — pure undo and redo over `Session` (`{ current, history, future }`, both stacks unbounded).

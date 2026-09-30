@@ -197,7 +197,7 @@ Each `deal` first cancels every pending deal and hint (a busy worker is terminat
 
 | Request                                         | Where          | Seeds and budget                                                                                                                 |
 | ----------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `draw1`, `draw3` or `vegas` with `winnableOnly` | worker         | 40 fresh `cryptoSeed` values (`MAX_ATTEMPTS`), `winnableBudget(mode)` nodes each (5,000 for Draw 1, 20,000 for Draw 3 and Vegas) |
+| `draw1`, `draw3` or `vegas` with `winnableOnly` | worker         | 48 fresh `cryptoSeed` values (`MAX_ATTEMPTS`), `winnableBudget(mode)` nodes each (5,000 for Draw 1, 20,000 for Draw 3 and Vegas) |
 | `daily` (any `winnableOnly`)                    | worker         | the 40 v1 candidate seeds of the UTC day, 20,000 nodes each (`DAILY_V1`)                                                         |
 | everything else                                 | calling thread | one fresh seed, `random`, 1 attempt                                                                                              |
 

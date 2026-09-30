@@ -304,7 +304,7 @@ mechanism stays, the signal changed.
 
 - **Grade limit.** Grading is the costly step, so a request grades at most `gradeLimit` proven candidates
   (`GRADE_LIMIT`, 4) before it settles for the closest. The bound is a count, not a clock, so the same request always
-  selects the same deal. Together with the 40 candidates it bounds the work of one request.
+  selects the same deal. Together with the 48 candidates it bounds the work of one request.
 - **Spares.** The result carries every other proven candidate it graded, as `{ seed, grade }`. The deal service pools
   them (D8), so one search for a Hard deal that meets Easy and Medium deals along the way pays for later requests.
 - **Known verdicts.** A request may carry `known` outcomes (`win` with a grade, `loss`, `unknown`), valid only at the
@@ -659,7 +659,7 @@ test:
 - **Grade limit:** a request grades at most 4 proven candidates (`GRADE_LIMIT`).
 - **Daily:** ignores Difficulty and shows its grade.
 - **Statistics:** remain per mode, not per difficulty.
-- **Budgets:** Draw 3 and Vegas start at 20,000 nodes and the 40-attempt cap. Task 6.5 may change those
+- **Budgets:** Draw 3 and Vegas start at 20,000 nodes and the 48-attempt cap (40 in the first release, raised 20% so a request more often finds a proven deal of the requested grade). Task 6.5 may change those
   values, and it records the benchmark that justifies them in the `features/deal-service` delta table and
   in `tests/README.md`.
 - **Real-device checks:** the author performs them. Task 11.11 ships the checklist and procedure, and the

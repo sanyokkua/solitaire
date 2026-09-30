@@ -44,7 +44,7 @@ The Vegas bank is per game; there is no cumulative bankroll.
 
 ### Winnable deals only
 
-A preference (`winnableOnly`, default on), shared by Draw 1, Draw 3 and Vegas. The deal service tries up to 40 fresh
+A preference (`winnableOnly`, default on), shared by Draw 1, Draw 3 and Vegas. The deal service tries up to 48 fresh
 seeds, searching each within its budget, and uses the first proven win. If none is proven, the last seed is dealt as
 `random`. The Home switch is live in those three modes and disabled, showing on, in Daily
 (`src/ui/screens/home/WinnableToggle.tsx`). Beside it, the Difficulty control (Any, Easy, Medium, Hard; the
