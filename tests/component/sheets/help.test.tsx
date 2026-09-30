@@ -75,8 +75,8 @@ describe('HelpSheet', () => {
 
             const easy = screen.getByText('Easy', { selector: 'strong' });
             const hard = screen.getByText('Hard', { selector: 'strong' });
-            expect(easy.closest('.help-grades__row')).toHaveTextContent(/Most replays win/);
-            expect(hard.closest('.help-grades__row')).toHaveTextContent(/Hardly any replays win/);
+            expect(easy.closest('.help-grades__row')).toHaveTextContent(/many plausible mistakes/);
+            expect(hard.closest('.help-grades__row')).toHaveTextContent(/Only a narrow line wins/);
         });
     });
 

@@ -105,7 +105,7 @@ describe('Home mode tiles', () => {
 
         expect(screen.getByRole('radio', { name: 'Draw 1' })).toHaveAccessibleDescription(/Standard · 1 card/);
         expect(screen.getByRole('radio', { name: 'Draw 3' })).toHaveAccessibleDescription(/Standard · 3 cards/);
-        expect(screen.getByRole('radio', { name: 'Vegas' })).toHaveAccessibleDescription(/−\$52 · 3 passes/);
+        expect(screen.getByRole('radio', { name: 'Vegas' })).toHaveAccessibleDescription(/-\$52 · 3 passes/);
     });
 
     it("shows today's UTC day and date on the Daily tile from the injected clock", () => {

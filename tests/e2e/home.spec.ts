@@ -146,3 +146,38 @@ test.describe('Difficulty option size', () => {
         });
     }
 });
+
+// covers: KS-A11Y-04
+test.describe('Settings option size', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/');
+        const coarse = await page.evaluate(() => window.matchMedia('(pointer: coarse)').matches);
+        test.skip(!coarse, 'Touch targets are only required where the pointer is coarse.');
+    });
+
+    for (const size of [null, { width: 320, height: 480 }] as const) {
+        const label = size ? `${String(size.width)}x${String(size.height)}` : 'the project viewport';
+        test(`every Settings choice option is at least 44x44 in ${label}`, async ({ page }) => {
+            if (size) {
+                await page.setViewportSize(size);
+                await page.goto('/');
+            }
+            await page.getByRole('button', { name: 'Settings' }).first().click();
+            const options = page.locator('.modal-sheet .segmented button');
+            await expect(options.first()).toBeVisible();
+            // The sheet scales in over 180 ms; measure it at rest.
+            await page.evaluate(() =>
+                Promise.all((document.querySelector('.modal-sheet')?.getAnimations() ?? []).map((a) => a.finished)),
+            );
+            expect(await options.count()).toBeGreaterThanOrEqual(6);
+
+            for (const option of await options.all()) {
+                const box = await option.boundingBox();
+                const name = (await option.textContent()) ?? '';
+                expect(box, `${label}: ${name}`).not.toBeNull();
+                expect(box?.width, `${label}: ${name} width`).toBeGreaterThanOrEqual(44);
+                expect(box?.height, `${label}: ${name} height`).toBeGreaterThanOrEqual(44);
+            }
+        });
+    }
+});

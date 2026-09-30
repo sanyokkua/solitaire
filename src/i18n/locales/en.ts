@@ -136,7 +136,7 @@ export const en = {
     'home.modes.draw3.name': 'Draw 3',
     'home.modes.draw3.meta': 'Standard · 3 cards',
     'home.modes.vegas.name': 'Vegas',
-    'home.modes.vegas.meta': '−$52 · 3 passes',
+    'home.modes.vegas.meta': '-$52 · 3 passes',
     'home.modes.daily.name': 'Daily deal',
     'home.modes.best': 'Best {value}',
     'home.modes.noRecord': 'No record yet',
@@ -227,10 +227,11 @@ export const en = {
     'help.winnable.intro':
         'With Winnable deals only on, a built-in solver proves every Draw 1, Draw 3 and Vegas deal winnable before it is shown.',
     'help.winnable.grading':
-        'A proven deal is graded by replaying it the way a person plays, seeing only the face-up cards.',
-    'help.winnable.easy': 'Most replays win.',
-    'help.winnable.medium': 'Some replays win.',
-    'help.winnable.hard': 'Hardly any replays win, although the solver proved it winnable.',
+        'A proven deal is graded by replaying it the way a person plays, seeing only the face-up cards, and asking the solver whether it can still be won.',
+    'help.winnable.easy': 'Stays winnable through many plausible mistakes.',
+    'help.winnable.medium': 'Stays winnable through some plausible mistakes.',
+    'help.winnable.hard':
+        'Only a narrow line wins: a few plausible mistakes make it unwinnable, although the solver proved it winnable.',
     'help.winnable.difficulty': 'Difficulty on Home asks for one of these grades.',
 
     'stats.heading': 'Statistics',
