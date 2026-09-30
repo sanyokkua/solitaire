@@ -845,7 +845,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** unchanged.
     - **Verify:** `rg -n "docs/spec|klondike-mockup|R§|spec §|specification §|phased-design|research\.md|specification\.md" src tests scripts .github --glob '!src/solver/solver.ts'` finds only revision-pinned references. `rtk npm run test:unit` passes.
 
-- [ ] 13.3 Delete `docs/spec`, repoint the instructions, and add the guard
+- [x] 13.3 Delete `docs/spec`, repoint the instructions, and add the guard
     - **Implements:** RF "No references to the retired spec pack" (the folder is gone; the guard); the proposal's constitution changes (principle 10, the source-of-truth order).
     - **Files:**
       - delete `docs/spec/**`;
@@ -867,7 +867,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Before adding the guard:** run a repo-wide `rg -n "docs/spec|klondike-mockup|R§|spec §|specification §|phased-design|research\.md|specification\.md" --glob '!openspec/changes/**' --glob '!openspec/specs/**'` and fix every hit, including docs written earlier in this change.
     - **Verify:** `rtk npm run validate` passes, and `test -d docs/spec` fails.
 
-- [ ] 13.4 A docs-link test, and the broken links it finds
+- [x] 13.4 A docs-link test, and the broken links it finds
     - **Implements:** RF "Maintained documentation links resolve".
     - **Files:**
       - new `tests/unit/repo/docsLinks.test.ts`: relative Markdown links, and inline-code paths starting with `src/`, `tests/`, `docs/`, `scripts/`, `public/`, `openspec/` or `.github/` (including `path#symbol`), resolve in `README.md`, `CHANGELOG.md` once it exists (13.9), `docs/**`, the module READMEs under `src/` and `tests/`, and `AGENTS.md`. Globs, brace lists, `<placeholders>`, generated folders (`dist/`, `coverage/`, `playwright-report/`, `test-results/`) and `https://` links are skipped;
@@ -875,21 +875,21 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** the new docs-link test. A fixture doc with a broken link fails, and it names the file, line and target.
     - **Verify:** `rtk npx vitest run tests/unit/repo` passes.
 
-- [ ] 13.5 Architecture docs and module READMEs match the code
+- [x] 13.5 Architecture docs and module READMEs match the code
     - **Implements:** constitution 9 (docs are part of the change); RF "Maintained documentation links resolve" (kept green).
     - **Files:**
       - `docs/architecture/{overview,domain-and-solver,state-and-persistence,ui,i18n-and-pwa,data-flows}.md`, with cited paths and symbols checked, and mermaid diagrams for the layers, the deal pool and the storage upgrade;
       - `src/{domain,solver,features,i18n,pwa,ui}/README.md`.
     - **Verify:** the docs-link test and `rtk npm run format:check` pass.
 
-- [ ] 13.6 Development docs and the docs index match the code
+- [x] 13.6 Development docs and the docs index match the code
     - **Implements:** constitution 9 (docs are part of the change).
     - **Files:**
       - `docs/README.md` (the index and reading order, with no spec-pack section);
       - `docs/development/{getting-started,project-structure,workflow,code-standards,testing,ci-and-deployment}.md`.
     - **Verify:** the docs-link test and `rtk npm run format:check` pass.
 
-- [ ] 13.7 Reference docs and the tests README match the code
+- [x] 13.7 Reference docs and the tests README match the code
     - **Implements:** constitution 9 (docs are part of the change).
     - **Files:**
       - `docs/reference/{scripts,keyboard-and-controls,game-rules,storage-format}.md`;
@@ -898,12 +898,12 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** the new script-documentation check.
     - **Verify:** the docs-link test, `rtk npx vitest run tests/unit/repo` and `rtk npm run format:check` pass.
 
-- [ ] 13.8 README
+- [x] 13.8 README
     - **Implements:** RF "Committed reference screenshots are the look-and-feel reference" (the README uses them); Phase 10 README.
     - **Files:** `README.md`: what the game is, the features (modes, winnable and graded deals, instant deals, offline and install, languages, accessibility), the screenshots from `docs/assets/screenshots/`, the Pages link, the commands and the docs map.
     - **Verify:** the docs-link test passes, and the README renders with every image resolving.
 
-- [ ] 13.9 Version 1.0.0, the changelog and the release procedure
+- [x] 13.9 Version 1.0.0, the changelog and the release procedure
     - **Implements:** RF "Releases are versioned and recorded"; D20.
     - **Files:**
       - `package.json` and `package-lock.json` (the root version 1.0.0);
