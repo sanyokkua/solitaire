@@ -584,6 +584,7 @@ Tests:
 - `tests/e2e/deviceFit.spec.ts`
 - `tests/e2e/home.spec.ts`
 - `tests/e2e/pseudoLocale.spec.ts`
+- `tests/e2e/screenshots.spec.ts`
 
 Manual checks:
 
@@ -1581,6 +1582,7 @@ Tests:
 
 - `tests/e2e/a11y.spec.ts`
 - `tests/e2e/appearance.spec.ts`
+- `tests/e2e/screenshots.spec.ts`
 - `tests/unit/ui/contrast.test.ts`
 - `tests/unit/ui/tokens.test.ts`
 
