@@ -154,7 +154,7 @@ Input-agnostic: derived from the statistics; shown on Home's record strip.
 
 Deterministic: the same statistics always yield the same overall record.
 
-*(new; spec §3.1 Record strip; KS-STA-01, KS-STA-02)*
+*(new; KS-STA-01, KS-STA-02)*
 
 #### Scenario: Sums across modes
 

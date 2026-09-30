@@ -6,7 +6,6 @@ Defines how the whole game is played from the keyboard alone: where focus goes, 
 picked up and placed, and the shortcut keys, with roles and names for assistive technology.
 
 ## Requirements
-
 ### Requirement: Focus moves between piles and cards
 The board SHALL offer one tab stop per pile (stock, waste, four foundations, seven columns) in that
 visual order, mirrored when Stock on the right is on. An empty waste has nothing to focus and is
@@ -91,8 +90,11 @@ gate, which is closed on a won game and while a sheet is open: N SHALL act whene
 is shown, no deal is being prepared and no sheet is open, so N during the win cascade, before the
 Win sheet opens, deals a new game at once; P SHALL follow the pause and resume rules above. N and P
 SHALL both be ignored while a safe-card chain or Finish is running (`game.busy`) or while a deal is
-being prepared (`app.dealing` non-null). With these bindings every action
-of spec §4.8 is reachable from the keyboard, so *KS-INP-08* is complete.
+being prepared (`app.dealing` non-null). With these bindings, together with the focus, Enter and
+Space keys of this capability, every game action is reachable from the keyboard alone: moving focus
+between piles and cards, drawing and recycling, moving a card or run to its best target or to a
+chosen one, undo, redo, hint, Finish, new deal, pause and resume, cancelling a selection or a drag,
+and closing a sheet. So *KS-INP-08* is complete.
 
 The letter shortcuts SHALL work on any keyboard layout: a Latin letter typed is taken as it is (so
 AZERTY and Dvorak follow their labels), and when the layout produces a non-Latin character (for

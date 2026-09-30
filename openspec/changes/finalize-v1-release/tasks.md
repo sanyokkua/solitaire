@@ -946,7 +946,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
       - stored undo and redo steps carry no provenance of their own (D9, D10).
     - **Verify:** no open Blocking or Important findings, and every fix is committed after `rtk npm run validate`.
 
-- [ ] 14.4 Archive readiness: sync the specs, the editorial pass, and a strict guard
+- [x] 14.4 Archive readiness: sync the specs, the editorial pass, and a strict guard
     - **Implements:** RF "No references to the retired spec pack" (main specs included); D18 (the editorial pass).
     - **Steps:**
       1. Run `openspec validate finalize-v1-release --strict`, then sync the delta specs into the main specs with the `openspec-sync-specs` skill (sync is not a CLI command).

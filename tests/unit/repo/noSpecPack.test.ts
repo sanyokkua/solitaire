@@ -26,12 +26,8 @@ const FORBIDDEN: readonly RegExp[] = [
 /** A reference pinned to a git revision: a commit id, a colon and the file's former path. */
 const REVISION_PINNED = /\b[0-9a-f]{7,40}:[^\s,;|)`'"]+/g;
 
-/** Paths exempt from the scan. The main specs stay exempt until their citations are edited (task 14.4). */
-const EXEMPT: readonly RegExp[] = [
-    /^openspec\/changes\//,
-    /^openspec\/specs\//,
-    /^tests\/unit\/repo\/noSpecPack\.test\.ts$/,
-];
+/** Paths exempt from the scan: change proposals, which may quote the patterns, and this test. */
+const EXEMPT: readonly RegExp[] = [/^openspec\/changes\//, /^tests\/unit\/repo\/noSpecPack\.test\.ts$/];
 
 export interface Reference {
     readonly file: string;

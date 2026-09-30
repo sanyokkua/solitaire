@@ -6,7 +6,6 @@ pile slots and placeholders, the stock states and badge — and how each card an
 assistive technology.
 
 ## Requirements
-
 ### Requirement: One persistent element per card
 
 While the Game screen shows a game, the table SHALL render exactly 52 card elements, one per card,
@@ -20,7 +19,7 @@ Input-agnostic: rendering only; board input (drag, tap and keyboard) is handled 
 `src/ui/board/useBoardPointer.ts`, `useBoardActions.ts` and `useBoardKeyboard.ts`. Motion for these changes is covered
 by the board-motion capability, including its no-motion path.
 
-*(KS-PERF-01 rendering, R§10, R§12.2)*
+*(KS-PERF-01 rendering)*
 
 #### Scenario: Elements survive a position change
 
@@ -34,19 +33,30 @@ by the board-motion capability, including its no-motion path.
 - **THEN** each of the 52 card elements carries the identity of exactly one card, and no card appears
   twice
 
-### Requirement: Card faces follow the mockup
+### Requirement: Card faces
 
-A face-up card SHALL show, in the top-left corner, its rank and suit symbol on one line in the pixel
-typeface, and a large centre suit symbol. Jacks, Queens and Kings SHALL instead show their letter in
-a pixel-drawn box in the centre, with no centre suit. While the card is not compact, a copy of the
-corner index SHALL appear rotated in the bottom-right corner; compact cards SHALL omit it. Suit
-symbols SHALL render as text, never as colour emoji, so each suit keeps its distinct shape in every
+A face-up card SHALL be drawn as a card face with rounded corners (a radius of about 9% of the card
+width) and a thin edge, in the face, edge and ink colours of the active card palette (see
+`app/appearance`): a near-white face in the light theme, a pale grey-blue face in the dark theme, and
+a deep navy face with light inks while Night cards is on. On the face it SHALL show:
+- in the top-left corner, its index: the rank in the pixel typeface followed by the suit symbol, on
+  one line;
+- for an Ace and the number cards 2 to 10, one large suit symbol in the centre, a little below the
+  middle, about half the card width tall;
+- for Jacks, Queens and Kings instead, the rank letter in the pixel typeface inside a centred box drawn
+  with a rounded outline in the card's ink over a faint tint of that ink, and no centre suit;
+- while the card is not compact, a copy of the corner index turned by 180° in the bottom-right
+  corner; compact cards (narrower than 70 px, see `ui/board-layout`) SHALL omit it.
+
+Suit symbols SHALL render as text, never as colour emoji, so each suit keeps its distinct shape in every
 palette. Hearts and diamonds SHALL use the red ink and clubs and spades the black ink, unless the
-four-colour deck is on. Every size on the face SHALL scale with the card width.
+four-colour deck is on (diamonds blue and clubs green, see `app/appearance`). Every size on the face
+SHALL scale with the card width. In every card palette, with or without the four-colour deck, each
+suit's ink SHALL meet 4.5:1 contrast against the face.
 
 Input-agnostic: rendering only. No animation.
 
-*(KS-A11Y-05; face anatomy from spec §8.2 and the mockup; compact threshold (new))*
+*(KS-A11Y-05, KS-SET-03; face anatomy and compact threshold (new))*
 
 #### Scenario: Number card face
 
@@ -65,6 +75,12 @@ Input-agnostic: rendering only. No animation.
 - **WHEN** cards are compact
 - **THEN** no card shows the bottom-right corner index
 
+#### Scenario: Ink contrast in every palette
+
+- **WHEN** a card of each suit is face up in the light theme, the dark theme and with Night cards on,
+  each with the four-colour deck off and on
+- **THEN** every suit's ink measures at least 4.5:1 against that palette's card face
+
 ### Requirement: Card backs
 
 A face-down card SHALL show a two-tone pixel checker in the colours of the selected card back, with a
@@ -72,7 +88,7 @@ thin inset rim, and no rank or suit. The checker SHALL keep a fixed pixel size a
 
 Input-agnostic: rendering only.
 
-*(Card backs from spec §6 and §8.2; back rendering (new))*
+*(Back rendering (new))*
 
 #### Scenario: Face-down card hides its identity
 
@@ -92,7 +108,7 @@ is empty. The badge SHALL be visible at the stock's top-right corner in every la
 Input-agnostic: rendering only; activating the stock is handled by `src/ui/board/useBoardActions.ts`. No animation beyond the badge
 following the stock, which follows the no-motion path.
 
-*(KS-MOVE-06 context; placeholders and badge from spec §3.2; spent state (new), from the mockup)*
+*(KS-MOVE-06 context; placeholders and badge; spent state (new))*
 
 #### Scenario: Empty foundation placeholder
 
@@ -122,7 +138,7 @@ order, is ever drawn above content outside the table (chrome, sheets, notices).
 
 Input-agnostic: rendering only.
 
-*(R§10, R§12.5, R§12.6)*
+*(Card accessibility and rendering notes in `docs/architecture/ui.md`)*
 
 #### Scenario: Buried stock cards
 

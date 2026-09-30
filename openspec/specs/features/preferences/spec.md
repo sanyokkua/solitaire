@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Holds the player's settings with the defaults of specification §6, applies changes immediately,
+Holds the player's settings with their documented defaults, applies changes immediately,
 remembers them, and chooses the first-run language from the browser's preferred languages.
 
 ## Requirements
@@ -13,21 +13,26 @@ The system SHALL hold these settings with these defaults: Theme System (Light, D
 cards off; Four-colour deck off; Card back Harbour blue (Harbour blue, Deep navy, Sky, Coral); Tap a
 card to Smart move (Smart move, Select & place); Highlight legal moves on; Auto-move safe cards off;
 Stock on the right off; Animations on; Language (the registered languages: English and Ukrainian
-today); Winnable deals only on; Selected mode Draw 1 (Draw 1, Draw 3, Vegas, Daily). A change SHALL
-take effect immediately and be remembered (see the persistence capability). The set of allowed
-language values SHALL be exactly the languages registered with the localisation layer, so
-registering a language makes it a valid setting with no other change.
+today); Winnable deals only on; Difficulty Any (Any, Easy, Medium, Hard); Selected mode Draw 1
+(Draw 1, Draw 3, Vegas, Daily). A change SHALL take effect immediately and be remembered (see the
+persistence capability). The set of allowed language values SHALL be exactly the languages
+registered with the localisation layer, so registering a language makes it a valid setting with no
+other change.
+
+Difficulty is the grade a winnable deal is asked for. It SHALL be read only when a game starts, and
+only for a Draw 1, Draw 3 or Vegas start with Winnable deals only on (see `features/deal-service`).
+Changing it SHALL never change a game in progress, its deal or its grade.
 
 Input-agnostic: settings are values; their controls are defined by the Settings sheet in
-`ui/sheets` (pointer and keyboard), and the selected mode and Winnable switch also by
+`ui/sheets` (pointer and keyboard), and the selected mode, the Winnable switch and the Difficulty by
 `ui/home-screen`.
 
-*(KS-SET-01, KS-I18N-03)*
+*(KS-SET-01, KS-I18N-03, KS-SET-06, KS-DEAL-11 (new))*
 
 #### Scenario: First run uses the defaults
 
 - **WHEN** the app starts with no stored data
-- **THEN** every setting has its default value
+- **THEN** every setting has its default value, and the Difficulty is Any
 
 #### Scenario: A change applies at once
 
@@ -38,6 +43,12 @@ Input-agnostic: settings are values; their controls are defined by the Settings 
 
 - **WHEN** the allowed language values are listed
 - **THEN** they equal the registered languages, English and Ukrainian
+
+#### Scenario: Changing the difficulty leaves the game alone
+
+- **WHEN** the Difficulty changes from Any to Hard during a started Draw 1 game
+- **THEN** the setting reads Hard immediately, the current game keeps its deal, position and grade,
+  and the next winnable Draw 1 start asks for a Hard deal
 
 ### Requirement: The first-run language follows the browser
 

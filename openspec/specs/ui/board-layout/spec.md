@@ -5,7 +5,6 @@ Defines the table's geometry: given a game position, the board's size and the po
 every card, slot and badge goes, so that every pile fits the board and long columns stay tappable.
 
 ## Requirements
-
 ### Requirement: Layout is a pure, deterministic function
 
 The board geometry SHALL be computed from four inputs only: the piles of the game position (tableau,
@@ -52,7 +51,7 @@ pile grid SHALL be centred horizontally within the board.
 
 Input-agnostic: pure computation.
 
-*(KS-GEN-05, R§10; padding and gap minimums from the mockup)*
+*(KS-GEN-05; padding and gap minimums as in the committed screenshots)*
 
 #### Scenario: Desktop cap
 
@@ -105,13 +104,14 @@ Input-agnostic: pure computation; the pointer type is an input value.
 Each tableau column SHALL step face-down cards by 0.11 of the card height and face-up cards by 0.27
 of the card height (0.30 with a coarse pointer). When a column would run past the bottom of the
 board, face-down steps SHALL shrink first, down to 0.04 of the card height, and only then SHALL
-face-up steps shrink. Every card of every column SHALL stay inside the board. On every §8.5 device
-board in installed mode with a coarse pointer, a worst-case column SHALL keep a face-up strip of at
-least 14 px.
+face-up steps shrink. Every card of every column SHALL stay inside the board. On the installed-mode
+board of every screen in the device matrix, with a coarse pointer, a worst-case column SHALL keep a
+face-up strip of at least 14 px. The device matrix is the 13 phone, tablet and foldable screens whose
+viewport sizes are recorded in `docs/reference/device-matrix.md`.
 
 Input-agnostic: pure computation.
 
-*(KS-GEN-05, KS-A11Y-04 strip size, R§10)*
+*(KS-GEN-05, KS-A11Y-04 strip size)*
 
 #### Scenario: Short column is not compressed
 
@@ -126,7 +126,7 @@ Input-agnostic: pure computation.
 #### Scenario: Worst case fits on every device
 
 - **WHEN** the layout is computed with a coarse pointer for the installed-mode board size of each
-  §8.5 screen, portrait and landscape, with a worst-case column
+  device-matrix screen, portrait and landscape, with a worst-case column
 - **THEN** every card lies inside the board and the face-up strip is at least 14 px
 
 ### Requirement: Top row, mirror and Draw 3 fan
@@ -185,7 +185,7 @@ places its 28 tableau cards (row by row, left to right).
 
 Input-agnostic: pure computation.
 
-*(KS-PERF-01 rendering, R§10, R§12.6; deal order (new))*
+*(KS-PERF-01 rendering; deal order (new))*
 
 #### Scenario: Only the top stock card is not buried
 
@@ -217,7 +217,7 @@ metrics and the stock-side flag, at every supported board size.
 
 Input-agnostic: pure computation used by pointer, keyboard placement and hint visuals.
 
-*(KS-INP-05, KS-INP-06, KS-A11Y-04, R§8)*
+*(KS-INP-05, KS-INP-06, KS-A11Y-04)*
 
 #### Scenario: Foundation area
 - **WHEN** landing areas are computed

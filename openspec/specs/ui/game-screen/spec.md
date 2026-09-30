@@ -6,7 +6,6 @@ areas, the read-only HUD and the Undo/Redo toolbar — and the guarantee that th
 every supported device without scrolling.
 
 ## Requirements
-
 ### Requirement: Two chrome profiles
 
 The Game screen SHALL use the side-rails profile while the viewport is in landscape and at most 720 px
@@ -22,16 +21,22 @@ hold the toolbar, and the table SHALL fill the space between them at full width.
 control SHALL keep the accessible name "Back to Home" in English, and its translation in the active
 language, in both profiles and SHALL be at least 44×44 px where the pointer is coarse. The chrome
 profile and the table geometry (stacked or wide table) SHALL be chosen independently. Region sizes
-SHALL follow the mockup and SHALL keep the sizes reserved for this content, so the fit does not
-change now that it is filled: the HUD New deal slot at 2.9rem square (2.6rem at 460 px wide or
-narrower, 2.5rem in the rails), the hint line at one line of 0.7rem text (0.64rem at 480 px wide or
-narrower) with line-height 1.4, and the chip slot at the Back control's height within the top-bar width left
-after Back, the theme toggle and Settings.
+SHALL keep the sizes reserved for this content, so the fit does not change now that it is filled:
+the HUD New deal slot at 2.9rem square (2.6rem at 460 px wide or narrower, 2.5rem in the rails), the
+hint line at one line of 0.7rem text (0.64rem at 480 px wide or narrower) with line-height 1.4, and
+the chip slot at the Back control's height within the top-bar width left after Back, the theme
+toggle and Settings.
+
+In both themes the chrome SHALL look as follows: the top bar is drawn in the page colour, slightly
+translucent, with a thin outline along its bottom edge; the HUD and the toolbar (in the side-rails
+profile, the left and right rails) are rounded panels on the surface colour with a thin outline and a
+soft shadow; and the footer shows the deal code and the build stamp side by side, centred, in small
+muted pixel type.
 
 Input-agnostic: the profile follows the viewport. No animation accompanies a profile change, so no
 reduced-motion alternative is required.
 
-*(KS-GEN-06; KS-A11Y-04 Back target size; KS-I18N-01; region sizes (new), from the mockup)*
+*(KS-GEN-06; KS-A11Y-04 Back target size; KS-I18N-01; region sizes and chrome look (new))*
 
 #### Scenario: Phone on its side uses rails
 
@@ -62,12 +67,15 @@ reduced-motion alternative is required.
 
 While the Game screen is shown, the page SHALL not scroll in either direction, and every card of any
 position — including a worst-case column of 6 face-down and 13 face-up cards — and every control
-SHALL lie inside the viewport. This SHALL hold for each §8.5 screen in portrait and landscape, in the
-browser (viewport height reduced by the browser bars) and installed, and at 320×480, 1280×720 and
-2560×1440. The screen SHALL fill the dynamic viewport height, and its content and controls SHALL keep
-clear of every safe-area inset (notch, rounded corners, home indicator) on all edges in both
-profiles. On installed screens with a coarse pointer, a worst-case column SHALL keep a face-up strip
-of at least 14 px.
+SHALL lie inside the viewport. This SHALL hold on every screen of the device matrix, in portrait and
+landscape, in the browser (viewport height reduced by the browser bars) and installed: the iPhone 14
+Pro, 14 Pro Max, 17 Pro and 17 Pro Max; the Galaxy S25, and the Galaxy S25+ / S25 Ultra at both its
+FHD+ and QHD+ settings; the iPhone Duo outer and inner screens; and the Galaxy Z Fold 8 and Galaxy Z
+Fold 8 Ultra cover and main screens — 13 screens and 52 configurations, whose viewport sizes are kept
+in `docs/reference/device-matrix.md`. It SHALL also hold at 320×480, 1280×720 and 2560×1440. The
+screen SHALL fill the dynamic viewport height, and its content and controls SHALL keep clear of every
+safe-area inset (notch, rounded corners, home indicator) on all edges in both profiles. On installed
+screens with a coarse pointer, a worst-case column SHALL keep a face-up strip of at least 14 px.
 
 Input-agnostic: a layout guarantee. No animation.
 
@@ -75,8 +83,8 @@ Input-agnostic: a layout guarantee. No animation.
 
 #### Scenario: Device-fit matrix
 
-- **WHEN** the Game screen shows a worst-case column on each of the 52 §8.5 configurations and the
-  three baseline sizes
+- **WHEN** the Game screen shows a worst-case column on each of the 52 device-matrix configurations
+  and the three baseline sizes
 - **THEN** the page does not scroll, every card lies inside the table, and the toolbar, the Back
   control and every HUD value lie inside the viewport
 
@@ -90,19 +98,24 @@ Input-agnostic: a layout guarantee. No animation.
 - **WHEN** the frame styles are inspected
 - **THEN** both profiles pad the frame by `env(safe-area-inset-top)`, `env(safe-area-inset-right)`,
   `env(safe-area-inset-bottom)` and `env(safe-area-inset-left)` on every edge; confirmation on real
-  devices is part of the Phase 9 checklist, because browser emulation reports no insets
+  devices is part of the real-device checklist in `docs/reference/device-matrix.md`, because browser
+  emulation reports no insets
 
 ### Requirement: HUD values and the Time control
 
 The HUD SHALL show Score, Moves and Time for the current game. In Vegas it SHALL show Bank instead of
 Score, as whole dollars with a leading minus sign when negative (for example "$47" and "-$52").
 Score SHALL be the displayed Standard score (including the time and undo penalties), padded to at
-least three digits. Time SHALL show "m:ss" below one hour and "h:mm:ss" from one hour, as spec §4.7
-states (the mockup shows only "m:ss"). The values SHALL update as the game and the clock advance. On
-viewports 360 px wide or narrower in the stacked profile, Moves SHALL be hidden; the rails SHALL
-always show it. The HUD SHALL expose each value with a text label in the active language ("Score",
-"Bank", "Moves", "Time" in English) to assistive technology, and every HUD text colour SHALL meet
-4.5:1 contrast against its background.
+least three digits. Time SHALL show "m:ss" below one hour and "h:mm:ss" from one hour. The values
+SHALL update as the game and the clock advance. On viewports 360 px wide or narrower in the stacked
+profile, Moves SHALL be hidden; the rails SHALL always show it. The HUD SHALL expose each value with a
+text label in the active language ("Score", "Bank", "Moves", "Time" in English) to assistive
+technology, and every HUD text colour SHALL meet 4.5:1 contrast against its background.
+
+Each value SHALL be shown as an LCD-style display, the same in the light and dark themes: a dark navy
+panel with a darker outline and an inset shadow, a small capitalised label in muted blue-grey body
+type, and the value beneath it in the pixel typeface, pink for Score or Bank, pale aqua for Moves and
+sky blue for Time.
 
 Score, Bank and Moves SHALL stay read-only. Time SHALL be a control: activating it by pointer or by
 keyboard (Enter or Space when focused) SHALL pause the game as `features/game-session` defines.
@@ -115,9 +128,8 @@ accessible name, on a won game (pause is refused then), while a safe-card chain 
 
 No animation.
 
-*(KS-SCO-02 money display, KS-SCO-05 timer display, KS-SCO-07 pause; formats from spec §3.2 and
-§4.7; three-digit Score padding and hidden Moves at 360 px (new, from the mockup); KS-SET-03
-contrast; KS-A11Y-03, KS-A11Y-04)*
+*(KS-SCO-02 money display, KS-SCO-05 timer display, KS-SCO-07 pause; three-digit Score padding,
+hidden Moves at 360 px and the LCD look (new); KS-SET-03 contrast; KS-A11Y-03, KS-A11Y-04)*
 
 #### Scenario: Vegas bank
 
@@ -206,7 +218,7 @@ English) for assistive technology (it MAY be visually hidden), and SHALL keep a 
 announcing "Dealing…" (in the active language) while a deal is being prepared.
 
 When preparing a winnable deal takes longer than 160 ms, an overlay SHALL cover the table reading
-"Shuffling a winnable deal…" with an attempt counter ("deal #N" in English) that follows the attempt
+"Shuffling cards before the game…" with an attempt counter ("deal #N" in English) that follows the attempt
 being tried, until the deal is ready; the overlay SHALL then disappear. Until the overlay appears the
 previous table MAY remain visible. The overlay's spinner SHALL be decorative and hidden from
 assistive technology, and with motion off it SHALL be still. Board input stays closed while dealing
@@ -229,7 +241,7 @@ Input-agnostic: no interaction.
 #### Scenario: Slow winnable deal shows the overlay
 
 - **WHEN** a winnable Draw 1 deal is still being prepared after 160 ms, on its fourth attempt
-- **THEN** the overlay reads "Shuffling a winnable deal…" and "deal #4"
+- **THEN** the overlay reads "Shuffling cards before the game…" and "deal #4"
 
 #### Scenario: Quick deal shows no overlay
 
@@ -286,7 +298,7 @@ its text SHALL meet 4.5:1 contrast.
 
 Input-agnostic: display only.
 
-*(KS-AST-02, KS-INP-01, KS-INP-02, KS-INP-08, KS-I18N-01; spec §3.2 Hint line)*
+*(KS-AST-02, KS-INP-01, KS-INP-02, KS-INP-08, KS-I18N-01)*
 
 #### Scenario: Hint text
 - **WHEN** a hint is showing in the stacked profile
@@ -328,20 +340,20 @@ page scrolling.
 ### Requirement: Game top bar actions
 
 In the stacked profile the Game top bar SHALL show, after the chip slot, a theme toggle and a
-Settings control, as on Home (mockup `.topbar` with two `.icon-action` buttons). The theme toggle
-SHALL switch between the light and dark theme at once and remember the choice; while the theme is
-System it SHALL switch to the opposite of the scheme currently shown. Its accessible name SHALL
-describe the action (for example "Switch to dark theme") in the active language. Settings SHALL open
-the Settings sheet, and closing that sheet SHALL return focus to it. In the side-rails profile the
-Settings control SHALL sit beside Back at the top of the left rail and the theme toggle SHALL not be
-shown. Both controls SHALL be at least 44×44 px where the pointer is coarse and SHALL show a visible
-focus indicator.
+Settings control, as on Home: two borderless icon buttons in the muted text colour at the end of the
+bar. The theme toggle SHALL switch between the light and dark theme at once and remember the choice;
+while the theme is System it SHALL switch to the opposite of the scheme currently shown. Its
+accessible name SHALL describe the action (for example "Switch to dark theme") in the active
+language. Settings SHALL open the Settings sheet, and closing that sheet SHALL return focus to it. In
+the side-rails profile the Settings control SHALL sit beside Back at the top of the left rail and the
+theme toggle SHALL not be shown. Both controls SHALL be at least 44×44 px where the pointer is coarse
+and SHALL show a visible focus indicator.
 
 Input coverage: tap/click and keyboard (Enter/Space); drag is not an input path because the controls
 are not draggable. No animation accompanies the theme switch, so no reduced-motion alternative is
 required.
 
-*(KS-SET-01, KS-SET-02, KS-A11Y-03, KS-A11Y-04, KS-I18N-01; placement from the mockup (new))*
+*(KS-SET-01, KS-SET-02, KS-A11Y-03, KS-A11Y-04, KS-I18N-01; placement (new))*
 
 #### Scenario: Toggle theme from the game
 
@@ -357,16 +369,23 @@ required.
 ### Requirement: Mode and deal chips
 
 The top bar's chip slot SHALL show a mode chip and a deal chip for the current game, with text from
-the active language:
-- the mode chip's text SHALL be "Draw 1 · Standard", "Draw 3 · Standard", "Vegas" or "Daily · <date>"
-  in English, where the date is the current Daily game's own UTC date (its Daily key, not today's
-  date) formatted in the active language (for example "Daily · Sep 19"). A Daily game with no Daily
-  key (one started from a `D-…` deal code) SHALL show the mode chip as plain "Daily", with no date.
-  The catalog text and the
-  accessible name are in normal case; the chip is displayed in capitals by styling alone (as in the
-  mockup, "DRAW 1 · STANDARD");
-- the deal chip SHALL read "Winnable" with a check icon, adding "· N shuffles" (plural-correct) when
-  more than one shuffle was needed, or "Random deal" with a dice icon.
+the active language. Both chips SHALL be pills in small, bold, letter-spaced body type, displayed in
+capitals by styling alone; the catalog text and the accessible names are in normal case.
+- The mode chip, on the primary-container colours, SHALL read "Draw 1 · Standard", "Draw 3 ·
+  Standard", "Vegas" or "Daily · <date>" in English (shown as "DRAW 1 · STANDARD" and so on), where
+  the date is the current Daily game's own UTC date (its Daily key, not today's date) formatted in the
+  active language (for example "Daily · Sep 19"). A Daily game with no Daily key (one started from a
+  `D-…` deal code) SHALL show the mode chip as plain "Daily", with no date.
+- The deal chip SHALL follow the current game's deal provenance:
+  - a deal proven winnable and graded SHALL read "Winnable · <grade>" ("Winnable · Easy", "Winnable ·
+    Medium" or "Winnable · Hard" in English), with a check icon, on the success-container colours;
+  - a deal proven winnable with no grade SHALL read "Winnable", with the same icon and colours;
+  - a `random` deal SHALL read "Random deal", with a dice icon, on the surface-variant colours.
+
+The shuffle count SHALL NOT be part of the chip's visible text or accessible name. When a proven deal
+needed more than one shuffle, the chip SHALL carry the note "found after N shuffles" (plural-correct
+in the active language) as its accessible description, and its hover description SHALL give the chip
+text followed by that note; otherwise the hover description is the chip text alone.
 
 The icons SHALL be decorative and hidden from assistive technology, so the chip never depends on the
 icon alone. At 460 px wide or narrower the deal chip SHALL show its icon only, and a chip whose text
@@ -377,17 +396,34 @@ the chip slot's existing size. Chip text SHALL meet 4.5:1 contrast against the c
 Input-agnostic: display only; the chips are not interactive, so no pointer, drag or keyboard path
 applies. No animation.
 
-*(KS-DEAL-06, KS-DEAL-03, KS-DEAL-05, KS-DEAL-07, KS-I18N-01, KS-I18N-04, KS-A11Y-05)*
+*(KS-DEAL-06, KS-DEAL-11 (new), KS-DEAL-03, KS-DEAL-05, KS-DEAL-07, KS-I18N-01, KS-I18N-04,
+KS-A11Y-05)*
 
 #### Scenario: Winnable after several shuffles
 
-- **WHEN** a winnable Draw 1 deal needed 3 shuffles
-- **THEN** the mode chip is named "Draw 1 · Standard" and shown as "DRAW 1 · STANDARD", and the deal
-  chip reads "Winnable · 3 shuffles"
+- **WHEN** a winnable Draw 1 deal graded Medium needed 3 shuffles
+- **THEN** the mode chip is named "Draw 1 · Standard" and shown as "DRAW 1 · STANDARD", the deal chip
+  reads "Winnable · Medium" (shown as "WINNABLE · MEDIUM"), its accessible description is "found after
+  3 shuffles", and its hover description gives both
+
+#### Scenario: Winnable Draw 3 deal on the first shuffle
+
+- **WHEN** a Draw 3 deal proven winnable and graded Hard needed one shuffle
+- **THEN** the deal chip reads "Winnable · Hard" with the check icon and has no shuffle note
+
+#### Scenario: Graded Daily deal
+
+- **WHEN** the Daily deal, graded Easy, is shown
+- **THEN** the deal chip reads "Winnable · Easy"
+
+#### Scenario: Proven deal without a grade
+
+- **WHEN** the current game is proven winnable but carries no grade
+- **THEN** the deal chip reads "Winnable" with the check icon
 
 #### Scenario: Random deal
 
-- **WHEN** a Draw 3 game is shown
+- **WHEN** a game was dealt with Winnable deals only off, or started from a deal code
 - **THEN** the deal chip reads "Random deal" with the dice icon
 
 #### Scenario: Daily date in UTC
@@ -403,8 +439,9 @@ applies. No animation.
 
 #### Scenario: Narrow phone keeps the name
 
-- **WHEN** the Game screen is 375 px wide and the deal is winnable after one shuffle
-- **THEN** the deal chip shows only its icon and its accessible name is "Winnable"
+- **WHEN** the Game screen is 375 px wide and the deal is winnable, graded Medium, after 3 shuffles
+- **THEN** the deal chip shows only its icon, its accessible name is "Winnable · Medium" and its
+  accessible description is "found after 3 shuffles"
 
 #### Scenario: Daily from a deal code has no date
 
@@ -423,7 +460,7 @@ accessible name, whenever the input gate is closed for dealing, while a safe-car
 running (`game.busy`), or while a deal is being prepared (`app.dealing` non-null). Drag is not an
 input path: the control is a button. Its press effect SHALL have a no-motion path with no scaling.
 
-*(KS-INP-08, KS-DEAL-08, KS-A11Y-03, KS-A11Y-04, KS-SET-04; spec §3.2 HUD)*
+*(KS-INP-08, KS-DEAL-08, KS-A11Y-03, KS-A11Y-04, KS-SET-04)*
 
 #### Scenario: New deal by pointer on a fresh deal
 
@@ -455,7 +492,7 @@ player can copy it themselves, and no confirmation SHALL be shown. The control's
 SHALL include the code and the copy action, and it SHALL show a visible focus indicator. Drag is not
 an input path: the control is a button. No animation.
 
-*(KS-DEAL-02, KS-A11Y-02, KS-A11Y-03; spec §3.2 Footer)*
+*(KS-DEAL-02, KS-A11Y-02, KS-A11Y-03)*
 
 #### Scenario: Copy by pointer
 
@@ -481,7 +518,7 @@ the table SHALL involve no animation, so the no-motion path is the same.
 
 Input-agnostic: follows the paused state, however pausing was requested.
 
-*(KS-SCO-07; spec §3.3 Paused)*
+*(KS-SCO-07)*
 
 #### Scenario: Paused hides the table
 
