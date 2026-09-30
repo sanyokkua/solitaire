@@ -55,7 +55,7 @@ describe('ThemeToggle', () => {
             preloadedState: { preferences: { theme: 'light', locale: 'uk' } },
         });
 
-        const toggle = screen.getByRole('button', { name: 'Перемкнути на темну тему' });
+        const toggle = screen.getByRole('button', { name: 'Увімкнути темну тему' });
         toggle.focus();
         await user.keyboard('{Enter}');
 
@@ -135,6 +135,6 @@ describe('Home top bar and hero', () => {
         renderWithStore(<HomeScreen />, { preloadedState: { preferences: { locale: 'uk', theme: 'light' } } });
 
         expect(within(screen.getByRole('banner')).getByRole('button', { name: 'Налаштування' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Перемкнути на темну тему' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Увімкнути темну тему' })).toBeInTheDocument();
     });
 });

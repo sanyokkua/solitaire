@@ -171,7 +171,9 @@ describe('Notices', () => {
         raise(store, 'dead-end');
         raise(store, 'storage-write');
 
-        expect(screen.getByText('Ходів не залишилось. Скасуйте кілька ходів або здайте нову гру.')).toBeInTheDocument();
+        expect(
+            screen.getByText('Ходів більше немає. Скасуйте кілька ходів або почніть нову роздачу.'),
+        ).toBeInTheDocument();
         const status = screen.getByRole('status');
         expect(status).toHaveTextContent('Не вдалося зберегти прогрес.');
         expect(within(status).getByRole('button', { name: 'Закрити' })).toBeInTheDocument();

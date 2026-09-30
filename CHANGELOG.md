@@ -9,6 +9,7 @@ The first complete release: everything planned for the game is built, checked in
 
 ### Game
 
+- **Natural Ukrainian.** The Ukrainian text was rewritten from the vocabulary of Ukrainian Klondike sources and Wikipedia: one form of address, one word per concept.
 - **Four modes.** Draw 1, Draw 3, Vegas and a Daily deal that is the same for every player on a UTC date.
 - **Winnable deals in every mode.** A built-in solver proves a deal winnable before it is shown, in Draw 1, Draw 3 and
   Vegas (Draw 3 and Vegas use a search that follows the order of the drawn cards). A deal that cannot be proven within the

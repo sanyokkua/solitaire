@@ -59,7 +59,7 @@ describe('DealingOverlay', () => {
 
         const box = container.querySelector('.deal-overlay__box');
         expect(box).toHaveTextContent('Тасуємо карти перед грою…');
-        expect(box).toHaveTextContent('роздача №2');
+        expect(box).toHaveTextContent('роздача № 2');
     });
 
     it('keeps one polite status that still announces dealing while the overlay shows', () => {

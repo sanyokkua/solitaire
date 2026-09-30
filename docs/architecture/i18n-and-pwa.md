@@ -40,6 +40,25 @@ and an ESLint override covers `src/i18n`. Module-level notes: [`src/i18n/README.
 - Saved data: `src/features/persistence/recordCodec.ts` checks the stored locale against `SUPPORTED_LOCALES`. A locale
   not in the registry is rejected when a saved record is decoded.
 
+### Ukrainian terminology
+
+The Ukrainian catalog addresses the player as «ви» and keeps one word per concept. The vocabulary follows the Ukrainian
+Wikipedia pages on solitaire and card suits and Ukrainian Klondike sites (solitaire.net.ua, solitaire.com.ua).
+Sentences avoid case-dependent phrasing around placeholders, so an arrow (`→`) stands in for a preposition.
+
+| English               | Ukrainian                        |
+| --------------------- | -------------------------------- |
+| Klondike              | Косинка                          |
+| stock / waste         | Колода / Резерв                  |
+| foundations / columns | Основи / Стовпці                 |
+| Draw 1 / Draw 3       | Одна карта / Три карти           |
+| deal (of the cards)   | роздача                          |
+| winnable              | виграшна                         |
+| Easy / Medium / Hard  | Легка / Середня / Складна        |
+| card back             | сорочка                          |
+| pass through the deck | прохід колодою                   |
+| Undo / Redo / Hint    | Скасувати / Повторити / Підказка |
+
 ### How to add a language
 
 1. Create `src/i18n/locales/<code>.ts` exporting a catalog typed `Record<MessageKey, Message>`. Import `MessageKey` and

@@ -52,8 +52,8 @@ describe('ModeChip', () => {
         ['draw1', 'en', 'Draw 1 · Standard'],
         ['draw3', 'en', 'Draw 3 · Standard'],
         ['vegas', 'en', 'Vegas'],
-        ['draw1', 'uk', 'Роздача 1 · Стандарт'],
-        ['draw3', 'uk', 'Роздача 3 · Стандарт'],
+        ['draw1', 'uk', 'Одна карта · Стандарт'],
+        ['draw3', 'uk', 'Три карти · Стандарт'],
         ['vegas', 'uk', 'Вегас'],
     ] as const)('%s reads %s in normal case with the same title', (mode, locale, text) => {
         renderChips(game(mode), locale);
@@ -97,10 +97,10 @@ describe('DealChip', () => {
         [{ verdict: 'win', attempts: 1, grade: null }, 'en', 'Winnable'],
         [{ verdict: 'win', attempts: 4, grade: null }, 'en', 'Winnable'],
         [{ verdict: 'random', attempts: 1, grade: null }, 'en', 'Random deal'],
-        [{ verdict: 'win', attempts: 3, grade: 'easy' }, 'uk', 'Розв’язна · Легка'],
-        [{ verdict: 'win', attempts: 1, grade: 'medium' }, 'uk', 'Розв’язна · Середня'],
-        [{ verdict: 'win', attempts: 1, grade: 'hard' }, 'uk', 'Розв’язна · Складна'],
-        [{ verdict: 'win', attempts: 1, grade: null }, 'uk', 'Розв’язна'],
+        [{ verdict: 'win', attempts: 3, grade: 'easy' }, 'uk', 'Виграшна · Легка'],
+        [{ verdict: 'win', attempts: 1, grade: 'medium' }, 'uk', 'Виграшна · Середня'],
+        [{ verdict: 'win', attempts: 1, grade: 'hard' }, 'uk', 'Виграшна · Складна'],
+        [{ verdict: 'win', attempts: 1, grade: null }, 'uk', 'Виграшна'],
         [{ verdict: 'random', attempts: 1, grade: null }, 'uk', 'Випадкова роздача'],
     ] as const)('%j in %s reads %s, with no shuffle count in the text or the name', (meta, locale, text) => {
         renderChips(game('draw1', meta), locale);
@@ -136,10 +136,10 @@ describe('DealChip', () => {
     it.each([
         [{ attempts: 3, grade: 'medium' }, 'en', 'Winnable · Medium', 'found after 3 shuffles'],
         [{ attempts: 2, grade: null }, 'en', 'Winnable', 'found after 2 shuffles'],
-        [{ attempts: 3, grade: 'medium' }, 'uk', 'Розв’язна · Середня', 'знайдено після 3 перетасувань'],
-        [{ attempts: 2, grade: 'easy' }, 'uk', 'Розв’язна · Легка', 'знайдено після 2 перетасувань'],
-        [{ attempts: 5, grade: 'hard' }, 'uk', 'Розв’язна · Складна', 'знайдено після 5 перетасувань'],
-        [{ attempts: 21, grade: null }, 'uk', 'Розв’язна', 'знайдено після 21 перетасування'],
+        [{ attempts: 3, grade: 'medium' }, 'uk', 'Виграшна · Середня', 'знайдено після 3 перетасувань'],
+        [{ attempts: 2, grade: 'easy' }, 'uk', 'Виграшна · Легка', 'знайдено після 2 перетасувань'],
+        [{ attempts: 5, grade: 'hard' }, 'uk', 'Виграшна · Складна', 'знайдено після 5 перетасувань'],
+        [{ attempts: 21, grade: null }, 'uk', 'Виграшна', 'знайдено після 21 перетасування'],
     ] as const)(
         '%j in %s carries the note as its description and after the text in the title',
         (meta, locale, text, note) => {

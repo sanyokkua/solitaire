@@ -35,6 +35,6 @@ describe('BuildStamp', () => {
 
         renderWithStore(<BuildStamp />, { preloadedState: { preferences: { locale: 'uk' } } });
 
-        expect(screen.getByText('Збірка: Тестова збірка · 2026-09-28 14:03 UTC')).toBeInTheDocument();
+        expect(screen.getByText('Збірка: розробка · 2026-09-28 14:03 UTC')).toBeInTheDocument();
     });
 });

@@ -27,7 +27,7 @@ describe('cardName', () => {
     it('names every face-down card the same, whatever it is', () => {
         expect(cardName(en, cardId(3, 12), false)).toBe('Face-down card');
         expect(cardName(en, cardId(0, 1), false)).toBe('Face-down card');
-        expect(cardName(uk, cardId(3, 12), false)).toBe('Перевернута карта');
+        expect(cardName(uk, cardId(3, 12), false)).toBe('Закрита карта');
     });
 
     it('gives all 52 face-up cards distinct names', () => {
@@ -53,10 +53,10 @@ describe('pileName', () => {
     });
 
     it('numbers columns from 1, at counts 1, 3 and 5 and an empty column, in Ukrainian', () => {
-        expect(pileName(uk, { pile: 'tableau', col: 2 }, 0)).toBe('Колонка 3, порожньо');
-        expect(pileName(uk, { pile: 'tableau', col: 3 }, 1)).toBe('Колонка 4, 1 карта');
-        expect(pileName(uk, { pile: 'tableau', col: 3 }, 3)).toBe('Колонка 4, 3 карти');
-        expect(pileName(uk, { pile: 'tableau', col: 2 }, 5)).toBe('Колонка 3, 5 карт');
+        expect(pileName(uk, { pile: 'tableau', col: 2 }, 0)).toBe('Стовпець 3, порожньо');
+        expect(pileName(uk, { pile: 'tableau', col: 3 }, 1)).toBe('Стовпець 4, 1 карта');
+        expect(pileName(uk, { pile: 'tableau', col: 3 }, 3)).toBe('Стовпець 4, 3 карти');
+        expect(pileName(uk, { pile: 'tableau', col: 2 }, 5)).toBe('Стовпець 3, 5 карт');
     });
 
     it('names a foundation by its suit, in English', () => {
@@ -65,12 +65,12 @@ describe('pileName', () => {
     });
 
     it('names a foundation by its suit, in Ukrainian', () => {
-        expect(pileName(uk, { pile: 'foundation', suit: 0 }, 2)).toBe('Фундамент червів, 2 карти');
-        expect(pileName(uk, { pile: 'foundation', suit: 3 }, 0)).toBe('Фундамент пік, порожньо');
+        expect(pileName(uk, { pile: 'foundation', suit: 0 }, 2)).toBe('Основа червів, 2 карти');
+        expect(pileName(uk, { pile: 'foundation', suit: 3 }, 0)).toBe('Основа пік, порожньо');
     });
 
     it('names the waste, in English and Ukrainian', () => {
         expect(pileName(en, { pile: 'waste' }, 3)).toBe('Waste, 3 cards');
-        expect(pileName(uk, { pile: 'waste' }, 3)).toBe('Відбій, 3 карти');
+        expect(pileName(uk, { pile: 'waste' }, 3)).toBe('Резерв, 3 карти');
     });
 });

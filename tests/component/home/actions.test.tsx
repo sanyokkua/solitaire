@@ -104,10 +104,10 @@ describe('Home actions', () => {
         expect(screen.getByRole('button', { name: 'Роздати карти' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Продовжити гру' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Як грати' })).toBeInTheDocument();
-        for (const name of ['Статистика', 'Зіграти за кодом', 'Про гру']) {
+        for (const name of ['Статистика', 'Грати за кодом', 'Про гру']) {
             expect(screen.getByRole('button', { name })).toBeInTheDocument();
         }
-        expect(screen.getByLabelText('Ваш рекорд')).toBeInTheDocument();
+        expect(screen.getByLabelText('Ваші результати')).toBeInTheDocument();
     });
 
     it('offers no Install app link while the browser does not offer installation', () => {
@@ -141,7 +141,7 @@ describe('Home actions', () => {
             },
         });
 
-        expect(screen.getByRole('button', { name: 'Установити застосунок' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Встановити застосунок' })).toBeInTheDocument();
     });
 
     // covers: KS-A11Y-04

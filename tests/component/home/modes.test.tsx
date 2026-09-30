@@ -132,7 +132,7 @@ describe('Home mode tiles', () => {
         const daily = screen.getByRole('radio', { name: 'Щоденна роздача' });
         expect(daily).toHaveTextContent('7');
         expect(daily).toHaveAccessibleDescription(/7 трав/);
-        expect(screen.getByRole('radio', { name: 'Роздача 1' })).toHaveAccessibleDescription(/Ще немає рекорду/);
+        expect(screen.getByRole('radio', { name: 'Одна карта' })).toHaveAccessibleDescription(/Рекорду ще немає/);
     });
 });
 
@@ -211,6 +211,6 @@ describe('Home Winnable deals only switch', () => {
         renderHome({ locale: 'uk', selectedMode: 'daily' });
 
         const toggle = screen.getByRole('switch', { name: 'Лише виграшні роздачі' });
-        expect(toggle).toHaveAccessibleDescription(/Щоденні роздачі завжди/);
+        expect(toggle).toHaveAccessibleDescription(/Щоденні роздачі перевіряються завжди/);
     });
 });

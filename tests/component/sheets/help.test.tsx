@@ -57,7 +57,7 @@ describe('HelpSheet', () => {
                 'Виграшні роздачі',
                 /вбудований розв’язувач/,
                 ['Легка', 'Середня', 'Складна'],
-                /Складність на головному екрані/,
+                /«Складність» на головному екрані/,
             ],
         ] as const)('explains the solver and the three grades in %s', (locale, heading, solver, grades, difficulty) => {
             renderWithStore(<HelpSheet />, { preloadedState: { preferences: { locale } } });

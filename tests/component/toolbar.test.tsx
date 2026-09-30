@@ -282,16 +282,16 @@ describe('Toolbar', () => {
         });
     });
 
-    it('is a navigation landmark named "Дії гри" with translated button text, in Ukrainian', () => {
+    it('is a navigation landmark named "Дії в грі" with translated button text, in Ukrainian', () => {
         renderToolbar(playedGame(), 'uk');
 
-        const nav = screen.getByRole('navigation', { name: 'Дії гри' });
+        const nav = screen.getByRole('navigation', { name: 'Дії в грі' });
         const buttons = [...nav.querySelectorAll('button')];
         expect(buttons.map((button) => button.textContent.trim())).toEqual([
             'Скасувати',
             'Повторити',
             'Підказка',
-            'Завершити',
+            'Дограти',
         ]);
     });
 });

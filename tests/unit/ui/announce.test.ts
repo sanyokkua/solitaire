@@ -51,7 +51,7 @@ describe('formatAnnouncement', () => {
                 from: { pile: 'waste' },
                 to: { pile: 'tableau', col: 3 },
             }),
-        ).toBe('Сімка треф → колонка 4');
+        ).toBe('Сімка треф → стовпець 4');
         expect(
             formatAnnouncement(uk, {
                 type: 'moved',
@@ -59,7 +59,7 @@ describe('formatAnnouncement', () => {
                 from: { pile: 'tableau', col: 0 },
                 to: { pile: 'foundation', suit: 3 },
             }),
-        ).toBe('Туз пік → фундамент пік');
+        ).toBe('Туз пік → основа пік');
         expect(
             formatAnnouncement(uk, {
                 type: 'moved',
@@ -67,7 +67,7 @@ describe('formatAnnouncement', () => {
                 from: { pile: 'tableau', col: 0 },
                 to: { pile: 'waste' },
             }),
-        ).toBe('Четвірка червів → відбій');
+        ).toBe('Четвірка червів → резерв');
     });
 
     it('counts the cards of a moved run', () => {
@@ -86,21 +86,21 @@ describe('formatAnnouncement', () => {
                 from: { pile: 'tableau', col: 0 },
                 to: { pile: 'tableau', col: 5 },
             }),
-        ).toBe('3 карти → колонка 6');
+        ).toBe('3 карти → стовпець 6');
     });
 
     it('says how many cards were drawn, at 1 and 3, in English and Ukrainian', () => {
         expect(formatAnnouncement(en, { type: 'drew', count: 3 })).toBe('Drew 3 cards');
         expect(formatAnnouncement(en, { type: 'drew', count: 1 })).toBe('Drew 1 card');
-        expect(formatAnnouncement(uk, { type: 'drew', count: 3 })).toBe('Взято 3 карти');
-        expect(formatAnnouncement(uk, { type: 'drew', count: 1 })).toBe('Взято 1 карта');
+        expect(formatAnnouncement(uk, { type: 'drew', count: 3 })).toBe('З колоди: 3 карти');
+        expect(formatAnnouncement(uk, { type: 'drew', count: 1 })).toBe('З колоди: 1 карта');
     });
 
     it('words a recycle, an undo and a redo', () => {
         expect(formatAnnouncement(en, { type: 'recycled' })).toBe('Turned the waste over');
         expect(formatAnnouncement(en, { type: 'undone' })).toBe('Undid the last move');
         expect(formatAnnouncement(en, { type: 'redone' })).toBe('Redid the move');
-        expect(formatAnnouncement(uk, { type: 'recycled' })).toBe('Відбій перевернуто');
+        expect(formatAnnouncement(uk, { type: 'recycled' })).toBe('Резерв перегорнуто в колоду');
         expect(formatAnnouncement(uk, { type: 'undone' })).toBe('Останній хід скасовано');
         expect(formatAnnouncement(uk, { type: 'redone' })).toBe('Хід повторено');
     });
@@ -130,37 +130,37 @@ describe('formatAnnouncement', () => {
                 cards: [FOUR_OF_HEARTS],
                 target: { pile: 'tableau', col: 5 },
             }),
-        ).toBe('Підказка: Четвірка червів → колонка 6');
+        ).toBe('Підказка: Четвірка червів → стовпець 6');
         expect(formatAnnouncement(uk, { type: 'hinted', kind: 'draw', cards: [], target: 'stock' })).toBe(
             'Підказка: візьміть карту з колоди',
         );
         expect(formatAnnouncement(uk, { type: 'hinted', kind: 'recycle', cards: [], target: 'stock' })).toBe(
-            'Підказка: переверніть відбій',
+            'Підказка: перегорніть резерв у колоду',
         );
     });
 
     it('says a redeal limit in its own words and every other refusal generically', () => {
         expect(formatAnnouncement(en, { type: 'refused', reason: 'pass-limit' })).toBe('No redeals left');
-        expect(formatAnnouncement(uk, { type: 'refused', reason: 'pass-limit' })).toBe('Більше нема перерозподілів');
+        expect(formatAnnouncement(uk, { type: 'refused', reason: 'pass-limit' })).toBe('Проходів колодою більше немає');
         const others: RejectReason[] = ['game-over', 'not-movable', 'illegal-target', 'nothing-to-draw'];
         for (const reason of others) {
             expect(formatAnnouncement(en, { type: 'refused', reason })).toBe('That move is not possible');
-            expect(formatAnnouncement(uk, { type: 'refused', reason })).toBe('Цей хід неможливий');
+            expect(formatAnnouncement(uk, { type: 'refused', reason })).toBe('Такий хід неможливий');
         }
     });
 
     it('words a dead end', () => {
         expect(formatAnnouncement(en, { type: 'deadEnd' })).toBe('No moves left. Undo a few steps or deal again.');
         expect(formatAnnouncement(uk, { type: 'deadEnd' })).toBe(
-            'Ходів не залишилось. Скасуйте кілька ходів або здайте нову гру.',
+            'Ходів більше немає. Скасуйте кілька ходів або почніть нову роздачу.',
         );
     });
 
     it('counts the cards sent to the foundations, at 1 and 12, in English and Ukrainian', () => {
         expect(formatAnnouncement(en, { type: 'sentHome', count: 12 })).toBe('Moved 12 cards to the foundations');
         expect(formatAnnouncement(en, { type: 'sentHome', count: 1 })).toBe('Moved 1 card to the foundations');
-        expect(formatAnnouncement(uk, { type: 'sentHome', count: 12 })).toBe('12 карт → фундаменти');
-        expect(formatAnnouncement(uk, { type: 'sentHome', count: 1 })).toBe('1 карта → фундаменти');
+        expect(formatAnnouncement(uk, { type: 'sentHome', count: 12 })).toBe('На основи: 12 карт');
+        expect(formatAnnouncement(uk, { type: 'sentHome', count: 1 })).toBe('На основи: 1 карта');
     });
 
     it('words a win', () => {
@@ -188,7 +188,7 @@ describe('hintText', () => {
 
     it('names the first card of a run and its target, in Ukrainian', () => {
         expect(hintText(uk, { kind: 'move', cards: [FOUR_OF_HEARTS], target: { pile: 'tableau', col: 5 } })).toBe(
-            'Підказка: Четвірка червів → колонка 6',
+            'Підказка: Четвірка червів → стовпець 6',
         );
         expect(
             hintText(uk, {
@@ -196,7 +196,7 @@ describe('hintText', () => {
                 cards: [FOUR_OF_HEARTS, SEVEN_OF_CLUBS],
                 target: { pile: 'tableau', col: 5 },
             }),
-        ).toBe('Підказка: Четвірка червів і карти на ній → колонка 6');
+        ).toBe('Підказка: Четвірка червів разом із картами зверху → стовпець 6');
     });
 
     it('accepts a HintView', () => {
