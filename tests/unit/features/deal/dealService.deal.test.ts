@@ -29,7 +29,7 @@ import {
     stubFactory,
 } from '../../../fixtures/workers';
 
-/** Chosen so the first 40 seeds need 2 attempts and the next 40 need 4: selection is not trivially the first seed. */
+/** Chosen so the first batch of seeds needs 2 attempts and the next batch 4: selection is not trivially the first seed. */
 const FIXED = 1;
 const HUGE_DELAY_MS = 60_000;
 const OVERLAY_DELAY_MS = 160;
@@ -213,7 +213,7 @@ describe('deal service: provenance per mode', () => {
         { label: 'Draw 3', mode: 'draw3', budget: DRAW3_WINNABLE_BUDGET },
         { label: 'Vegas', mode: 'vegas', budget: VEGAS_WINNABLE_BUDGET },
     ])(
-        'searches $label with the switch on on the worker: 40 fresh seeds, the mode budget and the requested grade',
+        'searches $label with the switch on on the worker: `MAX_ATTEMPTS` fresh seeds, the mode budget and the requested grade',
         ({ mode, budget }) => {
             const factory = stubFactory();
             const service = track(

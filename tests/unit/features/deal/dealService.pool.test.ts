@@ -163,7 +163,7 @@ describe('deal service: serving from the pool', () => {
 
 describe('deal service: a live search with the cache and the pool', () => {
     it('sends the verdicts a cancelled search established, and pools the spares of the search that settles', async () => {
-        // Both requests draw the same 40 seeds, so the restarted search can reuse what the first one found.
+        // Both requests draw the same `MAX_ATTEMPTS` seeds, so the restarted search can reuse what the first one found.
         const seeds = Array.from({ length: MAX_ATTEMPTS }, (_, index) => 1000 + index);
         const { service, stubs } = stubbedService(scriptedSeedSource([...seeds, ...seeds]));
         const [lossSeed = 0, winSeed = 0] = seeds;

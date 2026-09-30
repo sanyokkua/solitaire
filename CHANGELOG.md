@@ -29,9 +29,9 @@ The first complete release: everything planned for the game is built, checked in
 - **Accessible.** Accessible names, live announcements, focus management, 4.5:1 contrast and 44 px touch targets.
 - **Appearance.** Light, dark and system themes, a four-colour deck, night cards and four card backs; motion is optional.
   Card ranks and suits are larger for small screens.
-- **New app icon** showing a fan of cards. An installed copy keeps the icon it was installed with; uninstall and install it
-  again to see the new one.
-- **Build identity.** The About sheet and the Home footer show the version, the build number and the UTC build time.
+- **New app icon** showing a fan of cards. An installed copy may keep the old icon until the operating system refreshes it;
+  uninstalling and installing it again shows the new one.
+- **Build identity.** The Home and Game footers show the build number and the UTC build time, and the About sheet adds the version.
 - **Storage record version 2,** with a lossless upgrade of version 1 records.
 
 ### Quality

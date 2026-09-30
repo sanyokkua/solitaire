@@ -144,15 +144,15 @@ and the mid-range-phone check is a documented manual step.
   `GRADING_CALIBRATION=fixture` prints the sample as `[seed, score]` pairs for `fixtures/gradingGolden.ts`.
 
 Deals are dealt for as long as it takes to prove them winnable: latency is reported, not gated, and a cold deal shows the
-dealing overlay. Recorded results (2026-09-30, Apple M1 Pro, Node v24.21.0). Verdicts are identical on every run; timings
+dealing overlay. Recorded results (2026-09-30, Apple M1 Pro, Node v24.21.0; a selection tries `MAX_ATTEMPTS` = 48 seeds). Verdicts are identical on every run; timings
 vary by a few percent.
 
 | Mode         | Budget (nodes) | Verdicts over 100 seeds (win / loss / unknown) | Selection median | Selection p95 |
 | ------------ | -------------- | ---------------------------------------------- | ---------------- | ------------- |
-| Draw 1       | 5,000          | 68 / 1 / 31                                    | 132 ms           | 657 ms        |
-| Draw 1, Hard | 5,000          | 68 / 1 / 31                                    | 496 ms           | 1.3 s         |
-| Draw 3       | 20,000         | 44 / 8 / 48                                    | 811 ms           | 3.0 s         |
-| Vegas        | 20,000         | 18 / 19 / 63                                   | 3.2 s            | 9.5 s         |
+| Draw 1       | 5,000          | 68 / 1 / 31                                    | 119 ms           | 598 ms        |
+| Draw 1, Hard | 5,000          | 68 / 1 / 31                                    | 428 ms           | 1.2 s         |
+| Draw 3       | 20,000         | 44 / 8 / 48                                    | 745 ms           | 2.9 s         |
+| Vegas        | 20,000         | 18 / 19 / 63                                   | 2.5 s            | 8.2 s         |
 
 Search budgets (seeds 1 to 100, mean time of one search): Draw 1 at 5,000 / 20,000 / 50,000 nodes proves 70 / 74 / 78
 deals in 29 / 105 / 244 ms; Draw 3 at 20,000 / 50,000 / 100,000 proves 52 / 59 / 64 in 255 / 569 / 1,074 ms; Vegas proves
@@ -286,6 +286,8 @@ in `coverage/` (gitignored) to see every file.
 ### Visual-parity review
 
 All seventeen screenshots of `test-results/visual-parity/` were compared by eye with the mockup screen of the same number (the first column below is the mockup's screen number and title; the mockup is kept in git history: `git show d72187f:docs/spec/mockup/screens/<file>`) after a clean build (`rtk npm run build`, then `rtk npx playwright test visualParity --project=chromium`). The mockup is a visual reference only. The requirements now state the look on their own, so a difference is a defect only where a requirement says otherwise; none was found on the Home, Game and sheet screens. The one defect the review found was outside the pictures: the Vegas detail line drew a minus sign that the pixel font does not have (below).
+
+The visual-parity files carry no numbers; the first column of the table below is the mockup's screen number: 01 `home-light-desktop`, 02 `home-dark-phone`, 03 `game-light-desktop`, 04 `game-dark-desktop`, 05 `game-dark-night-cards`, 06 `game-light-phone`, 07 `game-draw3-waste-fan`, 08 `game-select-legal-targets`, 09 `game-hint`, 10 `home-settings-sheet`, 11 `home-how-to-play-sheet`, 12 `game-win-cascade`, 13 `game-win-sheet`, 14 `game-phone-landscape-wide-table`, 15 `game-foldable-inner-side-rails`, 16 `game-foldable-cover-portrait`, 17 `game-galaxy-s25-portrait-browser`.
 
 **Differences that hold on every screen (accepted):**
 

@@ -48,15 +48,18 @@ function referencesOf(file: string, text: string): { line: number; target: strin
         if (fenced) return;
         // Inline code is checked as a path; what a link's text or target holds is checked once, as the link.
         const withoutCode = line.replace(/`[^`]*`/g, (span) => ' '.repeat(span.length));
-        for (const [, target = ''] of withoutCode.matchAll(/\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
+        for (const [, angled = '', bare = ''] of withoutCode.matchAll(
+            /\]\((?:<([^>]+)>|([^)\s]+))(?:\s+(?:"[^"]*"|'[^']*'))?\)/g,
+        )) {
+            const target = angled || bare;
             if (EXTERNAL.test(target)) continue;
-            const path = decodeURI(target.split('#')[0] ?? '');
+            const path = decodeURI((target.split('#')[0] ?? '').split('?')[0] ?? '');
             if (path === '' || isNotAPath(path)) continue;
-            found.push({
-                line: index + 1,
-                target,
-                resolved: posix.normalize(posix.join(posix.dirname(file), path)).replace(/\/$/, ''),
-            });
+            // A root-relative link starts at the repository root, any other one at the document's folder.
+            const resolved = path.startsWith('/')
+                ? posix.normalize(path.slice(1))
+                : posix.normalize(posix.join(posix.dirname(file), path));
+            found.push({ line: index + 1, target, resolved: resolved.replace(/\/$/, '') });
         }
         for (const [, span = ''] of line.matchAll(/`([^`]+)`/g)) {
             if (!PATH_PREFIXES.some((prefix) => span.startsWith(prefix)) || isNotAPath(span)) continue;
@@ -109,8 +112,13 @@ describe('the link check', () => {
         expect(check('one\n[gone](missing.md)\n')).toEqual([{ file: 'docs/a.md', line: 2, target: 'missing.md' }]);
     });
 
-    it('resolves a relative link from the document folder, ignoring its anchor', () => {
-        expect(check('[c](b/c.md#part) and [up](../docs/a.md)')).toEqual([]);
+    it('resolves a relative link from the document folder, ignoring its anchor and query', () => {
+        expect(check('[c](b/c.md#part) and [up](../docs/a.md) and [q](b/c.md?plain=1)')).toEqual([]);
+    });
+
+    it('reads an angle-bracket target, a single-quoted title and a root-relative link', () => {
+        expect(check("[a](<b/c.md>) [t](b/c.md 'Title') [r](/docs/a.md)")).toEqual([]);
+        expect(check('[a](<b/gone.md>)')).toHaveLength(1);
     });
 
     it('checks a cited repository path, with or without a symbol or a line', () => {

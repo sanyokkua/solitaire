@@ -71,9 +71,10 @@ The How to play sheet SHALL show:
 - under a "Scoring" heading, a short scoring summary for Standard and Vegas;
 - under a "Winnable deals" heading, a short passage explaining that with Winnable deals only on, a
   built-in solver proves every Draw 1, Draw 3 and Vegas deal winnable before it is shown; that a
-  proven deal is graded by replaying it the way a person plays, seeing only the face-up cards — Easy
-  when most replays win, Medium when some do, and Hard when hardly any do, although the solver proved
-  it winnable; and that Difficulty on Home asks for one of these grades.
+  proven deal is graded by replaying it the way a person plays, seeing only the face-up cards, and
+  asking the solver whether it can still be won — Easy when it stays winnable through many plausible
+  mistakes, Medium through some, and Hard when only a narrow line wins, although the solver proved it
+  winnable; and that Difficulty on Home asks for one of these grades.
 
 Its primary action "Got it" closes it. Key names SHALL be marked up as keys and read in full by
 assistive technology.
@@ -93,8 +94,8 @@ beyond the sheet's own.
 
 - **WHEN** How to play is opened
 - **THEN** its Winnable deals passage says that Draw 1, Draw 3 and Vegas deals are proven winnable
-  when Winnable deals only is on, and explains Easy, Medium and Hard by how often human-style replays
-  win
+  when Winnable deals only is on, and explains Easy, Medium and Hard by how many plausible mistakes
+  a deal stays winnable through
 
 ### Requirement: Statistics sheet
 

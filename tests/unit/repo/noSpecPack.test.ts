@@ -13,18 +13,18 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(import.meta.dirname, '../../..');
 
 const FORBIDDEN: readonly RegExp[] = [
-    /docs\/spec/,
-    /klondike-mockup/,
-    /specification\.md/,
-    /research\.md/,
-    /phased-design/,
+    /docs\/spec/i,
+    /klondike-mockup/i,
+    /specification\.md/i,
+    /research\.md/i,
+    /phased-design/i,
     /R§/,
     /spec §/,
     /specification §/,
 ];
 
 /** A reference pinned to a git revision: a commit id, a colon and the file's former path. */
-const REVISION_PINNED = /\b[0-9a-f]{7,40}:\S+/g;
+const REVISION_PINNED = /\b[0-9a-f]{7,40}:[^\s,;|)`'"]+/g;
 
 /** Paths exempt from the scan. The main specs stay exempt until their citations are edited (task 14.4). */
 const EXEMPT: readonly RegExp[] = [
@@ -109,6 +109,12 @@ describe('the reference scan', () => {
 
     it('still refuses a line that has both a pinned and an unpinned reference', () => {
         expect(scan('d72187f:docs/spec/research.md and docs/spec/README.md')).toHaveLength(1);
+        expect(scan('d72187f:docs/spec/a.md,docs/spec/b.md')).toHaveLength(1);
+        expect(scan('`d72187f:docs/spec/a.md`|docs/spec/b.md')).toHaveLength(1);
+    });
+
+    it('is not fooled by a different letter case', () => {
+        expect(scan('see Research.md')).toHaveLength(1);
     });
 
     it('exempts change history and does not forbid the bare word "mockup"', () => {
