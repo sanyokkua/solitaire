@@ -89,7 +89,7 @@ Selection is reject sampling: shuffle, search within a bounded budget, keep or t
 - **Which search.** A candidate that draws one card with no pass limit (Draw 1, Daily) is searched by the Draw 1 solver;
   Draw 3 and Vegas by the ordered-talon solver.
 - **Requested grade.** With Difficulty set to Any the first proven candidate is dealt. With Easy, Medium or Hard, each
-  proven candidate is graded and the first one of the requested grade is dealt. If the search meets four proven candidates
+  proven candidate is graded and the first one of the requested grade is dealt. If the search meets eight proven candidates
   of other grades first (`GRADE_LIMIT`) or the seeds run out, the proven candidate whose grade is closest is dealt (Easy is
   next to Medium, Medium is next to Hard; the earlier candidate wins a tie), labelled with its own grade, never with the
   one requested. Bounding the work by a count of graded deals rather than by a clock means the same request always
@@ -118,12 +118,12 @@ future Daily changes. Details: [game-rules.md](game-rules.md#daily).
 
 A proven-winnable deal is graded Easy, Medium or Hard by how forgiving it is: how long plausible human play keeps it
 provably winnable. A deal that only one narrow line wins is Hard; a deal that stays winnable through many plausible
-mistakes is Easy. Grading v1 replays the deal eight times with a simulated player that sees only the face-up cards, and asks
+mistakes is Easy. Grading v2 replays the deal eight times with a simulated player that sees only the face-up cards, and asks
 the solver every tenth command whether the position can still be won. The count of positions that stay provably winnable
 is the score, and per-mode thresholds turn the score into a grade. The thresholds were chosen so that each grade holds at
-least 15% of the proven-winnable deals of a calibration sample in every mode (roughly 35 / 32 / 33% Easy / Medium / Hard in
-Draw 1, 32 / 32 / 37% in Draw 3 and 27 / 25 / 48% in Vegas). The full description and the thresholds are in
-[domain-and-solver.md](../architecture/domain-and-solver.md#grading-v1); changing any of it is a new grading version.
+least 15% of the proven-winnable deals of a calibration sample in every mode (roughly 17 / 33 / 50% Easy / Medium / Hard in
+Draw 1, 18 / 42 / 40% in Draw 3 and 23 / 28 / 48% in Vegas). The full description and the thresholds are in
+[domain-and-solver.md](../architecture/domain-and-solver.md#grading-v2); changing any of it is a new grading version.
 
 Grading is a statement about how forgiving a deal is for a player who sees face-up cards only; it is not a measure of how
 many moves the win needs, and the solver's node count says nothing about it, because that depends on move ordering.

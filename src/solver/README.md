@@ -22,7 +22,7 @@ exactly the modules listed here plus this README):
   line into a move, draw or recycle hint, or `undefined` when the search does not prove a win, the position is unsupported or it is already won.
 - `search.ts` — `search(state, budget)`, the one entry to the solver for every mode: a position that draws three cards
   (Draw 3, Vegas) goes to `solveOrdered`, one that draws a single card (Draw 1, Daily) to `solve`.
-- `grading.ts` — grading v1 (`GRADING_V1`: the parameters and the per-mode thresholds), how forgiving a proven-winnable
+- `grading.ts` — grading v2 (`GRADING_V2`: the parameters and the per-mode thresholds), how forgiving a proven-winnable
   deal is. `gradeDeal(deal)` runs M seeded playouts of a simulated player that sees only face-up cards
   (`playout(state, rng)`, each with `mulberry32(playoutSeed(seed, i))`), and at every `checkpointEvery`-th command asks the
   solver (`search`, at `checkpointBudget` nodes) whether the position is still provably winnable. `survival` counts the

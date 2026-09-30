@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Informational calibration of grading v1, the solver-checked survival score (design D6, task 7.5).
+ * Informational calibration of Grading v2, the solver-checked survival score (design D6, task 7.5).
  *
  * This is NOT a gate. It never asserts, is outside `test:unit`, `validate`, the git hooks and CI, and runs with
  * `rtk npm run bench`. For each of Draw 1, Draw 3 and Vegas it:
@@ -18,7 +18,7 @@ import { test } from 'vitest';
 import { GRADES, dealFromSeed } from '../../src/domain/deal';
 import type { Grade, Mode } from '../../src/domain/types';
 import { DRAW3_WINNABLE_BUDGET, VEGAS_WINNABLE_BUDGET, WINNABLE_BUDGET } from '../../src/features/deal/budgets';
-import { GRADING_V1, gradeDeal, type GradingParams } from '../../src/solver/grading';
+import { GRADING_V2, gradeDeal, type GradingParams } from '../../src/solver/grading';
 import { search } from '../../src/solver/search';
 
 type GradedMode = Exclude<Mode, 'daily'>;
@@ -28,18 +28,18 @@ const SEED_LIMIT = 4000;
 const BENCH_TIMEOUT_MS = 3_600_000;
 
 const VARIANTS: readonly { readonly name: string; readonly params: GradingParams }[] = [
-    { name: 'v1 as pinned', params: GRADING_V1 },
+    { name: 'v2 as pinned', params: GRADING_V2 },
     {
         name: 'finer checkpoints (every 6, up to 12)',
-        params: { ...GRADING_V1, checkpointEvery: 6, maxCheckpoints: 12 },
+        params: { ...GRADING_V2, checkpointEvery: 6, maxCheckpoints: 12 },
     },
     {
         name: 'sharper player (take 0.8, unforced 0.02)',
-        params: { ...GRADING_V1, takeProbability: 0.8, unforcedDrawProbability: 0.02 },
+        params: { ...GRADING_V2, takeProbability: 0.8, unforcedDrawProbability: 0.02 },
     },
     {
         name: 'looser player (take 0.4, unforced 0.1)',
-        params: { ...GRADING_V1, takeProbability: 0.4, unforcedDrawProbability: 0.1 },
+        params: { ...GRADING_V2, takeProbability: 0.4, unforcedDrawProbability: 0.1 },
     },
 ];
 
@@ -98,7 +98,7 @@ function histogram(scores: readonly number[], top: number): string {
 
 for (const { mode, budget } of RUNS) {
     test(
-        `grading v1 calibration in ${mode} (informational)`,
+        `Grading v2 calibration in ${mode} (informational)`,
         () => {
             const seeds = provenSeeds(mode, budget);
             if (process.env.GRADING_CALIBRATION === 'fixture') {
@@ -109,7 +109,7 @@ for (const { mode, budget } of RUNS) {
                 return;
             }
             const lines = [
-                `grading v1, ${mode}: ${String(seeds.length)} proven seeds of 1..${String(SEED_LIMIT)} at ${String(budget)} nodes (informational, not a gate)`,
+                `Grading v2, ${mode}: ${String(seeds.length)} proven seeds of 1..${String(SEED_LIMIT)} at ${String(budget)} nodes (informational, not a gate)`,
             ];
             for (const { name, params } of VARIANTS) {
                 const top = params.playouts * params.maxCheckpoints;

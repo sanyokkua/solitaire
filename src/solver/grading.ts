@@ -34,12 +34,14 @@ export interface GradingParams {
 }
 
 /**
- * Grading v1 (D6): how forgiving a proven-winnable deal is. Seeded human-like playouts (`playout`) walk the deal, and at
+ * Grading v2 (D6): how forgiving a proven-winnable deal is. Seeded human-like playouts (`playout`) walk the deal, and at
  * checkpoints the solver says whether the position is still provably winnable; the more checkpoints survive, the easier
  * the deal. The parameters, the playout rules and the thresholds together are one version: changing any of them is a
- * new grading version, made on purpose by updating the pinned grades in `tests/fixtures/gradingGolden.ts`.
+ * new grading version, made on purpose by updating the pinned grades in `tests/fixtures/gradingGolden.ts`. Version 2 raised
+ * both thresholds of version 1 (62/43, 30/12, 8/0) by 20%, rounded to whole checkpoints, so that Easy needs a higher
+ * survival score and Hard too tolerates more mistakes (Vegas Hard stays at 0, which 20% of 0 does not move).
  */
-export const GRADING_V1: GradingParams = {
+export const GRADING_V2: GradingParams = {
     playouts: 8,
     takeProbability: 0.6,
     unforcedDrawProbability: 0.05,
@@ -48,9 +50,9 @@ export const GRADING_V1: GradingParams = {
     maxCheckpoints: 10,
     checkpointBudget: 3000,
     thresholds: {
-        draw1: { easyMin: 62, hardMax: 43 },
-        draw3: { easyMin: 30, hardMax: 12 },
-        vegas: { easyMin: 8, hardMax: 0 },
+        draw1: { easyMin: 74, hardMax: 52 },
+        draw3: { easyMin: 36, hardMax: 14 },
+        vegas: { easyMin: 10, hardMax: 0 },
     },
 };
 
@@ -71,7 +73,7 @@ export function playoutSeed(seed: number, index: number): number {
 }
 
 /** The grade that a survival `score` gives in `mode`. */
-export function gradeOf(score: number, mode: Mode, params: GradingParams = GRADING_V1): Grade {
+export function gradeOf(score: number, mode: Mode, params: GradingParams = GRADING_V2): Grade {
     const { easyMin, hardMax } = params.thresholds[mode === 'daily' ? 'draw1' : mode];
     if (score >= easyMin) return 'easy';
     return score <= hardMax ? 'hard' : 'medium';
@@ -112,7 +114,7 @@ export interface Playout {
 export function playout(
     start: GameState,
     rng: () => number,
-    params: GradingParams = GRADING_V1,
+    params: GradingParams = GRADING_V2,
     onStep?: (state: GameState, commands: number) => boolean,
 ): Playout {
     const commands: Command[] = [];
@@ -148,7 +150,7 @@ const solverJudge: Judge = (state, budget) => search(state, budget).verdict;
 export function survival(
     deal: GameState,
     index: number,
-    params: GradingParams = GRADING_V1,
+    params: GradingParams = GRADING_V2,
     judge: Judge = solverJudge,
 ): number {
     let survived = 0;
@@ -168,7 +170,7 @@ export interface DealGrade {
 }
 
 /** Grades the dealt position of a proven-winnable deal: the survival of each of `params.playouts` playouts, summed and read through the mode's row. */
-export function gradeDeal(deal: GameState, params: GradingParams = GRADING_V1, judge: Judge = solverJudge): DealGrade {
+export function gradeDeal(deal: GameState, params: GradingParams = GRADING_V2, judge: Judge = solverJudge): DealGrade {
     let score = 0;
     for (let index = 0; index < params.playouts; index++) {
         score += survival(deal, index, params, judge);

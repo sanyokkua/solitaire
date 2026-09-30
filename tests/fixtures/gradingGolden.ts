@@ -1,9 +1,9 @@
 /**
- * Pinned grading v1 (design D6, task 7.5): the sample the grade shares were calibrated on, and golden deals that are
+ * Pinned Grading v2 (design D6, task 7.5): the sample the grade shares were calibrated on, and golden deals that are
  * regraded from scratch.
  *
  * `CALIBRATION` holds, per mode, the first 60 proven-winnable seeds of 1 to 4000 (searched at the mode's deal budget,
- * `src/features/deal/budgets.ts`) with the survival score `gradeDeal` gave each under `GRADING_V1`, taken from
+ * `src/features/deal/budgets.ts`) with the survival score `gradeDeal` gave each under `GRADING_V2`, taken from
  * `GRADING_CALIBRATION=fixture rtk npm run bench` (`tests/bench/grading.bench.ts`). The test reads them through the
  * thresholds, so every grade must hold at least 15% of the sample. `GOLDEN` is two deals per grade per mode, cheap
  * enough to regrade in `test:unit`; each is graded again and must give its pinned score and grade.
@@ -220,9 +220,9 @@ export const GOLDEN: Readonly<Record<GradedMode, readonly GoldenDeal[]>> = {
         { seed: 1, score: 8, grade: 'hard' },
         { seed: 2, score: 37, grade: 'hard' },
         { seed: 4, score: 75, grade: 'easy' },
-        { seed: 8, score: 62, grade: 'easy' },
+        { seed: 8, score: 62, grade: 'medium' },
         { seed: 13, score: 58, grade: 'medium' },
-        { seed: 14, score: 48, grade: 'medium' },
+        { seed: 18, score: 78, grade: 'easy' },
     ],
     draw3: [
         { seed: 3, score: 0, grade: 'hard' },

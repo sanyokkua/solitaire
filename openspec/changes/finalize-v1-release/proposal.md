@@ -110,7 +110,7 @@ What is wrong or missing today:
     - a deal that stays winnable through much plausible play is Easy;
     - one that stays winnable for a while is Medium;
     - one that a few plausible moves ruin is Hard.
-  - Grading is deterministic and versioned ("grading v1"), and its thresholds are calibrated per mode so
+  - Grading is deterministic and versioned ("grading v2"), and its thresholds are calibrated per mode so
     that every grade holds at least 15% of the proven deals.
   - When the chosen grade isn't found within the attempt limit, the closest proven grade is dealt and
     labelled honestly.
@@ -185,7 +185,7 @@ What is wrong or missing today:
   - agreement with exhaustive search on small positions;
   - unsupported and won positions.
 - `solver/deal-grading`: deterministic grading of a proven deal by how long seeded playouts that see only
-  face-up cards keep it provably winnable, with the per-mode "grading v1" thresholds and choosing the requested
+  face-up cards keep it provably winnable, with the per-mode "grading v2" thresholds and choosing the requested
   or closest grade.
 
 ### Modified Capabilities
@@ -245,7 +245,7 @@ What is wrong or missing today:
   - The layer stays pure.
 - **`src/solver`:**
   - new `ordered.ts` (ordered-talon search), `search.ts` (routes by mode) and `grading.ts` (playouts and
-    "grading v1");
+    "grading v2");
   - `line.ts` supports explicit draw steps;
   - `winnable.ts`, `hint.ts` and `protocol.ts` carry the mode and grade.
   - `solver.ts` (Draw 1) is unchanged.

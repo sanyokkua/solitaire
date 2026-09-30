@@ -2,14 +2,14 @@
 import { describe, expect, it } from 'vitest';
 import { dealFromSeed } from '../../../src/domain/deal';
 import { GRADES } from '../../../src/domain/deal';
-import { GRADING_V1, gradeDeal, gradeOf } from '../../../src/solver/grading';
+import { GRADING_V2, gradeDeal, gradeOf } from '../../../src/solver/grading';
 import { CALIBRATION, GOLDEN, type GradedMode } from '../../fixtures/gradingGolden';
 
 const MODES: readonly GradedMode[] = ['draw1', 'draw3', 'vegas'];
 /** The smallest share of a mode's proven-winnable deals that each grade must hold (KS-DEAL-11). */
 const MIN_SHARE = 0.15;
 
-describe('grading v1 is pinned', () => {
+describe('Grading v2 is pinned', () => {
     it.each(MODES)('regrades the golden %s deals to their pinned score and grade', (mode) => {
         for (const { seed, score, grade } of GOLDEN[mode]) {
             expect(gradeDeal(dealFromSeed(seed, mode)), `seed ${String(seed)}`).toEqual({ score, grade });
@@ -38,7 +38,7 @@ describe('every grade is common enough', () => {
     });
 
     it('keeps scores within the top score of the pinned parameters', () => {
-        const top = GRADING_V1.playouts * GRADING_V1.maxCheckpoints;
+        const top = GRADING_V2.playouts * GRADING_V2.maxCheckpoints;
         for (const mode of MODES) {
             for (const [, score] of CALIBRATION[mode]) expect(score).toBeLessThanOrEqual(top);
         }

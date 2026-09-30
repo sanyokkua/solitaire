@@ -7,7 +7,7 @@ import { mulberry32 } from '../../../src/domain/prng';
 import type { Command, GameState, Mode } from '../../../src/domain/types';
 import {
     fmix32,
-    GRADING_V1,
+    GRADING_V2,
     gradeDeal,
     gradeOf,
     survival,
@@ -37,7 +37,7 @@ function scripted(...values: number[]): { rng: () => number; used: () => number 
 }
 
 /** One command, then stop: the first choice of a playout. */
-const ONE_STEP: GradingParams = { ...GRADING_V1, stepCap: 1 };
+const ONE_STEP: GradingParams = { ...GRADING_V2, stepCap: 1 };
 
 /** Three candidates in order: A♣ home (priority 1), then 5♥ onto 6♠, then 5♥ onto 6♣ (priority 3). */
 function threeCandidates(partial: Partial<GameState> = {}): GameState {
@@ -79,8 +79,8 @@ describe('playoutSeed', () => {
 
 describe('gradeOf', () => {
     it.each(['draw1', 'draw3', 'vegas', 'daily'] as const)('reads a score through the %s row', (mode) => {
-        const { easyMin, hardMax } = GRADING_V1.thresholds[mode === 'daily' ? 'draw1' : mode];
-        const top = GRADING_V1.playouts * GRADING_V1.maxCheckpoints;
+        const { easyMin, hardMax } = GRADING_V2.thresholds[mode === 'daily' ? 'draw1' : mode];
+        const top = GRADING_V2.playouts * GRADING_V2.maxCheckpoints;
         const grades = [top, easyMin, easyMin - 1, hardMax + 1, hardMax, 0].map((score) => gradeOf(score, mode));
         expect(grades).toEqual(['easy', 'easy', 'medium', 'medium', 'hard', 'hard']);
     });
@@ -104,7 +104,7 @@ describe('playout: the walk over the candidates', () => {
     });
 
     it('moves on from a roll equal to the take probability', () => {
-        const { rng } = scripted(GRADING_V1.takeProbability, 0.1);
+        const { rng } = scripted(GRADING_V2.takeProbability, 0.1);
         expect(playout(threeCandidates(), rng, ONE_STEP).commands).toEqual([WASTE_TO(0)]);
     });
 
@@ -198,10 +198,10 @@ describe('playout: when it stops', () => {
 
     it('ends within the step cap', () => {
         const deal = dealFromSeed(3, 'draw1');
-        expect(playout(deal, mulberry32(1), { ...GRADING_V1, stepCap: 5 }).commands.length).toBeLessThanOrEqual(5);
+        expect(playout(deal, mulberry32(1), { ...GRADING_V2, stepCap: 5 }).commands.length).toBeLessThanOrEqual(5);
         for (const mode of ['draw1', 'draw3', 'vegas'] as const) {
             const result = playout(dealFromSeed(11, mode), mulberry32(playoutSeed(11, 0)));
-            expect(result.commands.length).toBeLessThanOrEqual(GRADING_V1.stepCap);
+            expect(result.commands.length).toBeLessThanOrEqual(GRADING_V2.stepCap);
         }
     });
 
@@ -262,7 +262,7 @@ describe('playout: sees only face-up cards', () => {
 });
 
 /** Small, fast parameters: a checkpoint after every command, three of them at most. */
-const QUICK: GradingParams = { ...GRADING_V1, checkpointEvery: 1, maxCheckpoints: 3 };
+const QUICK: GradingParams = { ...GRADING_V2, checkpointEvery: 1, maxCheckpoints: 3 };
 
 /** A judge that proves the first `provable` positions it is asked about, then proves nothing; it records what it saw. */
 function judgeFor(provable: number): { judge: Judge; budgets: number[] } {
@@ -312,14 +312,14 @@ describe('survival', () => {
         );
         expect(winningIndex).toBeDefined();
         if (winningIndex === undefined) return;
-        const params = { ...GRADING_V1, checkpointEvery: 10, maxCheckpoints: 50 };
+        const params = { ...GRADING_V2, checkpointEvery: 10, maxCheckpoints: 50 };
         expect(survival(deal, winningIndex, params, () => 'win')).toBe(50);
     });
 
     it('asks nothing of a playout that ends before its first checkpoint, and scores it 0', () => {
         const idle = frozenState({ stock: [c(HEARTS, 9), c(SPADES, 9), c(CLUBS, 9)] });
         const { judge, budgets } = judgeFor(Number.POSITIVE_INFINITY);
-        expect(survival(idle, 0, { ...GRADING_V1, checkpointEvery: 10 }, judge)).toBe(0);
+        expect(survival(idle, 0, { ...GRADING_V2, checkpointEvery: 10 }, judge)).toBe(0);
         expect(budgets).toEqual([]);
     });
 
@@ -358,7 +358,7 @@ describe('gradeDeal', () => {
             const first = gradeDeal(deal);
             expect(first).toEqual(gradeDeal(deal));
             expect(first.score).toBeGreaterThanOrEqual(0);
-            expect(first.score).toBeLessThanOrEqual(GRADING_V1.playouts * GRADING_V1.maxCheckpoints);
+            expect(first.score).toBeLessThanOrEqual(GRADING_V2.playouts * GRADING_V2.maxCheckpoints);
         }
     });
 
@@ -371,6 +371,6 @@ describe('gradeDeal', () => {
 
     it('plays exactly the playouts its parameters name', () => {
         const deal = dealFromSeed(19, 'draw1');
-        expect(gradeDeal(deal, { ...GRADING_V1, playouts: 0 })).toEqual({ score: 0, grade: 'hard' });
+        expect(gradeDeal(deal, { ...GRADING_V2, playouts: 0 })).toEqual({ score: 0, grade: 'hard' });
     });
 });

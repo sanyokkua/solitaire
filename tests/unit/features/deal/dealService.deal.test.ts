@@ -31,6 +31,8 @@ import {
 
 /** Chosen so the first batch of seeds needs 2 attempts and the next batch 4: selection is not trivially the first seed. */
 const FIXED = 1;
+/** A source of fresh seeds whose candidates hold no Easy deal within the grade limit (found by trying sources 1 to 12; most find every grade). */
+const NO_EASY_FIXED = 4;
 const HUGE_DELAY_MS = 60_000;
 const OVERLAY_DELAY_MS = 160;
 
@@ -266,20 +268,20 @@ describe('deal service: provenance per mode', () => {
     );
 
     it('deals the closest grade, labelled with its own, when the requested grade is not found', async () => {
-        const seeds = drawnSeeds(FIXED, MAX_ATTEMPTS);
+        const seeds = drawnSeeds(NO_EASY_FIXED, MAX_ATTEMPTS);
         const selectionFor = (target: Grade) => ({ target, gradeLimit: GRADE_LIMIT });
         const missed = GRADES.find(
             (target) =>
                 findWinnable(seeds, WINNABLE_BUDGET, 'draw1', { selection: selectionFor(target) }).grade !== target,
         );
         if (missed === undefined) {
-            throw new Error('every grade is found in the fixed seeds; pick seeds where one is missing');
+            throw new Error('every grade is found in the NO_EASY_FIXED seeds; pick a source where one is missing');
         }
         const expected = findWinnable(seeds, WINNABLE_BUDGET, 'draw1', { selection: selectionFor(missed) });
         const service = track(
             createDealService({
                 createWorker: realFactory().create,
-                seedSource: mulberry32SeedSource(FIXED),
+                seedSource: mulberry32SeedSource(NO_EASY_FIXED),
                 overlayDelayMs: HUGE_DELAY_MS,
             }),
         );

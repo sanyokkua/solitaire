@@ -7,7 +7,7 @@
  * `(YYYYMMDD * 131 + attempt * 7919) >>> 0` for attempts 1 to 40, stopping at the first proven win. The values come
  * from the reference, never from the implementation under test; a mismatch means the solver, the deal or the formula
  * changed a published Daily, so fix the code and do not edit this table. The `grade` column is different: no reference
- * grades a deal, so it is grading v1's own output, pinned so that a Daily deal keeps its grade.
+ * grades a deal, so it is Grading v2's own output, pinned so that a Daily deal keeps its grade.
  */
 import type { Grade } from '../../src/domain/types';
 
@@ -15,7 +15,7 @@ export interface DailyGolden {
     readonly day: string;
     readonly seed: number;
     readonly attempts: number;
-    /** The grading v1 grade of the deal, from the implementation (task 7.5); a new grading version changes it on purpose. */
+    /** The Grading v2 grade of the deal, from the implementation (task 7.5); a new grading version changes it on purpose. */
     readonly grade: Grade;
 }
 

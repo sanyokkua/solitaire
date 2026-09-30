@@ -13,8 +13,12 @@ export const VEGAS_WINNABLE_BUDGET = 20_000;
 export const MAX_ATTEMPTS = 48;
 /** Nodes searched for a solver hint. */
 export const HINT_BUDGET = 3_000;
-/** Proven-winnable candidates one request may grade in search of the requested grade before settling for the closest. */
-export const GRADE_LIMIT = 4;
+/**
+ * Proven-winnable candidates one request may grade in search of the requested grade before settling for the closest.
+ * Raised from 4 to 8 with grading v2, whose Easy grade is rarer (about one proven deal in six), so an Easy request more
+ * often ends with a real Easy deal; the longer search shows the "Shuffling cards before the game…" screen.
+ */
+export const GRADE_LIMIT = 8;
 
 /**
  * Nodes searched per candidate when a deal of `mode` must be winnable. A Daily deal is not one of them: it always

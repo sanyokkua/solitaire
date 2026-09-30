@@ -235,7 +235,7 @@ checked against the code.
 - **Why.** Some published solvers mis-solve benchmark deals, so any solver must be validated against known
   results. The engine is the oracle, so the search cannot drift from the rules the player plays by.
 
-### D6 — Grading v1: solver-checked survival
+### D6 — Grading v2: solver-checked survival
 
 The player's priority is a game they can really win, so a deal is graded by how forgiving it is: how long plausible
 human play keeps it provably winnable. An earlier design graded by counting winning playouts. Task 7.3 of that design
@@ -264,16 +264,21 @@ mechanism stays, the signal changed.
   - its survival is the number of checkpoints proven, at most `maxCheckpoints`; a playout that wins, or reaches the
     maximum, survives every checkpoint it had left.
 - **Grade.** The deal's score is the survival of M playouts summed, from 0 to M × `maxCheckpoints`. The per-mode table
-  `GRADING_V1.thresholds[mode]` maps the score to Easy (from `easyMin`), Hard (up to `hardMax`) or Medium. Daily is
+  `GRADING_V2.thresholds[mode]` maps the score to Easy (from `easyMin`), Hard (up to `hardMax`) or Medium. Daily is
   graded with the Draw 1 row. The solver is reached through a `Judge` seam so tests can script it.
 - **Pinned values** (task 7.5): M = 8, take 0.6, unforced draw 0.05, step cap 1,000, a checkpoint every 10 commands, at
   most 10 checkpoints, 3,000 nodes per checkpoint.
 
   | Mode | Easy from | Hard up to | Easy / Medium / Hard share of the calibration sample |
   | --- | --- | --- | --- |
-  | Draw 1 (and Daily) | 62 | 43 | 35 / 32 / 33% |
-  | Draw 3 | 30 | 12 | 32 / 32 / 37% |
-  | Vegas | 8 | 0 | 27 / 25 / 48% |
+  | Draw 1 (and Daily) | 74 | 52 | 17 / 33 / 50% |
+  | Draw 3 | 36 | 14 | 18 / 42 / 40% |
+  | Vegas | 10 | 0 | 23 / 28 / 48% |
+
+  Grading v2 raised the v1 thresholds (62/43, 30/12, 8/0; shares 35 / 32 / 33%, 32 / 32 / 37%, 27 / 25 / 48%) by 20%,
+  rounded to whole checkpoints, so that each grade is more tolerant of mistakes: Easy needs a higher survival score and
+  Hard also allows more. Vegas Hard stays at 0. The scores of the calibration sample do not depend on the thresholds, so
+  only the shares moved.
 
 - **Calibration** (task 7.5). `tests/bench/grading.bench.ts` grades the first 60 proven seeds per mode under four
   parameter variants and reports the score histogram, the thresholds that split the sample most evenly and the cost. The
@@ -303,7 +308,7 @@ mechanism stays, the signal changed.
 | Nothing proven | the last seed as `random`, with no grade | the list length (KS-DEAL-05) |
 
 - **Grade limit.** Grading is the costly step, so a request grades at most `gradeLimit` proven candidates
-  (`GRADE_LIMIT`, 4) before it settles for the closest. The bound is a count, not a clock, so the same request always
+  (`GRADE_LIMIT`, 8) before it settles for the closest. The bound is a count, not a clock, so the same request always
   selects the same deal. Together with the 48 candidates it bounds the work of one request.
 - **Spares.** The result carries every other proven candidate it graded, as `{ seed, grade }`. The deal service pools
   them (D8), so one search for a Hard deal that meets Easy and Medium deals along the way pays for later requests.
@@ -656,7 +661,7 @@ test:
 - **How to play:** one passage on "Winnable deals only" and the three grades.
 - **Pool:** at most 2 deals per mode and grade; filling starts after the first idle period (about 2 s after load at
   most). Deals pooled for other modes are kept until reload. The verdict cache holds 256 entries.
-- **Grade limit:** a request grades at most 4 proven candidates (`GRADE_LIMIT`).
+- **Grade limit:** a request grades at most 8 proven candidates (`GRADE_LIMIT`; 4 until grading v2, whose Easy grade is rarer).
 - **Daily:** ignores Difficulty and shows its grade.
 - **Statistics:** remain per mode, not per difficulty.
 - **Budgets:** Draw 3 and Vegas start at 20,000 nodes and the 48-attempt cap (40 in the first release, raised 20% so a request more often finds a proven deal of the requested grade). Task 6.5 may change those
@@ -677,9 +682,9 @@ test:
   Cold deal numbers are informational in every mode (KS-PERF-02 is modified, D7).
 - **Grades could collapse into one in Draw 3 and Vegas**, where the simple playout player rarely wins. → Grading is
   solver-checked survival (D6), which spreads deals in every mode: on the calibration sample each grade holds at least
-  25%. The tables are per mode, and grading v1 is pinned by golden deals, so a later change is a new version.
+  25%. The tables are per mode, and grading v2 is pinned by golden deals, so a later change is a new version.
 - **Grading is slow, and every proven deal is graded.** One grading takes about 0.2 to 0.45 s on a desktop and a
-  request may grade `GRADE_LIMIT` (4) candidates, so a cold Vegas deal takes several seconds, more on a phone. →
+  request may grade `GRADE_LIMIT` (8) candidates, so a cold Vegas deal takes several seconds, more on a phone. →
   Accepted (D7): the overlay covers it, the pool and the spares make later deals instant, and the limit is a count so
   the result stays deterministic. The desktop numbers are in `tests/README.md`; the phone check is manual.
 - **Traceability annotation touches many test files.** → It is split by area (11.4–11.6), each task a

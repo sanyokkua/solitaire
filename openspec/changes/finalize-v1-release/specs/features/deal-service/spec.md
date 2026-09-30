@@ -213,7 +213,7 @@ other modes' deals SHALL be made as follows:
 | Draw 1, Draw 3 or Vegas, "Winnable deals only" off | one fresh seed | none | `random`, 1 attempt, no grade |
 
 The Draw 3 and Vegas budgets are set by the per-mode deal benchmark; they live in this table, and
-changing either is a change to this requirement. A search request grades at most 4 proven candidates, and
+changing either is a change to this requirement. A search request grades at most 8 proven candidates, and
 carries the verdicts the service's cache holds for its seeds (see "A small in-memory verdict cache"). The
 spares of the search are offered to the pool (see "Instant deals from a pre-verified pool").
 
@@ -285,7 +285,7 @@ and SHALL be the same for every player on that date. Its selection is pinned as 
 The Daily deal SHALL always be verified this way, whatever the "Winnable deals only" setting, and
 the player's target difficulty SHALL never affect it.
 
-The selected deal SHALL then be graded by "grading v1" (see `solver/deal-grading`), and its grade
+The selected deal SHALL then be graded by "grading v2" (see `solver/deal-grading`), and its grade
 SHALL be reported with it. Grading SHALL NOT change which candidate is selected, so the seed and
 attempt count are exactly those daily v1 selects. Daily deals are never served from the pool.
 
@@ -294,7 +294,7 @@ and no grade. This is not expected ever to happen. The different fallback used w
 thread fails is defined in "The search never runs on the input thread".
 
 Changing the formula, the budget, the attempt cap or the search SHALL be treated as a new version,
-because it would change past and future Daily deals. The reported grade is pinned by grading v1;
+because it would change past and future Daily deals. The reported grade is pinned by grading v2;
 changing the grading is a new grading version and never changes a Daily deal's seed or attempts.
 
 Input-agnostic: the Daily deal is requested like any other deal, whichever control starts it.

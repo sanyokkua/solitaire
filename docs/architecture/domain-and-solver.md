@@ -231,7 +231,7 @@ checked from both sides.
   branching, would lose a win.
 - The engine is the oracle, so a search cannot drift from the rules the player plays by.
 
-### Grading v1
+### Grading v2
 
 `src/solver/grading.ts#gradeDeal` says how forgiving a proven-winnable deal is (Easy, Medium or Hard). Deals that only
 one narrow line wins are hard; deals that stay winnable through many plausible mistakes are easy.
@@ -242,9 +242,11 @@ one narrow line wins are hard; deals that stay winnable through many plausible m
 - After every 10th command the solver (`search`, 3,000 nodes) is asked whether the position is still provably
   winnable; a playout stops at the first checkpoint it cannot prove, and a playout that wins survives every checkpoint
   it had left. Up to ten checkpoints count per playout, so the score runs from 0 to 80.
-- The mode's thresholds turn the score into a grade: Easy from 62, Hard up to 43 in Draw 1 (and Daily); 30 and 12 in
-  Draw 3; 8 and 0 in Vegas. They were calibrated so that each grade holds at least 15% of the proven-winnable deals
-  (`tests/fixtures/gradingGolden.ts`); changing any parameter, rule or threshold is a new grading version.
+- The mode's thresholds turn the score into a grade: Easy from 74, Hard up to 52 in Draw 1 (and Daily); 36 and 14 in
+  Draw 3; 10 and 0 in Vegas. Version 1 used 62 and 43, 30 and 12, 8 and 0; version 2 raised each threshold by 20% (rounded
+  to whole checkpoints, and Vegas Hard stays at 0) so that every grade tolerates more mistakes. Each grade still holds at
+  least 15% of the proven-winnable deals of the calibration sample (`tests/fixtures/gradingGolden.ts`); changing any
+  parameter, rule or threshold is a new grading version.
 
 How the simulated player chooses (`playout`, `choose`):
 
@@ -268,8 +270,8 @@ depends on move ordering, not on difficulty for a person) and one greedy playout
 too coarse).
 
 Calibration and cost: `tests/bench/grading.bench.ts` graded the first 60 proven seeds per mode under four parameter
-variants; the pinned values give Easy, Medium and Hard about 35 / 32 / 33% of Draw 1 deals, 32 / 32 / 37% of Draw 3 and
-27 / 25 / 48% of Vegas. One grading costs about 0.2 s (Draw 1), 0.35 s (Draw 3) and 0.45 s (Vegas) on average on a
+variants; the pinned values give Easy, Medium and Hard about 17 / 33 / 50% of Draw 1 deals, 18 / 42 / 40% of Draw 3 and
+23 / 28 / 48% of Vegas. One grading costs about 0.2 s (Draw 1), 0.35 s (Draw 3) and 0.45 s (Vegas) on average on a
 desktop, at most about 2 s. It runs in the worker, and only after a `win`. A Daily deal is graded with the Draw 1 row.
 
 ### Selection with a target grade
@@ -285,7 +287,7 @@ with `target` `any`, `easy`, `medium` or `hard`.
 | Nothing proven   | the last seed as `random`, no grade                                                                                   | the list length           |
 
 - **Grade limit.** Grading is the costly step, so a request stops at the first exact match, or once it has met
-  `gradeLimit` (`GRADE_LIMIT`, 4) proven candidates of another grade, and settles for the closest. The bound is a count,
+  `gradeLimit` (`GRADE_LIMIT`, 8) proven candidates of another grade, and settles for the closest. The bound is a count,
   not a clock, so the same request always selects the same deal; with the 48 candidates it bounds the work of one request.
 - **Spares.** The result carries every other proven candidate it graded, as `{ seed, grade }`. The deal service pools them,
   so one search for a Hard deal that meets Easy and Medium deals on the way pays for later requests.

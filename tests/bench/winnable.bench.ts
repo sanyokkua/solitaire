@@ -11,7 +11,7 @@
  * budgets.ts`):
  * - the verdict distribution of the search over a fixed set of seeds (identical on every run);
  * - the median and 95th percentile of one cold selection, `findWinnable` over a batch of `MAX_ATTEMPTS` seeds, the
- *   call the deal service makes for a winnable deal, with the selected deal graded (grading v1 is solver-checked, so it
+ *   call the deal service makes for a winnable deal, with the selected deal graded (Grading v2 is solver-checked, so it
  *   costs seconds on a phone). Every mode is informational: the dealing overlay covers a cold deal and the pool serves
  *   a warm one. Draw 1 is also run asking for the Hard grade, which grades up to `GRADE_LIMIT` proven candidates.
  *

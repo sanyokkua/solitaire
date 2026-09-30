@@ -479,6 +479,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Result:** M = 8, take 0.6, unforced 0.05, a checkpoint every 10 commands, at most 10 checkpoints, 3,000 nodes each. Thresholds (Easy from, Hard up to): Draw 1 62 and 43, Draw 3 30 and 12, Vegas 8 and 0. Shares of Easy, Medium and Hard on the sample: 35 / 32 / 33% in Draw 1, 32 / 32 / 37% in Draw 3 and 27 / 25 / 48% in Vegas. One grading costs 0.2 s (Draw 1), 0.35 s (Draw 3) and 0.45 s (Vegas) on average, at most 1.8 s.
     - **Tests:** `tests/unit/solver/gradingGolden.test.ts` regrades the golden deals and reads the calibration scores through the thresholds (each grade at least 15%); `tests/unit/features/deal/daily.test.ts` checks the Daily grades.
     - **Verify:** `rtk npm run bench` shows the shares, `rtk npx vitest run tests/unit/solver tests/unit/features/deal` passes.
+    - **Revision (grading v2):** after playing the build, the author asked for every grade to be more tolerant of mistakes. Both thresholds were raised by 20%, rounded to whole checkpoints (Draw 1 74 and 52, Draw 3 36 and 14, Vegas 10 and 0), the constant became `GRADING_V2`, the shares became 17 / 33 / 50% (Draw 1), 18 / 42 / 40% (Draw 3) and 23 / 28 / 48% (Vegas), and `GRADE_LIMIT` went from 4 to 8 because Easy became rarer.
 
 - [x] 7.6 Selection with a target grade, and spares
     - **Implements:** GRD "A requested grade, or the closest one found"; SEL "Winnable selection by reject sampling" and "Background-thread message interface" (target, grade limit, grade and spares); D7.

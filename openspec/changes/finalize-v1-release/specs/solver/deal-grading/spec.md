@@ -3,7 +3,7 @@
 ## Purpose
 
 Grading a proven-winnable deal as Easy, Medium or Hard by how long seeded playouts of a human-like player
-who sees only face-up cards keep it provably winnable ("grading v1"), and choosing the requested grade, or the
+who sees only face-up cards keep it provably winnable ("grading v2"), and choosing the requested grade, or the
 closest one found, from a list of candidate deals.
 
 ## ADDED Requirements
@@ -11,7 +11,7 @@ closest one found, from a list of candidate deals.
 ### Requirement: Seeded playouts that see only face-up cards
 
 To grade a deal, the system SHALL play it *M* times from its dealt position as a simulated player, with
-*M* and every other number below taken from the grading v1 parameters (see "Grading v1 turns playout
+*M* and every other number below taken from the grading v2 parameters (see "Grading v2 turns playout
 survival into a grade"). Each playout SHALL follow these rules.
 
 - **What it sees.** It SHALL decide only from what a player can see: the face-up tableau cards, which
@@ -37,9 +37,9 @@ survival into a grade"). Each playout SHALL follow these rules.
   - a stall: the stock and waste return to an arrangement they already had since the last board move,
     so a full cycle through the talon played nothing;
   - the step cap: the number of commands a playout may apply;
-  - a checkpoint the solver cannot prove (see "Grading v1 turns playout survival into a grade").
+  - a checkpoint the solver cannot prove (see "Grading v2 turns playout survival into a grade").
 - **Randomness.** Every random choice SHALL come from the seeded generator (see card-model
-  "Deterministic pseudo-random sequence"), seeded with the playout seed of the grading v1 parameters,
+  "Deterministic pseudo-random sequence"), seeded with the playout seed of the grading v2 parameters,
   which depends on the deal's seed and the playout's index alone. Nothing else SHALL be random.
 
 Input-agnostic: no interaction; winnable selection calls grading.
@@ -75,7 +75,7 @@ Deterministic: the same deal and playout index always play the same commands.
 - **WHEN** a Vegas playout reaches an empty stock on its third pass with no productive move
 - **THEN** it stops without trying a recycle
 
-### Requirement: Grading v1 turns playout survival into a grade
+### Requirement: Grading v2 turns playout survival into a grade
 
 The system SHALL grade a deal only when its search verdict is `win`. A deal dealt as `random` SHALL
 have no grade.
@@ -86,9 +86,9 @@ deal's mode (see solver/deal-selection "Winnable selection by reject sampling") 
 stop asking at the first checkpoint that is not a proven `win`, `loss` and `unknown` alike. A playout SHALL count at
 most *K* checkpoints, and a playout that wins, or reaches *K*, has survived every checkpoint it had left.
 
-Grading v1 uses these parameters:
+Grading v2 uses these parameters:
 
-| Parameter | Grading v1 value |
+| Parameter | Grading v2 value |
 | --- | --- |
 | Playouts per deal, *M* | 8 |
 | Take probability | 0.6 |
@@ -100,21 +100,21 @@ Grading v1 uses these parameters:
 | Playout seed for playout *i* (from 0) of a deal with seed *s* | `fmix32((s + (i + 1) × 0x9E3779B9) mod 2³²)`, where `fmix32` is the MurmurHash3 32-bit finalizer |
 
 The deal's *score* is the survival of its *M* playouts added together, from 0 to *M* × *K*. The grade SHALL be read
-from the score through the grading v1 table for the deal's mode:
+from the score through the grading v2 table for the deal's mode:
 
 | Mode | Easy | Medium | Hard |
 | --- | --- | --- | --- |
-| Draw 1 | score ≥ 62 | 44 ≤ score ≤ 61 | score ≤ 43 |
-| Draw 3 | score ≥ 30 | 13 ≤ score ≤ 29 | score ≤ 12 |
-| Vegas | score ≥ 8 | 1 ≤ score ≤ 7 | score = 0 |
+| Draw 1 | score ≥ 74 | 53 ≤ score ≤ 73 | score ≤ 52 |
+| Draw 3 | score ≥ 36 | 15 ≤ score ≤ 35 | score ≤ 14 |
+| Vegas | score ≥ 10 | 1 ≤ score ≤ 9 | score = 0 |
 
 A Daily deal is dealt and played exactly like a Draw 1 deal, so it SHALL be graded with the Draw 1
 row.
 
 The table SHALL give every grade at least 15% of the proven-winnable deals of a pinned calibration
-sample in each mode. A pinned set of golden deals per mode, each with its score and grade, SHALL pin grading v1.
+sample in each mode. A pinned set of golden deals per mode, each with its score and grade, SHALL pin grading v2.
 
-Grading v1 is the parameters, the playout rules and the table taken together. Changing any of them
+Grading v2 is the parameters, the playout rules and the table taken together. Changing any of them
 SHALL be a new grading version, made on purpose by updating the pinned grades.
 
 Input-agnostic: no interaction.
@@ -125,7 +125,7 @@ Deterministic: the same deal always gets the same score and grade.
 
 #### Scenario: A score maps to a grade through the table
 
-- **WHEN** scores at and around the two thresholds of a mode's grading v1 row are read through it
+- **WHEN** scores at and around the two thresholds of a mode's grading v2 row are read through it
 - **THEN** the grades are Easy at and above the Easy bound, Hard at and below the Hard bound, and Medium between
 
 #### Scenario: Survival stops at the first unproven checkpoint

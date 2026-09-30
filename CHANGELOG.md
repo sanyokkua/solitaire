@@ -13,8 +13,9 @@ The first complete release: everything planned for the game is built, checked in
 - **Winnable deals in every mode.** A built-in solver proves a deal winnable before it is shown, in Draw 1, Draw 3 and
   Vegas (Draw 3 and Vegas use a search that follows the order of the drawn cards). A deal that cannot be proven within the
   attempt limit is dealt as a plain random deal and labelled so.
-- **Graded deals.** A proven deal is graded Easy, Medium or Hard by how forgiving it is, shown on the deal chip and the Win
-  sheet, and the Difficulty control asks for a grade. Selection tries 48 candidate deals per request.
+- **Graded deals.** A proven deal is graded Easy, Medium or Hard by how forgiving it is (how many plausible mistakes it stays
+  winnable through), shown on the deal chip and the Win sheet, and the Difficulty control asks for a grade. Selection tries
+  48 candidate deals per request and grades up to 8 proven ones to find the grade you asked for.
 - **Instant deals.** A background pool keeps proven, graded deals ready, so most new games start at once; a slow search shows
   a "Shuffling cards before the game…" screen.
 - **Solver hints in every mode.** Hint follows the solver's line where it has one, and falls back to a heuristic.
