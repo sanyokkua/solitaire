@@ -25,7 +25,7 @@ const changes = [
     { key: 'difficulty', value: 'hard' },
 ] as const;
 
-describe('defaultPreferences (specification section 6)', () => {
+describe('defaultPreferences', () => {
     it('holds the specified defaults', () => {
         expect(defaultPreferences('en')).toEqual({
             theme: 'system',

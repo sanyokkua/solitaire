@@ -5,7 +5,7 @@ import { useTranslate } from '../../../i18n/useTranslate';
 const pad = (value: number) => String(value).padStart(3, '0');
 
 /**
- * Home's LCD record strip (mockup `.stat-strip`, HO "Home record strip"): played and won as three digits, the rounded
+ * Home's LCD record strip (`.stat-strip`): played and won as three digits, the rounded
  * win rate (or `--` before any game) and the largest current streak, followed by `/best` once a best streak exists.
  * The colours and cell layout come from the shared `.stat-strip` rules in `controls.css`.
  */

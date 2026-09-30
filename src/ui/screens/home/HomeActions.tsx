@@ -6,7 +6,7 @@ import { selectPreference } from '../../../features/preferences/preferencesSlice
 import { useTranslate } from '../../../i18n/useTranslate';
 
 /**
- * Home's action row (mockup `.cta-row`, HO "Home actions", AS "Continue game on Home"): Deal cards starts the selected
+ * Home's action row (`.cta-row`): Deal cards starts the selected
  * mode, Continue game (only while a game can be resumed) shows Game with the saved game as it was, How to play opens
  * its sheet. On phones and short screens `home.css` pins the row to the bottom of the viewport.
  */

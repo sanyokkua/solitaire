@@ -1,4 +1,4 @@
-/* Home: the top bar, the hero panel and its floating card fan (mockup `.topbar`, `.home-hero`, `.hero-fan`). Tokens only. */
+/* Home: the top bar, the hero panel and its floating card fan (`.topbar`, `.home-hero`, `.hero-fan`). Tokens only. */
 
 .home-body {
     width: min(100%, 47.5rem);
@@ -247,7 +247,7 @@
     }
 }
 
-/* ---------- mode choice and the Winnable switch (mockup `.section-label`, `.mode-row`, `.mode-card`, `.toggle-card`) ---------- */
+/* ---------- mode choice and the Winnable switch (`.section-label`, `.mode-row`, `.mode-card`, `.toggle-card`) ---------- */
 
 .section-label {
     margin: 1.6rem 0 0.6rem;
@@ -451,7 +451,7 @@
     }
 }
 
-/* ---------- actions, record strip, links and footer (mockup `.cta-row`, `.footlinks`, `.build-stamp`) ---------- */
+/* ---------- actions, record strip, links and footer (`.cta-row`, `.footlinks`, `.build-stamp`) ---------- */
 
 .cta-row {
     display: flex;

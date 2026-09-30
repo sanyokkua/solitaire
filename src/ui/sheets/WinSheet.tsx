@@ -19,10 +19,9 @@ const GRADE_TEXT = {
  * The Win sheet (D4, SH "Win sheet"), registered in `SheetHost` as `win`. Opened by `useWinSheet`, beside `useCascade`
  * in `Board`, 2,400 ms after the win (at once with reduced motion). Reads `selectWinSummary`; renders nothing if it is
  * `null` (a defensive fallback — `useWinSheet` only ever opens this sheet once a summary has been recorded, and it is
- * cleared only when a game is installed or cleared, both of which close this sheet along with every other). Follows
- * the mockup's `.outcome-sheet`: the pixel title, a one-line summary that names the Standard time bonus (Vegas has
- * none), a "New best time" badge only on a new best, and Score (Bank in Vegas, formatted as the HUD formats it), Time
- * and Moves tiles. `dismissable={false}` (SH "Win sheet"): no close button, and Escape and the backdrop do nothing —
+ * cleared only when a game is installed or cleared, both of which close this sheet along with every other). Shows
+ * the pixel title, a one-line summary that names the Standard time bonus (Vegas has none), a "New best time" badge only on a new best, and Score (Bank in Vegas, formatted as the HUD formats it), Time
+ * and Moves tiles. `dismissable={false}`: no close button, and Escape and the backdrop do nothing —
  * `ModalSheet` itself refuses to call `onDismiss` while `dismissable` is `false`, so the passed-in no-op is never
  * reached anyway; `closeSheet()` also guards `win` at the thunk level for `useGameShortcuts`'s Escape handling. Only
  * Menu (`goHome()`) and Deal again (`dealNewGame(mode)`, initial focus, I5) leave it. `returnFocusFallback` covers

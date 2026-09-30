@@ -175,7 +175,7 @@ export function createDealService(options: DealServiceOptions = {}): DealService
                 onProgress?.({ overlay, attempt });
             }
         };
-        // One timer per request (the mockup's single 160 ms timer): it never fires for a deal delivered sooner.
+        // One timer per request (a single 160 ms timer): it never fires for a deal delivered sooner.
         const timer = setTimeout(() => {
             overlay = true;
             report();

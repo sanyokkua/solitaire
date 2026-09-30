@@ -812,7 +812,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Stop condition:** anything larger than polish is surfaced, not absorbed.
     - **Verify:** the full `rtk npm run e2e` and `rtk npx playwright test --project=device-fit` pass, and the review is recorded screen by screen in `tests/README.md`.
 
-- [ ] 12.2 Committed reference screenshots
+- [x] 12.2 Committed reference screenshots
     - **Implements:** RF "Committed reference screenshots are the look-and-feel reference", "Test suites separated by execution layer" (the opt-in, Chromium-only capture) and "Continuous integration on every push and pull request" (visual-parity naming); D19.
     - **Files:**
       - new `tests/e2e/screenshots.spec.ts` (skipped unless `CAPTURE_SCREENSHOTS=1`; Chromium; production build);
@@ -833,7 +833,7 @@ Any bug these specs expose goes through `superpowers:systematic-debugging`. Fix 
     - **Tests:** none new; the fixtures are unchanged apart from comments.
     - **Verify:** every fact the docs and tests used from the pack now has a home (checked against `rg -n "R§|research.md|phased-design|specification.md" src tests docs --glob '!docs/spec/**'`), and `rtk npm run test:unit` passes.
 
-- [ ] 13.2 Remove spec-pack citations from code and test comments
+- [x] 13.2 Remove spec-pack citations from code and test comments
     - **Implements:** RF "No references to the retired spec pack" (source and tests); RF "Pure input modules stay pure" (its module list no longer cites the pack).
     - **Files:** comments only, in every `src/**` and `tests/**` file that cites the pack, the mockup, `R§` or `spec §`. Among them:
       - `src/features/deal/dealService.ts`, `src/ui/board/useWinSheet.ts`, `src/features/README.md` ("specification §6");

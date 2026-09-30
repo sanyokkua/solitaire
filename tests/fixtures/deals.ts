@@ -45,8 +45,8 @@ export const GOLDEN_DEAL: GoldenDeal = {
     seed: 1,
     mode: 'draw1',
     // Shuffled deck order for seed 1 (deal order: rows 0-6 across the columns, then the 24 stock cards
-    // bottom-to-top). Computed by the mockup's mulberry32/shuffle/dealFrom reference functions, not by
-    // the code under test (design D18).
+    // bottom-to-top). Computed by the reference mulberry32/shuffle/dealFrom functions, not by the code under test:
+    // `git show d72187f:docs/spec/mockup/klondike-mockup.html`.
     // prettier-ignore
     permutation: [
         24, 44, 23, 10, 43, 31, 50, 41, 6, 29, 35, 22, 40, 34, 11, 3, 49, 33, 8, 14, 4, 27, 45, 38, 30, 7, 21, 16,

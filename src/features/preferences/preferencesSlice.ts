@@ -29,7 +29,7 @@ export type PreferenceChange = {
     [K in keyof Preferences]: { readonly key: K; readonly value: Preferences[K] };
 }[keyof Preferences];
 
-/** The defaults of specification section 6; only the language depends on the browser. */
+/** The default preferences (see `docs/reference/storage-format.md`); only the language depends on the browser. */
 export function defaultPreferences(locale: Locale): Preferences {
     return {
         theme: 'system',

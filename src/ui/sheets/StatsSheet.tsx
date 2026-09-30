@@ -53,9 +53,8 @@ const ROWS: readonly Row[] = [
 
 /**
  * Statistics (5.4, D2, D8, D13): a `.stats-table` with one column per mode (Draw 1, Draw 3, Vegas, Daily) and rows
- * Played, Won, Win rate, Best time, Best score (Vegas shown as money through `formatBank`) and Best streak, mirroring
- * the mockup's `#sheet-stats` (SH "Statistics sheet"). A missing record shows "—". Below the table, the Daily
- * date-streak line combines the current streak (`selectDailyStreak`, read against `useToday()`'s injected-clock day
+ * Played, Won, Win rate, Best time, Best score (Vegas shown as money through `formatBank`) and Best streak. A missing record shows "—".
+ * Below the table, the Daily date-streak line combines the current streak (`selectDailyStreak`, read against `useToday()`'s injected-clock day
  * key) with the best streak kept in `state.stats.daily` — a separate concept from the Daily mode column's own Best
  * streak. Reset goes through `ConfirmAction` into `resetStatistics()`, same as Settings' Data group (5.2). Unlike
  * Help's single "Got it", this sheet has its own explicit Close action alongside Reset, so initial focus (I5) lands

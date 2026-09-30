@@ -10,7 +10,7 @@
  * {@link POOL_PER_GRADE} deals. Pausing, a pending player deal or a new choice never cancels the fill in flight, whose
  * results are pooled under the mode it was started for.
  *
- * Termination (an assumption the spec leaves open): a fill that pools nothing, because it ended `random`, every deal
+ * Termination (a design decision): a fill that pools nothing, because it ended `random`, every deal
  * it found fell in a full bucket, or the worker failed, ends the filling until the next trigger (`take`, `setChoice`,
  * `resume`, `setBusy(false)`). Otherwise a mode whose Hard deals are rare, or a worker that keeps failing, would keep
  * the background thread busy for ever. A failure drops only the fill in flight; the next fill starts a new worker.

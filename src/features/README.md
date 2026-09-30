@@ -228,7 +228,7 @@ winnableOnly })` when the selected mode or the switch changes or the page become
 - `preferences/locale.ts` — `Locale` and `SUPPORTED_LOCALES` re-exported from the `src/i18n/catalog.ts` registry (a
   new, data-only dependency from `features` to `i18n`), plus `resolveLocale(languages)`: the first browser-preferred
   language whose primary subtag is supported (`uk-UA` selects `uk`), otherwise English
-- `preferences/preferencesSlice.ts` — the thirteen user preferences (the last is `difficulty`: `any`, `easy`, `medium` or `hard`, default `any`) with the specification §6 defaults
+- `preferences/preferencesSlice.ts` — the thirteen user preferences (the last is `difficulty`: `any`, `easy`, `medium` or `hard`, default `any`) with the documented defaults (`docs/reference/storage-format.md`)
   (`defaultPreferences(locale)`; only the language depends on the browser). `preferenceSet({ key, value })` changes one
   preference (a key/value mismatch fails typechecking), `preferencesReset(locale)` restores the defaults. Selectors
   `selectPreferences` and `selectPreference(state, key)` take the structural shape `{ preferences }`, so this slice

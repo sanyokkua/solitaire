@@ -16,7 +16,7 @@ describe('mulberry32', () => {
     });
 
     it('matches the reference vector for seed 1', () => {
-        // Seed 1; values produced by the mockup's mulberry32 (D18).
+        // Seed 1; values produced by the reference mulberry32 (`git show d72187f:docs/spec/mockup/klondike-mockup.html`).
         expect(take(mulberry32(1), 3)).toEqual([0.6270739405881613, 0.002735721180215478, 0.5274470399599522]);
     });
 

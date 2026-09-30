@@ -81,8 +81,8 @@ snapshots; they never apply game rules.
   inert, by the time it runs), so this fallback only fires when nothing was focused.
 - `sheets/WinSheet.tsx` — `WinSheet`, registered in `SheetHost` as `win` (5.8, D4, SH "Win sheet"). Opened by
   `useWinSheet` (`board/useWinSheet.ts`, below), 2,400 ms after the win (at once with reduced motion). Reads
-  `selectWinSummary` (`features/interaction/selectors.ts`) and renders nothing while it is `null`. Follows the
-  mockup's `.outcome-sheet`: the heading `t('win.heading')` ("You win!", set in the pixel typeface with the Home wordmark's stepped shadow: `ModalSheet`'s
+  `selectWinSummary` (`features/interaction/selectors.ts`) and renders nothing while it is `null`. Shows the
+  heading `t('win.heading')` ("You win!", set in the pixel typeface with the Home wordmark's stepped shadow: `ModalSheet`'s
   `headingClassName` prop puts `modal-sheet__title--pixel` on the `<h2>`, and no other sheet passes it), a "New best time" badge
   (`.best-badge`, `t('win.bestTime')`) shown only when `winSummary.newBestTime`, the deal's grade as a `.outcome-grade` line
   ("Easy deal", "Medium deal" or "Hard deal", `win.grade.*`) only when `winSummary.grade` is not `null`, a one-line summary that names the
@@ -194,7 +194,7 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   initial-focus target (I5) — a reference sheet has nothing to edit, so focus starts on the one way out. `sheets.css`
   gains `.help-rule`/`.help-rule__icon`, `.keys-table` and `.help-grades` for this sheet; no other sheet uses them yet.
 - `sheets/StatsSheet.tsx` — `StatsSheet`, registered in `SheetHost` as `stats` (D2, D8, D13, 5.4). Wraps a
-  `.scroll-x`-wrapped `table.stats-table` (mirroring the mockup's `#sheet-stats`) in a wide `ModalSheet`, heading
+  `.scroll-x`-wrapped `table.stats-table` in a wide `ModalSheet`, heading
   `t('stats.heading')`, `onDismiss` `closeSheet()` (also the default focus fallback): one column per mode (Draw 1, Draw 3,
   Vegas, Daily, each a `<th scope="col">`) and one `<th scope="row">` per row — Played, Won, Win rate, Best time, Best
   score (Vegas shown as money through `format.ts`'s `formatBank`) and Best streak — reading `state.stats.modes`
@@ -301,7 +301,7 @@ action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`a
   the two drift apart.
 - `styles/layout.css` — the Game frame, tokens only (no colour literals, no `prefers-reduced-motion`). `.screen--game`
   is `100dvh`, `overflow: hidden`, padded by `env(safe-area-inset-top/right/bottom/left)` on every edge in both
-  profiles. The stacked profile (`.game-body` capped at `min(100%, 64rem)`) has the region sizes of the mockup: the HUD
+  profiles. The stacked profile (`.game-body` capped at `min(100%, 64rem)`) has these region sizes: the HUD
   ordered Score/Moves, New-deal slot, Time by CSS `order` (slot 2.9rem, 2.6rem at 460 px wide or narrower, 2.5rem in the
   rails — `.game-face`'s own size, never changed by the coarse-pointer rule below), the hint line at one `0.7rem` line
   (`0.64rem` at 480 px or narrower), the chip slot at Back's height with

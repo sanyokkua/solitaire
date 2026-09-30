@@ -46,7 +46,7 @@ describe('dealFromSeed', () => {
         expect(deckOrderOf(other)).not.toEqual(deckOrderOf(first));
     });
 
-    it('matches the golden shuffled deck order computed by the mockup reference', () => {
+    it('matches the golden shuffled deck order computed by the reference implementation', () => {
         const state = dealFromSeed(GOLDEN_DEAL.seed, GOLDEN_DEAL.mode);
         expect(deckOrderOf(state)).toEqual(GOLDEN_DEAL.permutation);
     });

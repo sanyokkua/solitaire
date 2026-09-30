@@ -212,7 +212,7 @@ export function draw3TalonState({
 const FRESH_DEAL_SEED = 42;
 
 /**
- * A started, playing Draw 1 game a moment after the first draw, as on the mockup's game screens: a seeded deal with
+ * A started, playing Draw 1 game a moment after the first draw, as on a typical game screen: a seeded deal with
  * the top stock card turned onto the waste, one move counted and one second on the clock. The other cards stay where
  * the deal put them, so all 52 cards appear once.
  */
@@ -224,7 +224,7 @@ export function freshDrawOneState(): GameState {
 }
 
 /**
- * A started, playing Draw 3 game a moment after two draws, as on the mockup's Draw 3 screen: a seeded deal with the
+ * A started, playing Draw 3 game a moment after two draws, as on a typical Draw 3 screen: a seeded deal with the
  * top six stock cards turned onto the waste in draws of three, so the waste shows a fan of three cards on top of
  * three more. Two moves are counted and one second is on the clock.
  */
