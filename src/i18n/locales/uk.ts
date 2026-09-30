@@ -89,7 +89,7 @@ export const uk: Record<MessageKey, Message> = {
 
     'game.heading': 'Класичний пасьянс',
     'game.dealing': 'Роздача…',
-    'game.dealingOverlay.title': 'Тасуємо виграшну роздачу…',
+    'game.dealingOverlay.title': 'Тасуємо карти перед грою…',
     'game.dealingOverlay.attempt': 'роздача №{count}',
     'game.back': 'На головну',
     'game.hintLine.smart': 'Торкніться карти, щоб надіслати її на найкраще місце · або перетягніть самі',

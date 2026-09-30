@@ -282,3 +282,45 @@ KS-A11Y-05)*
 
 - **WHEN** a Daily game was started from a `D-…` deal code and so has no Daily key
 - **THEN** the mode chip reads "Daily" (shown as "DAILY") with no date
+
+### Requirement: The Game screen keeps its name and dealing status
+
+The Game screen SHALL keep a level-one heading naming the game in the active language ("Klondike" in
+English) for assistive technology (it MAY be visually hidden), and SHALL keep a polite status region
+announcing "Dealing…" (in the active language) while a deal is being prepared.
+
+When preparing a winnable deal takes longer than 160 ms, an overlay SHALL cover the table reading
+"Shuffling cards before the game…" with an attempt counter ("deal #N" in English) that follows the attempt
+being tried, until the deal is ready; the overlay SHALL then disappear. Until the overlay appears the
+previous table MAY remain visible. The overlay's spinner SHALL be decorative and hidden from
+assistive technology, and with motion off it SHALL be still. Board input stays closed while dealing
+(see `features/interaction`).
+
+Input-agnostic: no interaction.
+
+*(KS-DEAL-04, KS-A11Y-01, KS-A11Y-02, KS-SET-04)*
+
+#### Scenario: Screen name
+
+- **WHEN** the Game screen is shown
+- **THEN** a level-one heading named "Klondike" is present
+
+#### Scenario: Dealing status
+
+- **WHEN** a deal is being prepared
+- **THEN** the status region reads "Dealing…"
+
+#### Scenario: Slow winnable deal shows the overlay
+
+- **WHEN** a winnable Draw 1 deal is still being prepared after 160 ms, on its fourth attempt
+- **THEN** the overlay reads "Shuffling cards before the game…" and "deal #4"
+
+#### Scenario: Quick deal shows no overlay
+
+- **WHEN** a deal is ready within 160 ms
+- **THEN** no overlay is shown
+
+#### Scenario: Still spinner without motion
+
+- **WHEN** motion is off and the overlay is shown
+- **THEN** its spinner does not animate

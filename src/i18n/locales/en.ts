@@ -86,7 +86,7 @@ export const en = {
 
     'game.heading': 'Klondike',
     'game.dealing': 'Dealing…',
-    'game.dealingOverlay.title': 'Shuffling a winnable deal…',
+    'game.dealingOverlay.title': 'Shuffling cards before the game…',
     'game.dealingOverlay.attempt': 'deal #{count}',
     'game.back': 'Back to Home',
     'game.hintLine.smart': 'Tap a card to send it to its best spot · drag to place it yourself',
