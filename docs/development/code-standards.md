@@ -3,10 +3,12 @@
 ## Formatting, linting, types
 
 - **Prettier** (`.prettierrc.json`): 4-space indent, 120 columns, semicolons, single quotes, trailing commas everywhere.
-  `.prettierignore` excludes only `docs/spec/` (the spec pack, until it is deleted), `openspec/`, the lockfile and build
-  output, so the maintained docs are checked by `format:check` and formatted by lint-staged like source.
+  `.prettierignore` excludes only `openspec/`, the lockfile, build and test output, `node_modules/` and the tool folders
+  `.agents/`, `.claude/` and `.husky/_/`, so the maintained docs are checked by `format:check` and formatted by
+  lint-staged like source (`configContract.test.ts` fails if `docs/` is ever excluded).
 - **ESLint** (`eslint.config.js`): `typescript-eslint` `strictTypeChecked` + `stylisticTypeChecked`, `react-hooks`,
-  `react-refresh`. `no-explicit-any` and `consistent-type-imports` are errors. Layer rules below are also ESLint rules.
+  `react-refresh`. `no-explicit-any` and `consistent-type-imports` are errors. Most layer rules below are also ESLint rules; the
+  exceptions (`src/pwa`, `src/i18n`'s React import, `src/features` to `src/app`, storage access) are guard tests.
 - **TypeScript** (`tsconfig.app.json`): `strict`, `noUnusedLocals`/`noUnusedParameters`, `noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`, `verbatimModuleSyntax` (use `import type` for types), `noEmit`.
 
@@ -14,18 +16,18 @@
 
 The authoritative list is in `AGENTS.md`. Summary and what enforces each:
 
-| Principle                                              | Enforced by                                                                                |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| Pure domain and solver (no React, Redux, DOM, storage) | ESLint import restrictions; `tests/unit/repo/domainPurity.test.ts`, `solverPurity.test.ts` |
-| Deterministic by seed (mulberry32, no `Math.random`)   | Purity tests ban `Math.random`; `src/domain/prng.ts`                                       |
-| UI renders state and dispatches commands               | Convention; `applyCommand` lives in domain; ESLint bans route/sheet actions in UI          |
-| Static and offline, no third-party hosts               | `scripts/validate-artifact.mjs` (no cross-origin URLs)                                     |
-| Every move reachable by tap, drag and keyboard         | E2E `playByTap`, `playByDrag`, `playByKeyboard` win tests                                  |
-| Motion is optional                                     | Single no-motion path (`data-motion='off'`); `motion.spec.ts`                              |
-| Accessible by default                                  | `a11y.spec.ts` (axe), `contrast.test.ts`, announcer and focus tests                        |
-| Versioned, defensively decoded storage                 | `storageBoundary.test.ts`, codec tests                                                     |
-| Docs are part of the change                            | Review; see [workflow](workflow.md#documentation-is-part-of-the-change)                    |
-| Mockup is visual reference only                        | Convention                                                                                 |
+| Principle                                              | Enforced by                                                                                                                                   |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pure domain and solver (no React, Redux, DOM, storage) | ESLint import restrictions; `tests/unit/repo/domainPurity.test.ts`, `solverPurity.test.ts`                                                    |
+| Deterministic by seed (mulberry32, no `Math.random`)   | Purity tests ban `Math.random`; `src/domain/prng.ts`                                                                                          |
+| UI renders state and dispatches commands               | Convention; `applyCommand` lives in domain; ESLint bans route/sheet actions in UI                                                             |
+| Static and offline, no third-party hosts               | `scripts/validate-artifact.mjs` (no cross-origin URLs), `configContract.test.ts` (`index.html`)                                               |
+| Every move reachable by tap, drag and keyboard         | E2E `playByTap`, `playByDrag`, `playByKeyboard` win tests                                                                                     |
+| Motion is optional                                     | Single no-motion path (`data-motion='off'`); `motion.spec.ts`                                                                                 |
+| Accessible by default                                  | `a11y.spec.ts` (axe), `contrast.test.ts`, announcer and focus tests                                                                           |
+| Versioned, defensively decoded storage                 | `storageBoundary.test.ts`, codec tests                                                                                                        |
+| Docs are part of the change                            | Review; `docsLinks.test.ts` (no broken links or paths), `noSpecPack.test.ts`; see [workflow](workflow.md#documentation-is-part-of-the-change) |
+| Look and feel is fixed                                 | Review against `docs/assets/screenshots/`, regenerated by `npm run screenshots`                                                               |
 
 ## Layer boundaries
 

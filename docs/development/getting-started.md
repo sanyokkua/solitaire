@@ -34,12 +34,19 @@ npm run validate   # the gate that must pass before every commit
 npm run e2e        # Playwright; builds and previews the app itself
 ```
 
-See [scripts reference](../reference/scripts.md) for every script and [testing](testing.md) for running a single test.
+`npm run e2e` runs `npm run build && npm run preview` on port 5173 first, and outside CI reuses a server that is already
+listening there, so stop a stale preview before you run it against new code. The suite takes a while: it runs seven
+projects.
+
+Two scripts are outside the gate: `npm run bench` (informational solver benchmarks) and `npm run screenshots`
+(regenerates the committed reference screenshots, only when a change alters the look; see
+[testing](testing.md#reference-screenshots)). See [scripts reference](../reference/scripts.md) for every script and
+[testing](testing.md) for running a single test.
 
 ## Git hooks
 
 `npm ci` runs `prepare`, which installs husky hooks: `pre-commit` (lint-staged, `typecheck`, `test:unit`) and `pre-push`
-(`e2e`). Details in [workflow](workflow.md#git-hooks).
+(`e2e`, all seven Playwright projects, so a push takes minutes). Details in [workflow](workflow.md#git-hooks).
 
 ## Next
 

@@ -38,17 +38,17 @@ flowchart TD
 format:check && lint && typecheck && validate:lifecycle-storage && vitest run tests/unit tests/component --coverage && build && validate:artifact
 ```
 
-`tests/unit/repo/configContract.test.ts` asserts this exact order.
+`tests/unit/repo/configContract.test.ts` asserts this exact order and that `.prettierignore` leaves `docs/` checked.
 
-| Step                         | Command                                       | What it checks                                                                                                                                                                                                                 |
-| ---------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `format:check`               | `prettier --check .`                          | Formatting: 4-space indent, 120 columns, semicolons, single quotes, trailing commas.                                                                                                                                           |
-| `lint`                       | `eslint .`                                    | `typescript-eslint` strict and stylistic type-checked rules, react-hooks, and the import restrictions in `eslint.config.js` (layer purity, no solver value imports in features, no direct route or sheet changes from the UI). |
-| `typecheck`                  | `tsc -b --pretty false`                       | TypeScript strict, no unused locals or parameters; includes the type-level catalog completeness test.                                                                                                                          |
-| `validate:lifecycle-storage` | `node scripts/validate-lifecycle-storage.mjs` | Lifecycle tests reach storage only through an injected gateway (details in [testing](testing.md)).                                                                                                                             |
-| `test:unit`                  | `vitest run tests/unit tests/component`       | All unit, component and repo guard tests.                                                                                                                                                                                      |
-| `build`                      | `tsc -b && vite build`                        | Type-check, then build into `dist/` with the `/solitaire/` base, the service worker and the solver worker chunk.                                                                                                               |
-| `validate:artifact`          | `node scripts/validate-artifact.mjs`          | Checks the built `dist/` (below).                                                                                                                                                                                              |
+| Step                         | Command                                            | What it checks                                                                                                                                                                                                                 |
+| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `format:check`               | `prettier --check .`                               | Formatting: 4-space indent, 120 columns, semicolons, single quotes, trailing commas.                                                                                                                                           |
+| `lint`                       | `eslint .`                                         | `typescript-eslint` strict and stylistic type-checked rules, react-hooks, and the import restrictions in `eslint.config.js` (layer purity, no solver value imports in features, no direct route or sheet changes from the UI). |
+| `typecheck`                  | `tsc -b --pretty false`                            | TypeScript strict, no unused locals or parameters; includes the type-level catalog completeness test.                                                                                                                          |
+| `validate:lifecycle-storage` | `node scripts/validate-lifecycle-storage.mjs`      | Lifecycle tests reach storage only through an injected gateway (details in [testing](testing.md)).                                                                                                                             |
+| unit and component tests     | `vitest run tests/unit tests/component --coverage` | All unit, component and repo guard tests (including the docs-link, no-spec-pack and traceability guards), with the 80% coverage floor.                                                                                         |
+| `build`                      | `tsc -b && vite build`                             | Type-check, then build into `dist/` with the `/solitaire/` base, the service worker and the solver worker chunk.                                                                                                               |
+| `validate:artifact`          | `node scripts/validate-artifact.mjs`               | Checks the built `dist/` (below).                                                                                                                                                                                              |
 
 ### `scripts/validate-artifact.mjs`
 
@@ -73,8 +73,10 @@ Reads every `tests/component/appLifecycle*.test.tsx` and fails when one names `l
 `Storage.prototype`, builds a bare `createStorageGateway()`, or calls `startApp(` without a `gateway`. It also fails if
 no such file exists.
 
-Other scripts: `scripts/generate-icons.mjs` regenerates `public/favicon.svg` and the icons in `public/icons/` (not part of `validate`). See
-[scripts reference](../reference/scripts.md).
+Other scripts, none part of `validate`: `scripts/trace-requirements.mjs` (`npm run trace`) regenerates the
+[traceability matrix](../reference/traceability.md), which `tests/unit/repo/traceability.test.ts` checks inside the
+unit run; `scripts/generate-icons.mjs` regenerates `public/favicon.svg` and the icons in `public/icons/`;
+`scripts/build-info.mjs` builds the stamp below. See [scripts reference](../reference/scripts.md).
 
 ## Git hooks (husky)
 
@@ -101,8 +103,10 @@ Triggers: every `push` and every `pull_request`. Permissions: `contents: read`. 
 6. `npm run e2e` (all seven projects; 2 retries; `forbidOnly`). Playwright's `webServer` runs `npm run build` and
    `npm run preview` again on port 5173, because CI does not reuse an existing server.
 7. On failure: upload `playwright-report/` and `test-results/` as artifact `playwright-report`.
-8. Always: upload `test-results/visual-parity/` as artifact `visual-parity` (screenshots for manual comparison with the
-   mockup; `if-no-files-found: warn`).
+8. Always: upload `test-results/visual-parity/` as artifact `visual-parity` (screenshots written by
+   `visualParity.spec.ts` for review by eye against the committed reference screenshots in
+   `docs/assets/screenshots/`; `if-no-files-found: warn`). CI never rewrites those reference screenshots:
+   `npm run screenshots` is opt-in and local.
 
 Actions are pinned to exact versions; `tests/unit/repo/configContract.test.ts` checks the pins. Per the project rule, look
 up the latest versions before updating them.
@@ -119,7 +123,7 @@ Triggers: push to `master` and manual `workflow_dispatch`. Concurrency group `pa
   whose URL is the deployment's `page_url`; uses `actions/deploy-pages`.
 
 Playwright is not run in `pages.yml`; the end-to-end suite runs in `ci.yml` (pushes and pull requests). Whether master is
-protected so that Pages deploys only after a green CI: TODO: confirm (repository settings are not in the repo).
+protected so that Pages deploys only after a green CI is a repository setting that is not recorded in the repo.
 The repository's Pages source is GitHub Actions (`build_type: workflow`, read from the GitHub Pages API).
 
 ## Base path `/solitaire/`
@@ -155,7 +159,7 @@ stamp and the version. To reproduce a CI stamp locally: `GITHUB_RUN_NUMBER=7 npm
 
 ## GitHub Pages deployment
 
-1. A commit lands on `master` (how the integration branch reaches `master`: TODO: confirm; branch rules are in [workflow](workflow.md)).
+1. A commit lands on `master`: the integration branch reaches it by a pull request, as the [release procedure](release.md) describes (branch rules are in [workflow](workflow.md)).
 2. `pages.yml` builds and validates, uploads `dist/` as the Pages artifact, and `deploy` publishes it.
 3. The service worker precaches the new build. Returning players see the "new version ready" notice and choose Update or
    Later; see [i18n and PWA](../architecture/i18n-and-pwa.md).

@@ -31,7 +31,8 @@ Where things are:
 
 - `openspec/specs/<layer>/<capability>/spec.md`: the current requirements, grouped by layer (`app`, `domain`, `features`, `i18n`, `pwa`, `solver`, `tooling`, `ui`).
 - `openspec/changes/`: active changes. `openspec/changes/archive/`: finished ones (history; do not edit).
-- `docs/spec/`: the original product specification pack (`KS-*` requirement ids). Source for requirement traceability, otherwise frozen.
+- The `KS-*` requirement ids are cited by the requirements in `openspec/specs`; [traceability](../reference/traceability.md) maps each to the tests and manual checks that prove it.
+- Source of truth, in order: the code, configuration, tests and workflows; `openspec/specs`; `docs/`; the committed screenshots in `docs/assets/screenshots/` (see [docs index](../README.md#source-of-truth)). The original specification pack is retired; nothing cites it.
 
 Small fixes (typos, a failing test, a documentation correction) do not need a change.
 
@@ -69,22 +70,26 @@ The pre-commit hook only lints staged files, so it does not replace `validate`.
 
 Installed by husky (`prepare` script):
 
-- `.husky/pre-commit`: `npx lint-staged` (Prettier and ESLint on staged `*.ts`/`*.tsx`; Prettier on staged json, css, html, md, yml), then `npm run typecheck`, then `npm run test:unit`.
-- `.husky/pre-push`: `npm run e2e`.
+- `.husky/pre-commit`: `npx lint-staged` (Prettier and ESLint `--fix` on staged `*.ts`/`*.tsx`; Prettier on staged json, css, html, md, yml, yaml), then `npm run typecheck`, then `npm run test:unit`.
+- `.husky/pre-push`: `npm run e2e` (all seven Playwright projects).
 
 ## Documentation is part of the change
 
 When a change alters behaviour, scripts, configuration, CI, storage shape, source layout or user-facing controls, update the
-matching page in the same change:
+matching page in the same change. `tests/unit/repo/docsLinks.test.ts` fails on a relative link or a cited repository path
+that does not exist, and `noSpecPack.test.ts` on any mention of the retired specification pack (see
+[testing](testing.md#documentation-checks)):
 
-| Fact                        | Page                                                                                            |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| npm scripts                 | [reference/scripts.md](../reference/scripts.md)                                                 |
-| Stored record               | [reference/storage-format.md](../reference/storage-format.md)                                   |
-| Shortcuts and input         | [reference/keyboard-and-controls.md](../reference/keyboard-and-controls.md)                     |
-| Rules, modes, scoring       | [reference/game-rules.md](../reference/game-rules.md)                                           |
-| Layers and dependency rules | [architecture/overview.md](../architecture/overview.md), [code-standards.md](code-standards.md) |
-| Tests and guards            | [testing.md](testing.md)                                                                        |
-| CI, deployment, validation  | [ci-and-deployment.md](ci-and-deployment.md)                                                    |
-| Module internals            | the module's own `README.md` under `src/`                                                       |
-| Overall status and layout   | `README.md`, `AGENTS.md`                                                                        |
+| Fact                            | Page                                                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| npm scripts                     | [reference/scripts.md](../reference/scripts.md)                                                                 |
+| Stored record                   | [reference/storage-format.md](../reference/storage-format.md)                                                   |
+| Shortcuts and input             | [reference/keyboard-and-controls.md](../reference/keyboard-and-controls.md)                                     |
+| Rules, modes, scoring           | [reference/game-rules.md](../reference/game-rules.md)                                                           |
+| Layers and dependency rules     | [architecture/overview.md](../architecture/overview.md), [code-standards.md](code-standards.md)                 |
+| Tests and guards, `KS` coverage | [testing.md](testing.md); run `npm run trace` when a `covers:` comment, a KS citation or a manual check changes |
+| CI, deployment, validation      | [ci-and-deployment.md](ci-and-deployment.md)                                                                    |
+| Module internals                | the module's own `README.md` under `src/`                                                                       |
+| Winnable deals and solver       | [reference/winnability.md](../reference/winnability.md)                                                         |
+| Look (colours, type, layout)    | the reference screenshots: `npm run screenshots` ([testing](testing.md#reference-screenshots))                  |
+| Overall status and layout       | `README.md`, `AGENTS.md`                                                                                        |

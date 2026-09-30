@@ -109,9 +109,11 @@ mode that caps passes.
 
 ### Winnable deals only
 
-A preference (`winnableOnly`, default on), shared by Draw 1, Draw 3 and Vegas. The deal service tries up to 48 fresh
-seeds, searching each within its budget, and uses the first proven win. If none is proven, the last seed is dealt as
-`random`. The Home switch is live in those three modes and disabled, showing on, in Daily
+A preference (`winnableOnly`, default on), shared by Draw 1, Draw 3 and Vegas. A request is served from the pool of
+deals proven in the background when it holds one of the requested grade. Otherwise the deal service tries up to 48 fresh
+seeds, searching each within its budget, and deals the first proven win of the requested grade (the closest grade when
+none turns up; [winnability.md](winnability.md#selection)). If no candidate is proven, the last seed is dealt as
+`random`. With the switch off, one fresh seed is dealt as `random` without a search. The Home switch is live in those three modes and disabled, showing on, in Daily
 (`src/ui/screens/home/WinnableToggle.tsx`). Beside it, the Difficulty control (Any, Easy, Medium, Hard; the
 `difficulty` preference) asks for a grade of winnable deal; it is enabled only while the switch is on outside Daily. See
 [domain-and-solver.md](../architecture/domain-and-solver.md#deal-service).
@@ -239,10 +241,11 @@ started (first accepted command) and is not won. Source: `src/features/game/cloc
 ## Assists
 
 - **Tap modes** (`tapMode`): `smart` sends a tapped card to its single best destination
-  (`src/domain/smartTap.ts#bestTarget`); `select` picks up then places. A double tap sends a fitting card to its
-  foundation. Drag and keyboard reach every move as well.
-- **Auto-move safe cards** (`autoSafe`, default off): after a move, cards that cannot be needed on the tableau are
-  sent to the foundations one at a time, as part of the same undo step (`src/domain/safeMoves.ts#isSafe`).
+  (`src/domain/smartTap.ts#bestTarget`); `select` picks up then places, and a double tap there sends a lone card that fits to its
+  foundation (Smart move ignores the second tap). Drag and keyboard reach every move as well.
+- **Auto-move safe cards** (`autoSafe`, default off): after a move, a card that no tableau card could still need as a
+  resting place (an Ace or a Two, or a card whose two opposite-colour foundations have reached a rank below it) is
+  sent to its foundation, one at a time, as part of the same undo step (`src/domain/safeMoves.ts#isSafe`).
 - **Hint**: solver's first winning-line move in every mode when it proves a win in time, otherwise the heuristic
   priorities in [domain-and-solver.md](../architecture/domain-and-solver.md#hints-safe-moves-dead-end-finish).
   Hints cost nothing.

@@ -95,7 +95,9 @@ construction; a step that carries a `grade` key of its own is `invalid`. `grade`
 and only a `win` game may have one. Each
 decoded step must pass `src/domain/validate.ts#isValidGameState` (52 distinct cards, consistent piles).
 
-Runtime-only values (`busy`, `epoch`, the clock anchor, interaction state, notices) are never stored.
+Runtime-only values (`busy`, `epoch`, the clock anchor, interaction state, notices) are never stored. Nor are the deal
+pool of proven winnable deals and the solver's verdict cache: both live in memory, so a reload starts them empty
+([winnability.md](winnability.md#the-deal-pool)).
 
 ## Decode outcomes
 
