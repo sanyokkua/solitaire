@@ -34,6 +34,8 @@ const FIXED = 1;
 /** A source of fresh seeds whose candidates hold no Easy deal within the grade limit (found by trying sources 1 to 12; most find every grade). */
 const NO_EASY_FIXED = 4;
 const HUGE_DELAY_MS = 60_000;
+/** Real searches run here, and a shared CI runner under load takes several times as long as a laptop (5 s here). */
+const SLOW_CI_TIMEOUT_MS = 120_000;
 const OVERLAY_DELAY_MS = 160;
 
 const [WIN_SEED = 0] = corpusSeeds('win');
@@ -267,41 +269,50 @@ describe('deal service: provenance per mode', () => {
         },
     );
 
-    it('deals the closest grade, labelled with its own, when the requested grade is not found', async () => {
-        const seeds = drawnSeeds(NO_EASY_FIXED, MAX_ATTEMPTS);
-        const selectionFor = (target: Grade) => ({ target, gradeLimit: GRADE_LIMIT });
-        const missed = GRADES.find(
-            (target) =>
-                findWinnable(seeds, WINNABLE_BUDGET, 'draw1', { selection: selectionFor(target) }).grade !== target,
-        );
-        if (missed === undefined) {
-            throw new Error('every grade is found in the NO_EASY_FIXED seeds; pick a source where one is missing');
-        }
-        const expected = findWinnable(seeds, WINNABLE_BUDGET, 'draw1', { selection: selectionFor(missed) });
-        const service = track(
-            createDealService({
-                createWorker: realFactory().create,
-                seedSource: mulberry32SeedSource(NO_EASY_FIXED),
-                overlayDelayMs: HUGE_DELAY_MS,
-            }),
-        );
+    it(
+        'deals the closest grade, labelled with its own, when the requested grade is not found',
+        async () => {
+            const seeds = drawnSeeds(NO_EASY_FIXED, MAX_ATTEMPTS);
+            const selectionFor = (target: Grade) => ({ target, gradeLimit: GRADE_LIMIT });
+            let missed: Grade | undefined;
+            let expected: ReturnType<typeof findWinnable> | undefined;
+            for (const target of GRADES) {
+                const result = findWinnable(seeds, WINNABLE_BUDGET, 'draw1', { selection: selectionFor(target) });
+                if (result.grade !== target) {
+                    missed = target;
+                    expected = result;
+                    break;
+                }
+            }
+            if (missed === undefined || expected === undefined) {
+                throw new Error('every grade is found in the NO_EASY_FIXED seeds; pick a source where one is missing');
+            }
+            const service = track(
+                createDealService({
+                    createWorker: realFactory().create,
+                    seedSource: mulberry32SeedSource(NO_EASY_FIXED),
+                    overlayDelayMs: HUGE_DELAY_MS,
+                }),
+            );
 
-        const outcome = await service.deal({ mode: 'draw1', winnableOnly: true, target: missed });
+            const outcome = await service.deal({ mode: 'draw1', winnableOnly: true, target: missed });
 
-        expect(expected.verdict).toBe('win');
-        expect(outcome).toEqual({
-            status: 'dealt',
-            state: dealFromSeed(expected.seed, 'draw1', {
-                verdict: 'win',
-                attempts: expected.attempts,
-                grade: expected.grade ?? null,
-            }),
-        });
-        if (outcome.status === 'dealt') {
-            expect(outcome.state.grade).not.toBe(missed);
-            expect(outcome.state.grade).toBe(expected.grade);
-        }
-    });
+            expect(expected.verdict).toBe('win');
+            expect(outcome).toEqual({
+                status: 'dealt',
+                state: dealFromSeed(expected.seed, 'draw1', {
+                    verdict: 'win',
+                    attempts: expected.attempts,
+                    grade: expected.grade ?? null,
+                }),
+            });
+            if (outcome.status === 'dealt') {
+                expect(outcome.state.grade).not.toBe(missed);
+                expect(outcome.state.grade).toBe(expected.grade);
+            }
+        },
+        SLOW_CI_TIMEOUT_MS,
+    );
 
     it.each([
         { winnableOnly: false, target: 'any', day: '2026-09-24' },
