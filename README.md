@@ -1,8 +1,10 @@
 # Klondike Solitaire
 
-A calm, retro-styled Klondike Solitaire that runs in the browser, works offline and installs as an app. It is a static
-single-page app (Vite, React, TypeScript, Redux Toolkit): no backend, no API and no account. Game state, preferences and
-statistics stay in your browser's `localStorage` (record `solitaire.local-state`).
+A calm, retro-styled Klondike Solitaire that runs in the browser, works offline and installs as an app.
+
+It is a static single-page app (Vite, React, TypeScript, Redux Toolkit): no backend, no API and no account.
+
+Game state, preferences and statistics stay in your browser's `localStorage` (record `solitaire.local-state`).
 
 **Play it: <https://sanyokkua.github.io/solitaire/>**
 
@@ -79,11 +81,8 @@ All scripts are listed in [docs/reference/scripts.md](docs/reference/scripts.md)
 
 ## Contributing
 
-Features and behaviour changes are introduced through [OpenSpec](openspec/): a change is proposed,
-implemented task by task, then archived into `openspec/specs/`. See
-[docs/development/workflow.md](docs/development/workflow.md). Documentation is updated in the same change.
+Features and behaviour changes are introduced through [OpenSpec](openspec/): a change is proposed, implemented task by task, then archived into `openspec/specs/`. See [docs/development/workflow.md](docs/development/workflow.md). Documentation is updated in the same change.
 
 ## License
 
-[MIT](LICENSE). The bundled Inter and Press Start 2P fonts are under the SIL Open Font License 1.1;
-sources are in [src/assets/fonts/README.md](src/assets/fonts/README.md).
+[MIT](LICENSE). The bundled Inter and Press Start 2P fonts are under the SIL Open Font License 1.1; sources are in [src/assets/fonts/README.md](src/assets/fonts/README.md).
