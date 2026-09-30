@@ -20,6 +20,20 @@ describe('cards.css', () => {
     });
 });
 
+describe('the card corner mark in cards.css', () => {
+    /** The font-size factor of `--cw` a rule sets. */
+    const factor = (selector: RegExp): number =>
+        Number(/font-size:\s*calc\(var\(--cw\)\s*\*\s*([\d.]+)\)/.exec(ruleBody(cardsCss, selector))?.[1]);
+
+    it('keeps the rank at least 20% larger than the first release (0.15 of the card width)', () => {
+        expect(factor(/\.corner \.r\s*$/)).toBeGreaterThanOrEqual(0.15 * 1.2);
+    });
+
+    it('keeps the suit glyph at least 20% larger than the first release (0.19 of the card width)', () => {
+        expect(factor(/\.corner \.s\s*$/)).toBeGreaterThanOrEqual(0.19 * 1.2);
+    });
+});
+
 describe('the drag styles in cards.css', () => {
     const dragging = ruleBody(cardsCss, /\.card\.is-dragging\s*$/);
 

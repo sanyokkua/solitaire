@@ -186,12 +186,13 @@
 
 .corner .r {
     font-family: var(--font-pixel);
-    font-size: calc(var(--cw) * 0.15);
+    /* 20% larger than the first release (0.15), so a 5 and an 8, or a 1 and a 7, read apart on a small screen. */
+    font-size: calc(var(--cw) * 0.18);
     letter-spacing: -0.04em;
 }
 
 .corner .s {
-    font-size: calc(var(--cw) * 0.19);
+    font-size: calc(var(--cw) * 0.23);
 }
 
 .corner--br {
