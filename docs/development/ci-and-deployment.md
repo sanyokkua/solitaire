@@ -11,7 +11,7 @@ flowchart TD
     Dev["Developer commit"] -->|"pre-commit hook"| Hook1["lint-staged, typecheck, test:unit"]
     Dev -->|"git push"| Hook2["pre-push hook: npm run e2e"]
     Hook2 --> Remote["push to GitHub"]
-    Remote --> CI["ci.yml: any push or pull_request"]
+    Remote -->|"pull request opened or updated, or manual dispatch"| CI["ci.yml"]
     Remote -->|"push to master or manual dispatch"| Pages["pages.yml"]
 
     subgraph CIValidate["ci.yml, job validate"]
@@ -96,7 +96,10 @@ The pre-commit hook lints only staged files, so it does not replace `validate`. 
 
 ## `ci.yml`
 
-Triggers: every `push` and every `pull_request`. Permissions: `contents: read`. Two kinds of job run in parallel on
+Triggers: `pull_request` (opened and every new commit) and manual `workflow_dispatch`; there is no `push` trigger, so a
+commit on a branch with an open pull request is built once, not twice (a branch without a pull request is not built; open a
+draft pull request or dispatch the workflow by hand). A `concurrency` group per ref cancels the older run when a newer
+commit arrives. Permissions: `contents: read`. Two kinds of job run in parallel on
 `ubuntu-latest` (neither waits for the other, so the run takes as long as the slowest). GitHub Actions supplies
 `GITHUB_RUN_NUMBER` itself, so the build carries a build number.
 

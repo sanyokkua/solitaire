@@ -190,9 +190,11 @@ describe('ci.yml', () => {
         expect(ciWorkflow).toContain('contents: read');
     });
 
-    it('triggers on push and pull_request', () => {
-        expect(ciWorkflow).toMatch(/\bpush:/);
+    it('builds a pull request once: no push trigger, manual dispatch, and a newer commit cancels the older run', () => {
         expect(ciWorkflow).toMatch(/\bpull_request:/);
+        expect(ciWorkflow).toContain('workflow_dispatch:');
+        expect(ciWorkflow).not.toMatch(/^\s*push:/m);
+        expect(ciWorkflow).toContain('cancel-in-progress: true');
     });
 
     it.each(['uses: actions/checkout@', 'uses: actions/setup-node@', 'node-version: 22.22.2', 'run: npm ci'])(
