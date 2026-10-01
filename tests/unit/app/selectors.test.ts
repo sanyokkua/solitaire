@@ -9,6 +9,7 @@ function stateWith(animations: boolean, systemReducedMotion: boolean) {
     };
 }
 
+// covers: KS-SET-04
 describe('selectReducedMotion', () => {
     it('is reduced when Animations is on but the device asks for reduced motion', () => {
         expect(selectReducedMotion(stateWith(true, true))).toBe(true);

@@ -1,3 +1,4 @@
+// covers: KS-I18N-01
 import { describe, expect, it } from 'vitest';
 import { createLocaleController, type LocaleControllerStore } from '../../../src/i18n/localeController';
 import type { Locale } from '../../../src/i18n/catalog';

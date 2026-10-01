@@ -1,5 +1,5 @@
-import { cardId, DECK_SIZE, type Rank } from '../../src/domain/cards';
-import { dealFromSeed } from '../../src/domain/deal';
+import { cardId, DECK_SIZE, TABLEAU_COLS, type Rank } from '../../src/domain/cards';
+import { dealFromSeed, modeConfig } from '../../src/domain/deal';
 import type { CardId, Column, GameState, Suit, TableauCard } from '../../src/domain/types';
 import { faceUp, foundationsOf, makeState, tableauOf } from './states';
 
@@ -160,11 +160,59 @@ export function aceHomePosition(): GameState {
     });
 }
 
+/**
+ * A started, playing game in `mode` whose stock is empty and whose waste holds three face-up kings, with the other 49
+ * cards face up in the tableau, seven a column in id order. Nothing is on a foundation, so all 52 cards appear once.
+ * A recycle puts the three kings back in the stock and one draw of three returns them, so a browser spec can walk the
+ * passes with two activations of the stock each. Draw and scoring follow the mode, as the deal service sets them.
+ */
+function talonOnlyState(mode: 'draw3' | 'vegas', extra: Partial<GameState>): GameState {
+    const waste = [cardId(HEARTS, 13), cardId(DIAMONDS, 13), cardId(CLUBS, 13)];
+    const rest = restOfDeck(waste);
+    const columns = TABLEAU_COLS.map((col) => faceUp(...rest.slice(col * 7, col * 7 + 7)));
+    const { draw, scoring } = modeConfig(mode);
+    return makeState({
+        mode,
+        draw,
+        scoring,
+        started: true,
+        status: 'playing',
+        tableau: tableauOf(...columns),
+        waste,
+        ...extra,
+    });
+}
+
+/**
+ * A started, playing Vegas game (Draw 3, Vegas scoring) with an empty stock and a three-card waste, having used
+ * `passes` of its three passes; the Bank is the 52-dollar buy-in and no time counts against it. At `passes` 2 the next
+ * recycle begins the last pass, and once that pass's waste is drawn the stock refuses a fourth.
+ */
+export function vegasTalonState({ passes }: { readonly passes: number }): GameState {
+    return talonOnlyState('vegas', { passes, score: -52 });
+}
+
+/**
+ * A started, playing Standard Draw 3 game with an empty stock and a three-card waste, on pass `passes`, holding the
+ * stored `score` with `elapsedMs` on the clock. Passes 2 and 3 are free; the recycle that begins pass 4 costs 20.
+ */
+export function draw3TalonState({
+    passes,
+    score,
+    elapsedMs,
+}: {
+    readonly passes: number;
+    readonly score: number;
+    readonly elapsedMs: number;
+}): GameState {
+    return talonOnlyState('draw3', { passes, score, elapsedMs });
+}
+
 /** The seed of the fresh deals below; any 32-bit seed works, this one only fixes the picture. */
 const FRESH_DEAL_SEED = 42;
 
 /**
- * A started, playing Draw 1 game a moment after the first draw, as on the mockup's game screens: a seeded deal with
+ * A started, playing Draw 1 game a moment after the first draw, as on a typical game screen: a seeded deal with
  * the top stock card turned onto the waste, one move counted and one second on the clock. The other cards stay where
  * the deal put them, so all 52 cards appear once.
  */
@@ -176,7 +224,7 @@ export function freshDrawOneState(): GameState {
 }
 
 /**
- * A started, playing Draw 3 game a moment after two draws, as on the mockup's Draw 3 screen: a seeded deal with the
+ * A started, playing Draw 3 game a moment after two draws, as on a typical Draw 3 screen: a seeded deal with the
  * top six stock cards turned onto the waste in draws of three, so the waste shows a fan of three cards on top of
  * three more. Two moves are counted and one second is on the clock.
  */

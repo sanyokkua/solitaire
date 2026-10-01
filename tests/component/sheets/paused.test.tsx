@@ -1,3 +1,5 @@
+// covers: KS-SCO-07
+
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -213,7 +215,7 @@ describe('While the Paused sheet is open', () => {
         const { store } = mountApp();
         press('p');
 
-        fireEvent.click(screen.getByTestId('modal-backdrop'));
+        fireEvent.click(screen.getByRole('dialog').parentElement ?? document.body);
 
         expect(store.getState().app.sheet).toBeNull();
     });

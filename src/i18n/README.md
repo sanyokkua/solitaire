@@ -1,6 +1,6 @@
 # Internationalisation layer
 
-Typed English/Ukrainian catalogs (Phase 7 — Screens, sheets & localisation).
+Typed English/Ukrainian catalogs, the translator and the locale controller.
 
 - `translate.ts` — `Catalog`, `Message` (a string with `{name}` placeholders, or a plural object keyed by CLDR
   category), `TranslateParams` and `Translate`; `createTranslator(locale, catalog, fallback)` returns a `t(key,
@@ -12,10 +12,10 @@ params?)` that selects the plural form of a counted message with a cached `Intl.
 - `catalog.ts` — `CATALOGS` (the registry: one entry per language, its own display name and its catalog),
   `Locale` (`keyof typeof CATALOGS`) and `SUPPORTED_LOCALES`. `src/features/preferences/locale.ts` re-exports
   `Locale`/`SUPPORTED_LOCALES` from here, so `recordCodec.ts`'s stored-locale check and the Settings Language
-  control (Phase 7) follow the registry automatically. Adding a language is one `locales/<code>.ts` file plus one
+  control follow the registry automatically. Adding a language is one `locales/<code>.ts` file plus one
   entry here.
 - `useTranslate.ts` — `useTranslate()`, the only React-aware i18n module: reads `state.preferences.locale`
-  through `react-redux`'s `useSelector` directly (not `src/app/hooks`, to keep the layer boundary) and returns a
+  through `react-redux`'s `useSelector` directly (not `src/app/hooks.ts`, to keep the layer boundary) and returns a
   `t` memoised on the active locale, built with `createTranslator` from `catalog.ts`'s registry.
 - `localeController.ts` — `createLocaleController(store, root)`, modelled on `src/app/themeController.ts`: sets
   `root.lang` and `document.title` (to that locale's `app.title` message) at construction and on every store

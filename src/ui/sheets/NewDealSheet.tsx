@@ -25,12 +25,7 @@ export function NewDealSheet() {
     }
 
     return (
-        <ModalSheet
-            heading={t('newDeal.heading')}
-            initialFocusRef={cancelRef}
-            onDismiss={dismiss}
-            returnFocusFallback={dismiss}
-        >
+        <ModalSheet heading={t('newDeal.heading')} initialFocusRef={cancelRef} onDismiss={dismiss}>
             <p>{t('newDeal.warning')}</p>
 
             <div className="modal-sheet__actions">

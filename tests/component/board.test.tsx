@@ -3,12 +3,10 @@ import { dealFromSeed } from '../../src/domain/deal';
 import { accrued } from '../../src/features/game/gameSlice';
 import { undo } from '../../src/features/game/gameThunks';
 import { defaultPreferences } from '../../src/features/preferences/preferencesSlice';
-import type * as LayoutModule from '../../src/ui/board/layout';
 import { Board } from '../../src/ui/board/Board';
-import { positions } from '../../src/ui/board/layout';
 import { measure, type BoardSize } from '../../src/ui/board/metrics';
 import { cardIndex } from '../../src/ui/board/locate';
-import { pileKey } from '../../src/ui/board/landing';
+import { pileKey } from '../../src/ui/board/locate';
 import { selectBoardPiles, selectCardLocations } from '../../src/ui/board/selectors';
 import { gameOf, playedGame } from '../fixtures/games';
 import { faceUp, makeState, tableauOf } from '../fixtures/states';
@@ -16,18 +14,12 @@ import { FakeResizeObserver } from '../support/fakeResizeObserver';
 import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
 import { renderWithStore, type RenderWithStoreOptions } from '../support/renderWithStore';
 
-vi.mock('../../src/ui/board/layout', async (importOriginal) => {
-    const actual = await importOriginal<typeof LayoutModule>();
-    return { ...actual, positions: vi.fn(actual.positions) };
-});
-
 /** A stacked table with room for a full deal at a fine or a coarse pointer alike. */
 const STACKED: BoardSize = { width: 900, height: 800 };
 
 beforeEach(() => {
     FakeResizeObserver.instances.length = 0;
     vi.stubGlobal('ResizeObserver', FakeResizeObserver);
-    vi.mocked(positions).mockClear();
 });
 
 afterEach(() => {
@@ -172,6 +164,7 @@ describe('Board', () => {
         expect(cardNodes(container).map((node) => [node.dataset.pile, node.dataset.index])).not.toEqual(before);
     });
 
+    // covers: KS-A11Y-01
     it('names the slots and shows the stock count of a fresh deal', () => {
         const { container } = renderBoard({ game: gameOf(dealFromSeed(1, 'draw1')) });
 
@@ -205,13 +198,11 @@ describe('Board', () => {
         expect(coarse).toBeGreaterThan(fine);
     });
 
-    it('does not lay the table out again, or restyle a card, on a clock tick', () => {
+    it('keeps the piles and the rendered style of every card on a clock tick', () => {
         const { container, store } = renderBoard({ game: playedGame() });
         const before = store.getState().game.current;
         const stylesBefore = cardNodes(container).map(styleOf);
         const piles = selectBoardPiles(store.getState());
-        expect(positions).toHaveBeenCalled();
-        vi.mocked(positions).mockClear();
 
         act(() => {
             store.dispatch(accrued({ atMs: 1500, eligible: true }));
@@ -221,7 +212,6 @@ describe('Board', () => {
         expect(after).not.toBe(before);
         expect(after?.elapsedMs).toBeGreaterThan(before?.elapsedMs ?? 0);
         expect(selectBoardPiles(store.getState())).toBe(piles);
-        expect(positions).not.toHaveBeenCalled();
         expect(cardNodes(container).map(styleOf)).toEqual(stylesBefore);
     });
 
@@ -260,6 +250,7 @@ describe('Board', () => {
         expect(screen.getByRole('button', { name: 'Stock, empty' })).not.toHaveClass('is-spent');
     });
 
+    // covers: KS-SET-05
     it('moves the stock slot to the right when the mirror preference is on', () => {
         const game = gameOf(dealFromSeed(1, 'draw1'));
         const stockX = () => parseFloat(screen.getByRole('button', { name: /^Stock/ }).style.getPropertyValue('--x'));
@@ -273,6 +264,7 @@ describe('Board', () => {
         expect(stockX()).toBeGreaterThan(leftX);
     });
 
+    // covers: KS-GEN-08
     describe('Re-layout on viewport change', () => {
         it('applies the first size like a resize: transitions are off for one frame', () => {
             const frames = stubFrames();

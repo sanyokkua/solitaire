@@ -1,16 +1,12 @@
+// covers: KS-INP-05, KS-INP-06
+
 import { describe, expect, it } from 'vitest';
 import { FOUNDATION_DISPLAY_ORDER } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { GameState, PileRef, Suit, TableauCol } from '../../../../src/domain/types';
 import { columnSteps, positions, type Layout } from '../../../../src/ui/board/layout';
-import {
-    landingAreas,
-    nextLanding,
-    pickLargestOverlap,
-    pileAt,
-    pileKey,
-    type Rect,
-} from '../../../../src/ui/board/landing';
+import { landingAreas, nextLanding, pickLargestOverlap, pileAt, type Rect } from '../../../../src/ui/board/landing';
+import { pileKey } from '../../../../src/ui/board/locate';
 import { measure, type Metrics } from '../../../../src/ui/board/metrics';
 import { worstColumnState } from '../../../fixtures/boardPositions';
 import { faceDown, faceUp, foundationsOf, makeState, tableauOf } from '../../../fixtures/states';
@@ -56,15 +52,6 @@ function intersection(a: Rect, b: Rect): number {
     const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
     return Math.max(0, w) * Math.max(0, h);
 }
-
-describe('pileKey', () => {
-    it('names each pile', () => {
-        expect(pileKey({ pile: 'stock' })).toBe('stock');
-        expect(pileKey({ pile: 'waste' })).toBe('waste');
-        expect(pileKey({ pile: 'foundation', suit: 2 })).toBe('foundation:2');
-        expect(pileKey({ pile: 'tableau', col: 4 })).toBe('tableau:4');
-    });
-});
 
 describe('pileAt', () => {
     const { areas } = build(makeState({ tableau: tableauOf([...faceDown(50), ...faceUp(0, 1, 2)]) }), TALL);

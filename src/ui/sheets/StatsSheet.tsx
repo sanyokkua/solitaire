@@ -1,16 +1,15 @@
 import { useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { MODES } from '../../domain/deal';
 import type { Mode } from '../../domain/types';
 import { closeSheet } from '../../features/game/navigationThunks';
 import { resetStatistics } from '../../features/persistence/resetThunks';
-import { selectDailyStreak, type ModeStats } from '../../features/stats/statsSlice';
+import { selectDailyStreak, winRateOf, type ModeStats } from '../../features/stats/statsSlice';
 import { useTranslate } from '../../i18n/useTranslate';
 import { useToday } from '../useToday';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { formatBank, formatTime } from '../format';
 import { ModalSheet } from './ModalSheet';
-
-const MODES: readonly Mode[] = ['draw1', 'draw3', 'vegas', 'daily'];
 
 /** Shown for a record that does not exist yet (SH "Statistics sheet"). */
 const MISSING = '—';
@@ -31,7 +30,7 @@ const ROWS: readonly Row[] = [
     { labelKey: 'stats.row.won', format: (stats) => String(stats.won) },
     {
         labelKey: 'stats.row.winRate',
-        format: (stats) => (stats.played === 0 ? MISSING : `${String(Math.round((stats.won / stats.played) * 100))}%`),
+        format: (stats) => (stats.played === 0 ? MISSING : `${String(Math.round(winRateOf(stats) * 100))}%`),
     },
     {
         labelKey: 'stats.row.bestTime',
@@ -54,9 +53,8 @@ const ROWS: readonly Row[] = [
 
 /**
  * Statistics (5.4, D2, D8, D13): a `.stats-table` with one column per mode (Draw 1, Draw 3, Vegas, Daily) and rows
- * Played, Won, Win rate, Best time, Best score (Vegas shown as money through `formatBank`) and Best streak, mirroring
- * the mockup's `#sheet-stats` (SH "Statistics sheet"). A missing record shows "—". Below the table, the Daily
- * date-streak line combines the current streak (`selectDailyStreak`, read against `useToday()`'s injected-clock day
+ * Played, Won, Win rate, Best time, Best score (Vegas shown as money through `formatBank`) and Best streak. A missing record shows "—".
+ * Below the table, the Daily date-streak line combines the current streak (`selectDailyStreak`, read against `useToday()`'s injected-clock day
  * key) with the best streak kept in `state.stats.daily` — a separate concept from the Daily mode column's own Best
  * streak. Reset goes through `ConfirmAction` into `resetStatistics()`, same as Settings' Data group (5.2). Unlike
  * Help's single "Got it", this sheet has its own explicit Close action alongside Reset, so initial focus (I5) lands
@@ -77,13 +75,7 @@ export function StatsSheet() {
     }
 
     return (
-        <ModalSheet
-            heading={t('stats.heading')}
-            initialFocusRef={closeRef}
-            onDismiss={dismiss}
-            returnFocusFallback={dismiss}
-            wide
-        >
+        <ModalSheet heading={t('stats.heading')} initialFocusRef={closeRef} onDismiss={dismiss} wide>
             <div className="scroll-x">
                 <table className="stats-table">
                     <thead>

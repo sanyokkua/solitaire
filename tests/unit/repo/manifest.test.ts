@@ -1,3 +1,4 @@
+// covers: KS-PWA-02
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';

@@ -1,7 +1,8 @@
 # CI and deployment
 
 The app is a static site deployed to GitHub Pages under `/solitaire/`. Two workflows exist:
-`.github/workflows/ci.yml` (checks) and `.github/workflows/pages.yml` (deploy). Both run the same `validate` script.
+`.github/workflows/ci.yml` (checks) and `.github/workflows/pages.yml` (deploy). Neither runs Playwright on the release: the
+end-to-end suite runs locally in full and in `ci.yml` in a lean profile.
 
 ## Flow
 
@@ -10,16 +11,19 @@ flowchart TD
     Dev["Developer commit"] -->|"pre-commit hook"| Hook1["lint-staged, typecheck, test:unit"]
     Dev -->|"git push"| Hook2["pre-push hook: npm run e2e"]
     Hook2 --> Remote["push to GitHub"]
-    Remote --> CI["ci.yml: any push or pull_request"]
+    Remote -->|"pull request opened or updated, or manual dispatch"| CI["ci.yml"]
     Remote -->|"push to master or manual dispatch"| Pages["pages.yml"]
 
-    subgraph CIJob["ci.yml, job validate"]
+    subgraph CIValidate["ci.yml, job validate"]
         C1["npm ci"] --> C2["npm run validate"]
-        C2 --> C3["playwright install chromium firefox webkit"]
-        C3 --> C4["npm run e2e"]
-        C4 --> C5["upload artifacts"]
+    end
+    subgraph CIE2E["ci.yml, job e2e: one machine per browser, in parallel"]
+        E1["npm ci, cached browsers"] --> E2["playwright install one browser"]
+        E2 --> E3["E2E_PROFILE=ci playwright test --project=browser"]
+        E3 --> E4["on failure: upload report"]
     end
     CI --> C1
+    CI --> E1
 
     subgraph PagesBuild["pages.yml, job build (master only)"]
         P1["npm ci"] --> P2["npm run validate"]
@@ -35,20 +39,20 @@ flowchart TD
 `npm run validate` (in `package.json`) runs these in order and stops at the first failure:
 
 ```
-format:check && lint && typecheck && validate:lifecycle-storage && test:unit && build && validate:artifact
+format:check && lint && typecheck && validate:lifecycle-storage && vitest run tests/unit tests/component --coverage && build && validate:artifact
 ```
 
-`tests/unit/repo/configContract.test.ts` asserts this exact order.
+`tests/unit/repo/configContract.test.ts` asserts this exact order and that `.prettierignore` leaves `docs/` checked.
 
-| Step                         | Command                        | What it checks                                                                                                     |
-| ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `format:check`               | `prettier --check .`           | Formatting: 4-space indent, 120 columns, semicolons, single quotes, trailing commas.                               |
-| `lint`                       | `eslint .`                     | `typescript-eslint` strict and stylistic type-checked rules, react-hooks, and the import restrictions in `eslint.config.js` (layer purity, no solver value imports in features, no direct route or sheet changes from the UI). |
-| `typecheck`                  | `tsc -b --pretty false`        | TypeScript strict, no unused locals or parameters; includes the type-level catalog completeness test.              |
-| `validate:lifecycle-storage` | `node scripts/validate-lifecycle-storage.mjs` | Lifecycle tests reach storage only through an injected gateway (details in [testing](testing.md)).    |
-| `test:unit`                  | `vitest run tests/unit tests/component` | All unit, component and repo guard tests.                                                                |
-| `build`                      | `tsc -b && vite build`         | Type-check, then build into `dist/` with the `/solitaire/` base, the service worker and the solver worker chunk.   |
-| `validate:artifact`          | `node scripts/validate-artifact.mjs` | Checks the built `dist/` (below).                                                                            |
+| Step                         | Command                                            | What it checks                                                                                                                                                                                                                 |
+| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `format:check`               | `prettier --check .`                               | Formatting: 4-space indent, 120 columns, semicolons, single quotes, trailing commas.                                                                                                                                           |
+| `lint`                       | `eslint .`                                         | `typescript-eslint` strict and stylistic type-checked rules, react-hooks, and the import restrictions in `eslint.config.js` (layer purity, no solver value imports in features, no direct route or sheet changes from the UI). |
+| `typecheck`                  | `tsc -b --pretty false`                            | TypeScript strict, no unused locals or parameters; includes the type-level catalog completeness test.                                                                                                                          |
+| `validate:lifecycle-storage` | `node scripts/validate-lifecycle-storage.mjs`      | Lifecycle tests reach storage only through an injected gateway (details in [testing](testing.md)).                                                                                                                             |
+| unit and component tests     | `vitest run tests/unit tests/component --coverage` | All unit, component and repo guard tests (including the docs-link, no-spec-pack and traceability guards), with the 80% coverage floor.                                                                                         |
+| `build`                      | `tsc -b && vite build`                             | Type-check, then build into `dist/` with the `/solitaire/` base, the service worker and the solver worker chunk.                                                                                                               |
+| `validate:artifact`          | `node scripts/validate-artifact.mjs`               | Checks the built `dist/` (below).                                                                                                                                                                                              |
 
 ### `scripts/validate-artifact.mjs`
 
@@ -73,36 +77,55 @@ Reads every `tests/component/appLifecycle*.test.tsx` and fails when one names `l
 `Storage.prototype`, builds a bare `createStorageGateway()`, or calls `startApp(` without a `gateway`. It also fails if
 no such file exists.
 
-Other scripts: `scripts/generate-icons.mjs` regenerates the icons in `public/icons/` (not part of `validate`). See
-[scripts reference](../reference/scripts.md).
+Other scripts, none part of `validate`: `scripts/trace-requirements.mjs` (`npm run trace`) regenerates the
+[traceability matrix](../reference/traceability.md), which `tests/unit/repo/traceability.test.ts` checks inside the
+unit run; `scripts/generate-icons.mjs` regenerates `public/favicon.svg` and the icons in `public/icons/`;
+`scripts/build-info.mjs` builds the stamp below. See [scripts reference](../reference/scripts.md).
 
 ## Git hooks (husky)
 
 Installed by the `prepare` script (`husky`). Hooks live in `.husky/`.
 
-| Hook                | Runs                                                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Hook                | Runs                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.husky/pre-commit` | `npx lint-staged` (Prettier and ESLint `--fix` on staged `*.{ts,tsx}`; Prettier on staged `*.{json,css,html,md,yml,yaml}`), then `npm run typecheck`, then `npm run test:unit`. |
-| `.husky/pre-push`   | `npm run e2e` (all Playwright projects).                                                                                        |
+| `.husky/pre-push`   | `npm run e2e` (all Playwright projects).                                                                                                                                        |
 
 The pre-commit hook lints only staged files, so it does not replace `validate`. The project rule is to run the full
 `rtk npm run validate` before every commit (see [workflow](workflow.md)).
 
 ## `ci.yml`
 
-Triggers: every `push` and every `pull_request`. Permissions: `contents: read`. One job, `validate`, on
-`ubuntu-latest`, with `BUILD_TIMESTAMP` set to `github.run_started_at`. Steps:
+Triggers: `pull_request` (opened and every new commit) and manual `workflow_dispatch`; there is no `push` trigger, so a
+commit on a branch with an open pull request is built once, not twice (a branch without a pull request is not built; open a
+draft pull request or dispatch the workflow by hand). A `concurrency` group per ref cancels the older run when a newer
+commit arrives. Permissions: `contents: read`. Two kinds of job run in parallel on
+`ubuntu-latest` (neither waits for the other, so the run takes as long as the slowest). GitHub Actions supplies
+`GITHUB_RUN_NUMBER` itself, so the build carries a build number.
 
-1. `actions/checkout`.
-2. `actions/setup-node` with Node 22.22.2 and the npm cache.
-3. `npm ci`.
-4. `npm run validate`.
-5. `npx playwright install --with-deps chromium firefox webkit`.
-6. `npm run e2e` (all seven projects; 2 retries; `forbidOnly`). Playwright's `webServer` runs `npm run build` and
-   `npm run preview` again on port 5173, because CI does not reuse an existing server.
-7. On failure: upload `playwright-report/` and `test-results/` as artifact `playwright-report`.
-8. Always: upload `test-results/visual-parity/` as artifact `visual-parity` (screenshots for manual comparison with the
-   mockup; `if-no-files-found: warn`).
+- **`validate`** (15 min cap): checkout, `actions/setup-node` (Node 22.22.2, npm cache), `npm ci`, `npm run validate`.
+  No Playwright.
+- **`e2e`** (25 min cap), a matrix of `chromium`, `firefox` and `webkit` with `fail-fast: false`, so each browser has its
+  own machine: checkout, setup-node, `npm ci`, `actions/cache` for `~/.cache/ms-playwright`,
+  `npx playwright install --with-deps <browser>`, then `npx playwright test --project=<browser>` with
+  `E2E_PROFILE=ci`. Playwright's `webServer` builds and previews the app on port 5173. On failure it uploads
+  `playwright-report/` and `test-results/` as `playwright-report-<browser>`.
+
+The **lean CI profile** (`E2E_PROFILE=ci`, read by `playwright.config.ts`; a dedicated variable because `CI` is also set
+in the `validate` job, where the config tests need every project) differs from a local run in these ways:
+
+| Local (`npm run e2e`, pre-push hook)                    | CI profile                                                                                   |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| seven projects: three engines, three phones, device-fit | `chromium`, `firefox`, `webkit` only                                                         |
+| every spec                                              | no keyboard titles (`grepInvert: /keyboard/i`), no `dealLatency`, `dragPerf`, `visualParity` |
+| no retries (2 on any `CI`)                              | 1 retry, 2 workers, 90 s per test, 15 s per expectation, `maxFailures: 10`                   |
+| every spec in every engine                              | `playByTap`, `playByDrag`, `playModes` and `history` skipped in `webkit` only                |
+
+Why: the informational specs and the phone projects took most of a 57-minute run on a 4-core runner, and a hung test
+repeated three times cost nine minutes. Reproduce a shard locally with
+`E2E_PROFILE=ci npx playwright test --project=webkit`. CI does not write the `visual-parity` screenshots; review them
+locally with `npx playwright test visualParity --project=chromium`, and regenerate the committed reference screenshots
+with `npm run screenshots` (opt-in and local).
 
 Actions are pinned to exact versions; `tests/unit/repo/configContract.test.ts` checks the pins. Per the project rule, look
 up the latest versions before updating them.
@@ -118,9 +141,10 @@ Triggers: push to `master` and manual `workflow_dispatch`. Concurrency group `pa
 - Job `deploy`: `needs: build`; the only job with `pages: write` and `id-token: write`; environment `github-pages`
   whose URL is the deployment's `page_url`; uses `actions/deploy-pages`.
 
-Playwright is not run in `pages.yml`; the end-to-end suite runs in `ci.yml` (pushes and pull requests). Whether master is
-protected so that Pages deploys only after a green CI: TODO: confirm (repository settings are not in the repo).
-The repository's Pages source must be set to GitHub Actions: TODO: confirm.
+Playwright is not run in `pages.yml` (the job has a 15 min cap): a release is normally a merged pull request whose branch
+already passed `ci.yml`, so the release only re-validates and deploys. Whether master is
+protected so that Pages deploys only after a green CI is a repository setting that is not recorded in the repo.
+The repository's Pages source is GitHub Actions (`build_type: workflow`, read from the GitHub Pages API).
 
 ## Base path `/solitaire/`
 
@@ -136,23 +160,26 @@ The site lives at a sub-path, so every URL must carry it.
 
 Dev server: `npm run dev` serves at <http://localhost:5173/solitaire/>.
 
-## Build timestamp and version
+## Build identity and version
 
 `vite.config.ts` defines two compile-time constants:
 
-| Constant                    | Value                                                                              |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| `__APP_BUILD_TIMESTAMP__`   | `process.env.BUILD_TIMESTAMP`, else the string `dev version`.                      |
-| `__APP_VERSION__`           | `version` from `package.json` (read with `readFileSync`, not hard-coded).          |
+| Constant          | Value                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `__APP_BUILD__`   | `resolveBuildInfo(process.env, new Date())` from `scripts/build-info.mjs`: `{ number, time }`. |
+| `__APP_VERSION__` | `version` from `package.json` (read with `readFileSync`, not hard-coded).                      |
 
-Both CI workflows set `BUILD_TIMESTAMP` to `github.run_started_at`. The build stamp component
-(`src/ui/components/BuildStamp.tsx#BuildStamp`) shows the timestamp, or a localised "dev" text when Vite did not define it
-(as under Vitest); the About sheet shows the version. To reproduce a deployed stamp locally:
-`BUILD_TIMESTAMP=2026-01-01T00:00:00Z npm run build`.
+`number` is `GITHUB_RUN_NUMBER` (trimmed; unset, empty or blank means no number, `null`). `time` is the moment the build
+ran in UTC, formatted `YYYY-MM-DD HH:mm UTC` whatever the machine's time zone. Neither workflow passes anything
+itself: GitHub Actions sets `GITHUB_RUN_NUMBER`, so both the CI end-to-end build and the deployed Pages build carry a
+number. The build stamp component (`src/ui/components/BuildStamp.tsx#BuildStamp`) shows "App build: Build 57 ·
+2026-09-28 14:03 UTC", or "App build: Development build · 2026-09-28 14:03 UTC" when there is no number; the number and
+time are never translated. Vitest defines a fixed `__APP_BUILD__` (`vitest.config.ts`). The About sheet shows the
+stamp and the version. To reproduce a CI stamp locally: `GITHUB_RUN_NUMBER=7 npm run build`.
 
 ## GitHub Pages deployment
 
-1. A commit lands on `master` (how the integration branch reaches `master`: TODO: confirm; branch rules are in [workflow](workflow.md)).
+1. A commit lands on `master`: the integration branch reaches it by a pull request, as the [release procedure](release.md) describes (branch rules are in [workflow](workflow.md)).
 2. `pages.yml` builds and validates, uploads `dist/` as the Pages artifact, and `deploy` publishes it.
 3. The service worker precaches the new build. Returning players see the "new version ready" notice and choose Update or
    Later; see [i18n and PWA](../architecture/i18n-and-pwa.md).

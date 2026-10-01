@@ -1,3 +1,4 @@
+// covers: KS-AST-04
 import { describe, expect, it } from 'vitest';
 import { isSafe, nextSafeMove } from '../../../src/domain/safeMoves';
 import { cardId } from '../../../src/domain/cards';

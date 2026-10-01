@@ -48,6 +48,38 @@ describe('HelpSheet', () => {
         expect(screen.getByText(/Vegas:/)).toBeInTheDocument();
     });
 
+    // covers: KS-DEAL-11
+    describe('Winnable deals passage', () => {
+        it.each([
+            ['en', 'Winnable deals', /built-in solver/, ['Easy', 'Medium', 'Hard'], /Difficulty on Home/],
+            [
+                'uk',
+                'Виграшні роздачі',
+                /вбудований розв’язувач/,
+                ['Легка', 'Середня', 'Складна'],
+                /«Складність» на головному екрані/,
+            ],
+        ] as const)('explains the solver and the three grades in %s', (locale, heading, solver, grades, difficulty) => {
+            renderWithStore(<HelpSheet />, { preloadedState: { preferences: { locale } } });
+
+            expect(screen.getByText(heading)).toHaveClass('sub-label');
+            expect(screen.getByText(solver)).toBeInTheDocument();
+            expect(screen.getByText(difficulty)).toBeInTheDocument();
+            for (const grade of grades) {
+                expect(screen.getByText(grade, { selector: 'strong' })).toBeInTheDocument();
+            }
+        });
+
+        it('gives each grade its own explanation next to its name', () => {
+            renderWithStore(<HelpSheet />);
+
+            const easy = screen.getByText('Easy', { selector: 'strong' });
+            const hard = screen.getByText('Hard', { selector: 'strong' });
+            expect(easy.closest('.help-grades__row')).toHaveTextContent(/many plausible mistakes/);
+            expect(hard.closest('.help-grades__row')).toHaveTextContent(/Only a narrow line wins/);
+        });
+    });
+
     it('lands initial focus on Got it when the sheet opens (I5)', () => {
         renderWithStore(<HelpSheet />);
 

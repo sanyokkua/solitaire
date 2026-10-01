@@ -57,8 +57,11 @@ Notes:
 
 ## New deal
 
-`src/features/game/sessionThunks.ts#startGame` reads `winnableOnly`, asks the deal service, and installs the result.
-Only Draw 1 with the switch on, and Daily, use the worker; other requests are dealt at once on the calling thread.
+`src/features/game/sessionThunks.ts#startGame` reads `winnableOnly` and the Difficulty (sent as `target`, the grade
+wanted), asks the deal service, and installs the result. With the switch on, Draw 1, Draw 3 and Vegas are served at
+once from the graded-spare pool when it holds a deal of the target grade, and otherwise use the player's worker, at the
+mode's budget; Daily always uses the worker (always for `any`) and never takes from or deposits into the pool, though its search pauses pool filling; with the switch off the request is
+dealt at once on the calling thread.
 
 ```mermaid
 sequenceDiagram
@@ -70,22 +73,33 @@ sequenceDiagram
     participant W as Solver worker
     participant Store as Redux store
 
+    participant Pool as Deal pool
+
     UI->>Nav: choose mode
     Nav->>Store: close sheet, route game
     Nav->>Start: startGame(mode)
-    Start->>Svc: deal(mode, winnableOnly, onProgress)
-    Svc->>Client: cancel pending, findWinnable(seeds, budget)
-    Client->>W: findWinnable request
-    loop each candidate seed
-        W-->>Client: progress(attempt)
-        Client-->>Svc: attempt
-        Svc-->>Start: onProgress(overlay, attempt)
-        Start->>Store: dealingProgressed
-        Note over W: solve(deal, budget) until first win
+    Start->>Svc: deal(mode, winnableOnly, target, onProgress)
+    Svc->>Client: cancel pending (the pool's own client is left alone)
+    Svc->>Pool: setBusy(true), take(mode, target)
+    alt pool hit (switch on, not Daily)
+        Pool-->>Svc: seed, grade, attempts
+        Svc->>Pool: setBusy(false)
+        Svc-->>Start: dealt(dealFromSeed(seed, mode, win, attempts, grade)), no progress
+    else pool miss, or Daily
+        Svc->>Client: findWinnable(seeds, budget, mode, selection, known from the verdict cache)
+        Client->>W: findWinnable request
+        loop each candidate seed not already known
+            W-->>Client: progress(attempt), outcome(seed verdict)
+            Client-->>Svc: attempt, outcome (recorded in the verdict cache)
+            Svc-->>Start: onProgress(overlay, attempt)
+            Start->>Store: dealingProgressed
+            Note over W: solve(deal, budget), grade each win, until the target grade (or GRADE_LIMIT wins)
+        end
+        W-->>Client: findWinnable reply (seed, verdict, attempts, grade, spares)
+        Client-->>Svc: ok
+        Svc->>Pool: deposit(spares) (not Daily), setBusy(false) if still current
+        Svc-->>Start: dealt(dealFromSeed(seed, mode, verdict, attempts, grade))
     end
-    W-->>Client: findWinnable reply (seed, verdict, attempts)
-    Client-->>Svc: ok
-    Svc-->>Start: dealt(dealFromSeed(seed, mode, verdict, attempts))
     alt not cancelled, epoch and start id unchanged
         Start->>Store: streakBroken for replaced started game
         Start->>Store: installed(state, dayKey)
@@ -97,11 +111,66 @@ sequenceDiagram
 
 Notes:
 
-- `overlay` in the progress report becomes true after 160 ms, which is when the dealing overlay shows.
-- A new `deal` cancels the pending one and terminates a busy worker; the older start delivers nothing.
-- If the worker fails, the first candidate seed is dealt unverified (`random`, 1 attempt).
-- Draw 3, Vegas and Draw 1 with the switch off skip the worker: one `cryptoSeed`, `dealFromSeed`, `installed`.
+- `overlay` in the progress report becomes true after 160 ms, which is when the dealing overlay shows. A pooled deal
+  reports no progress and starts no overlay timer.
+- A new `deal` cancels the pending one and terminates a busy player worker; the older start delivers nothing. It never
+  cancels the pool's fill, which runs on a worker of its own.
+- The pool starts no fill while a request that may search is pending, Daily included (a Daily search pauses pre-verification
+  but never takes from or deposits into the pool); a superseded search does not end the pause of the
+  newer one. `prefetch(choice)` and `pause()` set what the pool fills and when; the deal pool controller calls them
+  (see [Deal pool](#deal-pool)).
+- Every search sends the verdict cache's entries for its seeds as `known`, so a repeated Daily request searches none of
+  its candidates again.
+- If the worker fails, the first candidate seed is dealt unverified and ungraded (`random`, 1 attempt, no grade), in every mode.
+- A requested grade that is not found within `GRADE_LIMIT` proven candidates deals the closest one, labelled with its own grade.
+- With the switch off, every mode but Daily skips the worker: one `cryptoSeed`, `dealFromSeed`, `installed`; the Difficulty is ignored.
 - `restart` and `playDealCode` also install directly with `dealFromSeed`, without the service.
+
+## Deal pool
+
+`src/app/dealPoolController.ts`, started by `startApp` (D8). Nothing happens until the first idle period:
+`requestIdleCallback(cb, { timeout: 2000 })` where the browser has it, a 2 s timer otherwise (WebKit). From then on the
+controller follows `preferences.selectedMode`, `preferences.winnableOnly` and `app.documentVisible`, and calls the deal
+service only when one of them changed. The pool itself lives in the deal service (`src/features/deal/dealPool.ts`) and
+runs on a solver worker of its own.
+
+```mermaid
+sequenceDiagram
+    participant Sched as Idle scheduler
+    participant Ctrl as Deal pool controller
+    participant Store as Redux store
+    participant Svc as Deal service
+    participant Pool as Deal pool
+    participant PW as Pool worker
+
+    Sched-->>Ctrl: first idle period (at most 2 s)
+    Ctrl->>Store: read selectedMode, winnableOnly, documentVisible; subscribe
+    Ctrl->>Svc: prefetch({ mode, winnableOnly })
+    Svc->>Pool: setChoice(choice), resume()
+    loop while the choice is Draw 1, Draw 3 or Vegas with the switch on, not paused or busy, a grade has room, and until a fill pools nothing or fails
+        Pool->>PW: findWinnable(fresh seeds, budget, mode, emptiest grade)
+        PW-->>Pool: selected deal and spares
+        Note over Pool: keep the proven deals whose bucket has room (2 per mode and grade)
+    end
+    Note over Svc,Pool: a player's deal takes a matching pooled deal at once, and the take starts a refill
+    Store-->>Ctrl: mode or switch changed
+    Ctrl->>Svc: prefetch(new choice)
+    Note over Pool: the next fill is for the new mode; deals pooled for other modes are kept.<br/>Daily or the switch off starts no fill
+    Store-->>Ctrl: page hidden
+    Ctrl->>Svc: pause()
+    Note over Pool: no new fill; the fill in flight finishes
+    Store-->>Ctrl: page visible
+    Ctrl->>Svc: prefetch(current choice)
+```
+
+Notes:
+
+- The Difficulty is not an input: a fill asks for the emptiest grade of the mode, whatever the Difficulty.
+- A fill that pools nothing (it ended `random`, everything it found fell in a full bucket, or the worker failed) ends the
+  filling until the next take, `setChoice`, `resume` or `setBusy(false)`; the next fill starts a new worker.
+- Nothing about the pool or the verdict cache is stored; a reload starts both empty.
+- `RunningApp.dispose()` cancels an idle signal still awaited and removes the subscription before it disposes the deal
+  service.
 
 ## Hint
 
@@ -112,18 +181,16 @@ flowchart TD
     A["requestHint"] --> B{"game present, not won, not busy"}
     B -- "no" --> Z["return"]
     B -- "yes" --> C["advise(current)"]
-    C --> D{"dead end"}
-    D -- "yes" --> E["notice dead-end and announce deadEnd"]
-    D -- "no" --> F{"same epoch and position already pending"}
+    C --> D{"advice"}
+    D -- "none, nothing can move" --> Z
+    D -- "dead end" --> E["notice dead-end and announce deadEnd"]
+    D -- "a hint" --> F{"same epoch and position already pending"}
     F -- "yes" --> Z
     F -- "no" --> G["pendingHintSet, dealService.hint"]
-    G --> H{"draw 1 and no pass limit"}
-    H -- "yes" --> I["solver hint, 3000 nodes, 150 ms"]
-    H -- "no" --> J["heuristic hint"]
+    G --> I["solver hint in every mode, 3000 nodes, 150 ms"]
     I --> K{"answer in time"}
     K -- "yes" --> L["hint from solver"]
-    K -- "no or none" --> J
-    J --> L2["hint from heuristic"]
+    K -- "no proof, timeout, failure or busy" --> L2["hint from heuristic"]
     L --> M{"game and position unchanged"}
     L2 --> M
     M -- "no" --> Z
@@ -165,6 +232,7 @@ sequenceDiagram
     Start->>Ctl: apply theme, lang, title
     Start->>Start: start clock ticker and writer, connect save port
     Start->>Start: attach visibilitychange, pagehide, media query listeners
+    Start->>Start: subscribe to the PWA gateways, start the deal pool controller
     Start->>R: render App
 ```
 

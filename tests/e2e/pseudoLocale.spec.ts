@@ -1,3 +1,5 @@
+// covers: KS-GEN-03, KS-I18N-04
+
 import { expect, test, type Page } from '@playwright/test';
 import { BASELINES, DEVICE_CONFIGS } from '../fixtures/viewports';
 import { worstColumnState } from '../fixtures/boardPositions';
@@ -52,6 +54,8 @@ const HOME_BOXES = [
     '.home-hero',
     '.mode-card',
     '.toggle-card',
+    '.toggle-card .segmented',
+    '.segmented button',
     '.cta-row',
     '.cta-row .action-button',
     '.stat-strip',
@@ -63,6 +67,7 @@ const GAME_BOXES = [
     '.game-topbar',
     '.game-chips',
     '.mode-chip',
+    '.deal-chip',
     '.game-hud',
     '.stat-display',
     '.game-face',
@@ -72,9 +77,16 @@ const GAME_BOXES = [
     '.game-footer',
 ];
 /** Boxes inside an open sheet. */
-const SHEET_BOXES = ['.modal-sheet', '.setting-row', '.help-rule', '.keys-table', '.modal-sheet__actions'];
+const SHEET_BOXES = [
+    '.modal-sheet',
+    '.setting-row',
+    '.help-rule',
+    '.help-grades__row',
+    '.keys-table',
+    '.modal-sheet__actions',
+];
 /** Elements whose text must wrap inside them rather than be cut. */
-const MUST_WRAP = ['.setting-row', '.help-rule', '.modal-sheet'];
+const MUST_WRAP = ['.setting-row', '.help-rule', '.help-grades__row', '.modal-sheet'];
 
 /** Opens the sheet behind `open`, waits for it to settle and returns its geometry. */
 async function openSheet(page: Page, open: () => Promise<void>) {
@@ -102,7 +114,9 @@ for (const config of [...DEVICE_CONFIGS, ...BASELINES]) {
 
         test('30 % longer text keeps Home, the Game screen and the sheets inside the screen', async ({ page }) => {
             await page.addInitScript(installPadding, GROWTH);
-            await seedRecord(page, { current: worstColumnState() });
+            await seedRecord(page, {
+                current: { ...worstColumnState(), verdict: 'win', attempts: 3, grade: 'medium' },
+            });
             await page.goto('/');
             await expect(page.locator('.cta-row .action-button--deal')).toBeVisible();
 

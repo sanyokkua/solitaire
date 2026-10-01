@@ -1,54 +1,57 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+// covers: KS-AST-05
+import { describe, expect, it } from 'vitest';
+import { dealFromSeed } from '../../../../src/domain/deal';
 import { applyCommand } from '../../../../src/domain/engine';
-import * as finishModule from '../../../../src/domain/finish';
-import type { finishPlan as FinishPlanFn } from '../../../../src/domain/finish';
+import { finishPlan } from '../../../../src/domain/finish';
 import type { GameState } from '../../../../src/domain/types';
 import { accrued, committed, installed, selectCanFinish } from '../../../../src/features/game/gameSlice';
-import { allFaceUp } from '../../../fixtures/deals';
+import { WINNING_LINE, allFaceUp } from '../../../fixtures/deals';
 import { testStore } from '../../../support/testStore';
 
-vi.mock('../../../../src/domain/finish', async (importActual) => {
-    const actual = await importActual<{ finishPlan: typeof FinishPlanFn }>();
-    return { ...actual, finishPlan: vi.fn(actual.finishPlan) };
-});
-
-const finishPlan = vi.mocked(finishModule.finishPlan);
-
-/** A store holding `game`, with the finish plan spy cleared so only the calls the test causes are counted. */
+/** A store holding `game`. */
 function storeWith(game: GameState) {
     const store = testStore({ deps: { now: () => 1000 } });
     store.dispatch(installed({ state: game, dailyKey: null }));
-    finishPlan.mockClear();
     return store;
 }
 
-beforeEach(() => {
-    finishPlan.mockClear();
-});
+/** `game` with every command of its finish plan applied: the won position. */
+function played(game: GameState): GameState {
+    const plan = finishPlan(game);
+    if (plan === undefined) throw new Error('the position has no finish plan');
+    return plan.commands.reduce((state, cmd) => applyCommand(state, cmd).state, game);
+}
 
 describe('selectCanFinish stability', () => {
-    it('does not plan again while the clock ticks and the piles are unchanged', () => {
+    it('stays available while the clock ticks and the piles are unchanged', () => {
         const store = storeWith(allFaceUp());
         expect(selectCanFinish(store.getState())).toBe(true);
-        expect(finishPlan).toHaveBeenCalledTimes(1);
 
         for (let tick = 1; tick <= 20; tick++) {
             store.dispatch(accrued({ atMs: 1000 + tick * 250, eligible: true }));
+            expect(selectCanFinish(store.getState())).toBe(true);
         }
-        expect(selectCanFinish(store.getState())).toBe(true);
-        expect(finishPlan).toHaveBeenCalledTimes(1);
+        expect(store.getState().game.current?.elapsedMs).toBeGreaterThan(allFaceUp().elapsedMs);
     });
 
-    it('plans again after a move changes the piles', () => {
+    it('stays unavailable while the clock ticks on a position that cannot be finished', () => {
+        const store = storeWith(dealFromSeed(WINNING_LINE.seed, WINNING_LINE.mode));
+        expect(selectCanFinish(store.getState())).toBe(false);
+
+        for (let tick = 1; tick <= 20; tick++) {
+            store.dispatch(accrued({ atMs: 1000 + tick * 250, eligible: true }));
+            expect(selectCanFinish(store.getState())).toBe(false);
+        }
+    });
+
+    it('changes after a move that changes the piles', () => {
         const start = allFaceUp();
-        const first = finishModule.finishPlan(start)?.commands[0];
-        if (first === undefined) throw new Error('the position has no finish plan');
         const store = storeWith(start);
         expect(selectCanFinish(store.getState())).toBe(true);
-        expect(finishPlan).toHaveBeenCalledTimes(1);
 
-        store.dispatch(committed(applyCommand(start, first).state));
-        selectCanFinish(store.getState());
-        expect(finishPlan).toHaveBeenCalledTimes(2);
+        store.dispatch(committed(played(start)));
+
+        expect(store.getState().game.current?.status).toBe('won');
+        expect(selectCanFinish(store.getState())).toBe(false);
     });
 });

@@ -1,3 +1,5 @@
+// covers: KS-I18N-01, KS-I18N-03
+
 import { act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/App';
@@ -85,6 +87,7 @@ const SHEET_SETUPS: Record<SheetId, Setup> = {
         store.dispatch(
             winRecorded({
                 mode: 'draw1',
+                grade: 'medium',
                 score: 235,
                 elapsedMs: 120_000,
                 moves: 42,

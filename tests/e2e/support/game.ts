@@ -1,8 +1,15 @@
 import { expect, type Page } from '@playwright/test';
+import type { GameState } from '../../../src/domain/types';
+
+const hudValue = (kind: string) => `.stat-display--${kind} .stat-display__value`;
+/** The HUD's value elements: the move count, the score and the timer. */
+export const MOVES_VALUE = hudValue('moves');
+export const SCORE_VALUE = hudValue('score');
+export const TIMER_VALUE = hudValue('timer');
 
 /** The stats and cards a change of appearance or viewport must leave alone, plus the clock and score it lets carry on. */
 export async function readGame(page: Page) {
-    const text = (kind: string) => page.locator(`.stat-display--${kind} .stat-display__value`).textContent();
+    const text = (kind: string) => page.locator(hudValue(kind)).textContent();
     const [minutes = 0, seconds = 0] = ((await text('timer')) ?? '').split(':').map(Number);
     const takenAt = Date.now();
     return {
@@ -35,4 +42,40 @@ export function expectClockCarriedOn(before: GameReading, after: GameReading): v
     expect(gained).toBeLessThanOrEqual(allowedSeconds);
     expect(before.score - after.score).toBeGreaterThanOrEqual(0);
     expect(before.score - after.score).toBeLessThanOrEqual(2 * (Math.floor(allowedSeconds / 10) + 1));
+}
+
+/** Every card's pile and index as the board draws them, keyed by card id. */
+export async function placement(page: Page): Promise<Record<string, string>> {
+    return page
+        .locator('[data-card-id]')
+        .evaluateAll((cards) =>
+            Object.fromEntries(
+                cards.map((card) => [
+                    card.getAttribute('data-card-id') ?? '',
+                    `${card.getAttribute('data-pile') ?? ''}#${card.getAttribute('data-index') ?? ''}`,
+                ]),
+            ),
+        );
+}
+
+/** The same placement for an engine position, in the board's own naming of piles. */
+export function placementOf(state: GameState): Record<string, string> {
+    const placed: Record<string, string> = {};
+    const add = (pile: string, ids: readonly number[]) => {
+        ids.forEach((id, index) => {
+            placed[String(id)] = `${pile}#${String(index)}`;
+        });
+    };
+    add('stock', state.stock);
+    add('waste', state.waste);
+    state.foundations.forEach((cards, suit) => {
+        add(`foundation:${String(suit)}`, cards);
+    });
+    state.tableau.forEach((cards, col) => {
+        add(
+            `tableau:${String(col)}`,
+            cards.map((card) => card.id),
+        );
+    });
+    return placed;
 }

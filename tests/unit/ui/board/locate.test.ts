@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cardId, DECK_SIZE } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import type { PileRef } from '../../../../src/domain/types';
-import { cardIndex } from '../../../../src/ui/board/locate';
+import { cardIndex, pileKey } from '../../../../src/ui/board/locate';
 import { freshDrawOneState, freshDrawThreeState } from '../../../fixtures/boardPositions';
 import { faceDown, faceUp, foundationsOf, makeState, tableauOf } from '../../../fixtures/states';
 
@@ -13,6 +13,15 @@ const TEN_DIAMONDS = cardId(1, 10);
 const NINE_SPADES = cardId(3, 9);
 const FIVE_CLUBS = cardId(2, 5);
 
+describe('pileKey', () => {
+    it('names each pile', () => {
+        expect(pileKey({ pile: 'stock' })).toBe('stock');
+        expect(pileKey({ pile: 'waste' })).toBe('waste');
+        expect(pileKey({ pile: 'foundation', suit: 2 })).toBe('foundation:2');
+        expect(pileKey({ pile: 'tableau', col: 4 })).toBe('tableau:4');
+    });
+});
+
 describe('cardIndex', () => {
     it('places stock cards face down and unmovable at their index', () => {
         const stock = [cardId(0, 1), cardId(1, 2), cardId(2, 3)];
@@ -22,6 +31,7 @@ describe('cardIndex', () => {
         });
     });
 
+    // covers: KS-MOVE-06
     it('makes only the top waste card movable in Draw 3, and every waste card face up', () => {
         const waste = [cardId(0, 4), cardId(1, 5), cardId(2, 6), cardId(3, 7)];
         const located = cardIndex(makeState({ mode: 'draw3', draw: 3, waste }));

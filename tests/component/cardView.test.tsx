@@ -1,3 +1,5 @@
+// covers: KS-A11Y-01, KS-A11Y-05
+
 import { screen } from '@testing-library/react';
 import { cardId } from '../../src/domain/cards';
 import { CardView } from '../../src/ui/board/CardView';

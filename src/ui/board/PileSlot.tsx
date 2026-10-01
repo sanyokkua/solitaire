@@ -4,7 +4,7 @@ import type { PileRef } from '../../domain/types';
 import { useTranslate } from '../../i18n/useTranslate';
 import { Icon } from '../components/Icon';
 import { TEXT_PRESENTATION } from './constants';
-import { pileKey } from './landing';
+import { pileKey } from './locate';
 import { pileName } from './names';
 import { positionStyle } from './style';
 

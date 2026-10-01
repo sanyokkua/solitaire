@@ -1,5 +1,5 @@
 /**
- * The device matrix of the table layout: the 13 screens of research R§13.1, their 52 board configurations, three
+ * The device matrix of the table layout: the 13 screens of `docs/reference/device-matrix.md`, their 52 board configurations, three
  * baselines, and the board size each one leaves once the app frame takes its share. It imports nothing from
  * `vitest`, so the unit sweep and the e2e device-fit matrix share it.
  */
@@ -22,7 +22,7 @@ export interface ScreenSpec {
     readonly pointer: Pointer;
 }
 
-/** One screen of R§13.1, in portrait. */
+/** One screen of the device matrix, in portrait. */
 export interface Viewport {
     readonly name: string;
     readonly platform: Platform;
@@ -48,7 +48,7 @@ export interface Baseline extends ScreenSpec {
     readonly label: string;
 }
 
-/** A row of R§13.1 as listed, in whichever orientation the table gives. */
+/** A row of the device matrix as listed, in whichever orientation its source gives. */
 interface ListedViewport {
     readonly name: string;
     readonly platform: Platform;
@@ -56,7 +56,7 @@ interface ListedViewport {
     readonly height: number;
 }
 
-/** The 12 rows of R§13.1, with the Galaxy S25+ / S25 Ultra row counted at both of its viewports. */
+/** The 13 screens of the device matrix, the Galaxy S25+ / S25 Ultra counted at both of its viewports. */
 const LISTED_VIEWPORTS: readonly ListedViewport[] = [
     { name: 'iPhone 14 Pro', platform: 'ios', width: 393, height: 852 },
     { name: 'iPhone 14 Pro Max', platform: 'ios', width: 430, height: 932 },
@@ -81,7 +81,7 @@ export const VIEWPORTS: readonly Viewport[] = LISTED_VIEWPORTS.map(({ name, plat
     height: Math.max(width, height),
 }));
 
-/** Height the browser's own bars take, in px, by platform and orientation (R§13.1). */
+/** Height the browser's own bars take, in px, by platform and orientation (`docs/reference/device-matrix.md`). */
 const BROWSER_BARS: Readonly<Record<Platform, Readonly<Record<Orientation, number>>>> = {
     ios: { portrait: 188, landscape: 52 },
     android: { portrait: 130, landscape: 80 },

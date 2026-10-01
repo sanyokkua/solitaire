@@ -37,6 +37,34 @@ export function importSpecifiers(source: string): string[] {
     return specifiers;
 }
 
+export interface ImportStatement {
+    specifier: string;
+    /** True for `import type …` and `export type … from`. A `type` modifier inside braces does not count. */
+    typeOnly: boolean;
+}
+
+/**
+ * Every import and export-from statement (multi-line included), side-effect imports, dynamic `import()` and `require`
+ * calls, each with whether the whole statement is type-only. `import { a, type B }` is a value import: it survives
+ * compilation.
+ */
+export function importStatements(source: string): ImportStatement[] {
+    const code = stripComments(source);
+    const statements: ImportStatement[] = [];
+    for (const match of code.matchAll(
+        /\b(?:import|export)\b(\s+type\b(?!\s+from\b))?[^;'"]*?\bfrom\s*['"]([^'"]+)['"]/g,
+    )) {
+        statements.push({ specifier: match[2] ?? '', typeOnly: match[1] !== undefined });
+    }
+    for (const match of code.matchAll(/\bimport\s*['"]([^'"]+)['"]/g)) {
+        statements.push({ specifier: match[1] ?? '', typeOnly: false });
+    }
+    for (const match of code.matchAll(/\b(?:import|require)\s*\(([^)]*)\)/g)) {
+        statements.push({ specifier: unquote(match[1] ?? ''), typeOnly: false });
+    }
+    return statements;
+}
+
 /** The DOM, storage and network facilities a pure layer may not reference, matched as whole identifiers. */
 export const FORBIDDEN_IDENTIFIERS =
     /\b(?:document|window|navigator|localStorage|sessionStorage|indexedDB|caches|fetch|XMLHttpRequest|WebSocket|EventSource)\b/g;

@@ -56,6 +56,7 @@ describe('Home actions', () => {
         expect(dealService.requests.map(({ request }) => request.mode)).toEqual(['vegas']);
     });
 
+    // covers: KS-PER-02
     it('shows Continue game only for a resumable game and resumes it unchanged', async () => {
         const user = userEvent.setup();
         const first = renderHome();
@@ -103,10 +104,10 @@ describe('Home actions', () => {
         expect(screen.getByRole('button', { name: 'Роздати карти' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Продовжити гру' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Як грати' })).toBeInTheDocument();
-        for (const name of ['Статистика', 'Зіграти за кодом', 'Про гру']) {
+        for (const name of ['Статистика', 'Грати за кодом', 'Про гру']) {
             expect(screen.getByRole('button', { name })).toBeInTheDocument();
         }
-        expect(screen.getByLabelText('Ваш рекорд')).toBeInTheDocument();
+        expect(screen.getByLabelText('Ваші результати')).toBeInTheDocument();
     });
 
     it('offers no Install app link while the browser does not offer installation', () => {
@@ -115,6 +116,7 @@ describe('Home actions', () => {
         expect(screen.queryByRole('button', { name: 'Install app' })).toBeNull();
     });
 
+    // covers: KS-PWA-02
     it('shows Install app when installable and prompts by Enter, then hides it', async () => {
         const user = userEvent.setup();
         const promptInstall = vi.fn(() => Promise.resolve('accepted' as const));
@@ -139,9 +141,10 @@ describe('Home actions', () => {
             },
         });
 
-        expect(screen.getByRole('button', { name: 'Установити застосунок' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Встановити застосунок' })).toBeInTheDocument();
     });
 
+    // covers: KS-A11Y-04
     it('makes every action at least 2.75rem square on a coarse pointer', () => {
         const coarse = blockAfter(HOME_CSS, '@media (pointer: coarse)');
 
@@ -152,8 +155,9 @@ describe('Home actions', () => {
         }
     });
 
+    // covers: KS-GEN-09, KS-GEN-10
     it('pins the action row to the bottom, above the safe area, on phones and short screens', () => {
-        const block = blockAfter(HOME_CSS, '@media (max-width: 720px), (max-height: 720px)');
+        const block = blockAfter(HOME_CSS, '@media (max-width: 720px), (max-height: 800px)');
         const row = rulesFor(block, '.cta-row').join(' ');
 
         expect(row).toMatch(/position:\s*sticky/);

@@ -6,37 +6,34 @@ Guidance for AI coding agents (Claude Code, Codex, etc.) working in this reposit
 
 This repository is **Klondike Solitaire**, a calm, retro-styled, offline-capable static SPA/PWA (Vite + React + TypeScript + Redux Toolkit), deployed to GitHub Pages under `/solitaire/`. There is no backend, API, database, or account system; game state, preferences and statistics live in the browser in a versioned `solitaire.local-state` localStorage record.
 
-**Repository state: Phases 1–8 complete** (engine, solver, deal service, state and persistence, board rendering and input, assistance, screens and sheets, i18n, PWA). Phases 9–11 (full verification and edge cases, documentation and release, optional Draw 3 winnable deals) remain. Per-layer detail lives in `docs/architecture/` and the module READMEs under `src/`; start at `docs/README.md`. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
+**Repository state: version 1.0.0 is feature-complete.** Phases 1–8 are merged to `master` and live; `finalize-v1-release` (Phases 9–11: verification, documentation and release, winnable deals including Draw 3) is archived on `feature/finalize-v1-release`, pending its merge into `feature/app-v1-release` and the release PR. The layers are the engine, solver, deal service, state and persistence, board rendering and input, assistance, screens and sheets, i18n and PWA. There is no active change. Per-layer detail lives in `docs/architecture/` and the module READMEs under `src/`; start at `docs/README.md`. See "Runtime and commands" below for the actual npm scripts — don't assume a script beyond that list exists.
 
-OpenSpec (not GitHub Speckit) is installed and drives phase-by-phase implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
+OpenSpec drives implementation via `openspec/` change proposals; see "Sub-agent driven workflow" below.
 
 ## Source of truth
 
 Use these sources in this order:
 
 1. Current source, configuration, tests, and GitHub Actions workflows — always prefer what's actually implemented over what's planned.
-2. `docs/` (except `docs/spec/`) — maintained documentation of the implemented architecture, development workflow and reference facts (`docs/README.md` is the index); module READMEs under `src/` go deeper.
-3. `docs/spec/specification.md` — product behavior and the `KS-*` EARS requirements.
-4. `docs/spec/research.md` — game rules, algorithms and UX/accessibility facts (cited as `R§n`); source of truth for game-logic details.
-5. `docs/spec/phased-design.md` — tech stack, architecture, data model, and the phase-by-phase build plan with Speckit seed prompts (§7). May be revised by a phase's OpenSpec change; if so, record the change here.
-6. `docs/spec/mockup/klondike-mockup.html` and `docs/spec/mockup/screens/` — visual/behavioral reference only. Do not port its code structure into production code.
+2. `openspec/specs/**` — the product behaviour, per capability, with the `KS-*` requirement ids that `docs/reference/traceability.md` maps to the tests and manual checks that prove them.
+3. `docs/` — maintained documentation of the implemented architecture, development workflow and reference facts (`docs/README.md` is the index; `docs/reference/game-rules.md` holds the rules and `docs/reference/winnability.md` the solver facts); module READMEs under `src/` go deeper.
+4. `docs/assets/screenshots/` — the committed reference screenshots: the look and feel is fixed, and a visual change is deliberate and reviewed against them.
 
-If `specification.md` and `research.md` conflict, fix the documents — don't silently pick one. See `docs/spec/README.md` for the full authority note.
+If a spec and a doc conflict, fix whichever is wrong — don't silently pick one.
 
-## Repository layout (see phased-design.md §3.1 for full detail; `domain`, `solver`, `features` and `app` are implemented, `ui` has the board, layout, motion, the Game frame, Home and the sheets, and `i18n` is implemented; `pwa` is implemented)
+## Repository layout (see `docs/architecture/overview.md` for detail; `domain`, `solver`, `features` and `app` are implemented, `ui` has the board, layout, motion, the Game frame, Home and the sheets, and `i18n` is implemented; `pwa` is implemented)
 
 - `src/domain/` — pure game engine (cards, deal, rules, scoring, hints). No React/Redux/DOM/storage imports.
 - `src/solver/` — pure bounded-DFS solver, run in a Web Worker.
 - `src/features/` — deal service (Phase 3); game state thunks and history (Phase 4); statistics, preferences, persistence layers with codec, storage gateway, loader, writer and reset thunks (Phase 4); runtime-only interaction state (selection, hint, announcement log, reported dead ends, the input gate, and the `selectCard`, `requestHint` and `checkDeadEnd` thunks; Phase 6).
-- `src/app/` — Redux store (combines the `app` slice with the `features` slices), selectors and hooks, thunk dependencies (`thunkExtra.ts`), the shared `AppThunk` type (`appThunk.ts`), the theme controller that applies appearance preferences to the document (`themeController.ts`), lifecycle bootstrap (`lifecycle.tsx`).
+- `src/app/` — Redux store (combines the `app` slice with the `features` slices), selectors and hooks, thunk dependencies (`thunkExtra.ts`), the shared `AppThunk` type (`appThunk.ts`), the theme controller that applies appearance preferences to the document (`themeController.ts`), the deal pool controller that keeps the deal service's pool filling for the player's choice (`dealPoolController.ts`), lifecycle bootstrap (`lifecycle.tsx`).
 - `src/i18n/` — typed English/Ukrainian catalogs (`locales/en.ts`, `uk.ts`), the language registry (`catalog.ts`), the translator (`translate.ts`), `useTranslate` and the locale controller (Phase 7); imports nothing from `app`, `features` or `ui`.
 - `src/pwa/` — service-worker registration (`registerPwa.ts`, `deferredGateway.ts`), update (`pwaGateway.ts`) and install (`installGateway.ts`) gateways (Phase 8); imports nothing from `app`, `features` or `ui`.
 - `src/ui/` — the board (pure layout, cards, slots, motion), the Game frame with its read-only HUD and Undo/Redo/Hint/Finish toolbar, pointer, tap and keyboard input, the announcer, the notices host, hint visuals and CSS tokens (Phases 5–6); the modal sheet host with the eight sheets (`sheets/`), the Home screen (`screens/home/`) and the Game chrome (mode/deal chips, theme and Settings buttons, hint line, dealing overlay) (Phase 7).
 - `public/` — `manifest.webmanifest`, `favicon.svg` and `icons/` (192, 512, maskable, Apple touch; generated by `scripts/generate-icons.mjs`).
-- `tests/{unit,component,e2e,bench}/` — Vitest/RTL and Playwright coverage, plus the informational latency benchmark in `bench/`.
-- `scripts/` — repository validation scripts (`validate-lifecycle-storage.mjs`, `validate-artifact.mjs`, `generate-icons.mjs`).
-- `docs/` — maintained docs: `architecture/`, `development/`, `reference/` (index: `docs/README.md`).
-- `docs/spec/` — the original spec pack; historical input, not edited by ordinary changes.
+- `tests/{unit,component,e2e,bench}/` — Vitest/RTL and Playwright coverage, plus the informational benchmarks in `bench/`.
+- `scripts/` — repository scripts (`validate-lifecycle-storage.mjs`, `validate-artifact.mjs`, `trace-requirements.mjs`, `build-info.mjs`, `generate-icons.mjs`).
+- `docs/` — maintained docs: `architecture/`, `development/`, `reference/` (index: `docs/README.md`), and `assets/screenshots/`, the committed reference screenshots.
 
 Keep domain and solver logic out of React components: UI dispatches typed commands and renders state snapshots (`applyCommand(state, cmd)` is pure); Redux owns application state; persistence goes through a codec + storage gateway.
 
@@ -61,24 +58,28 @@ rtk npm run test:coverage
 rtk npm run bench
 rtk npm run e2e
 rtk npm run e2e:headed
+rtk npm run screenshots
 rtk npm run validate:lifecycle-storage
 rtk npm run validate:artifact
+rtk npm run trace
 rtk npm run validate
 ```
 
-`bench` runs the informational winnable-search latency benchmark (`tests/bench/`) and reports median and p95 against KS-PERF-02; it never asserts on timings, exits zero, and is not part of `test:unit`, `validate`, the git hooks or CI.
+`bench` runs the three informational benchmarks in `tests/bench/` (winnable-search latency against KS-PERF-02, the search budgets, and the grading calibration); they never assert on timings, exit zero, and are not part of `test:unit`, `validate`, the git hooks or CI. `screenshots` regenerates the committed reference screenshots in `docs/assets/screenshots/` (Chromium, production build, `CAPTURE_SCREENSHOTS=1`); it is opt-in and never runs in `e2e` or CI.
 
-`validate` runs `format:check && lint && typecheck && validate:lifecycle-storage && test:unit && build && validate:artifact`. `validate:lifecycle-storage` (`scripts/validate-lifecycle-storage.mjs`) fails when a `tests/component/appLifecycle*.test.tsx` file refers to ambient browser storage (`localStorage`, `sessionStorage`, `Storage.prototype`), builds a bare `createStorageGateway()` or calls `startApp` without an injected `gateway`, so the reload test always injects its storage gateway. `validate:artifact` (`scripts/validate-artifact.mjs`, run after `build`) checks `dist/`: local `index.html` references start with `/solitaire/`; the manifest has `start_url`/`scope` `/solitaire/`, `standalone` display and existing icons including a maskable one; `sw.js` precaches the shell, manifest, every emitted script (except `sw.js` and the workbox runtime), style, font, icon and the solver worker chunk; and nothing the app loads (HTML `src`/`href` except anchors, CSS `url()`/`@import`, manifest URLs, precache entries, string arguments of `import()`, `new Worker`, `new URL(…, import.meta.url)` and `importScripts`) points to another origin. Plain URL text is not inspected. `tests/unit/repo/validateArtifact.test.ts` runs it against the mini trees in `tests/fixtures/dist/`.
+`validate` runs `format:check && lint && typecheck && validate:lifecycle-storage && vitest run tests/unit tests/component --coverage && build && validate:artifact`, so the 80% coverage thresholds (lines, functions, branches, statements; `vitest.config.ts`) fail the gate even when every test passes. `validate:lifecycle-storage` (`scripts/validate-lifecycle-storage.mjs`) fails when a `tests/component/appLifecycle*.test.tsx` file refers to ambient browser storage (`localStorage`, `sessionStorage`, `Storage.prototype`), builds a bare `createStorageGateway()` or calls `startApp` without an injected `gateway`, so the reload test always injects its storage gateway. The branch CI runs Playwright in a lean profile (`E2E_PROFILE=ci`: chromium, firefox and webkit on one machine each, no keyboard titles or informational specs); the local run and the pre-push hook stay full. `validate:artifact` (`scripts/validate-artifact.mjs`, run after `build`) checks `dist/`: local `index.html` references start with `/solitaire/`; the manifest has `start_url`/`scope` `/solitaire/`, `standalone` display and existing icons including a maskable one; `sw.js` precaches the shell, manifest, every emitted script (except `sw.js` and the workbox runtime), style, font, icon and the solver worker chunk; and nothing the app loads (HTML `src`/`href` except anchors, CSS `url()`/`@import`, manifest URLs, precache entries, string arguments of `import()`, `new Worker`, `new URL(…, import.meta.url)` and `importScripts`) points to another origin. Plain URL text is not inspected. `tests/unit/repo/validateArtifact.test.ts` runs it against the mini trees in `tests/fixtures/dist/`.
+
+`trace` (`scripts/trace-requirements.mjs`) regenerates `docs/reference/traceability.md`, the matrix of KS ids against the requirements that cite them, the tests that declare them with a `// covers: KS-…` comment and the manual checks in `docs/reference/manual-checks.md`. Run it and commit the matrix whenever a `covers:` comment, a KS citation or a manual check changes; `tests/unit/repo/traceability.test.ts` fails on a stale matrix or an unknown id.
 
 Git hooks (husky, installed via the `prepare` script): `.husky/pre-commit` runs `npx lint-staged` (Prettier+ESLint on staged `*.{ts,tsx}`; Prettier on staged `*.{json,css,html,md,yml,yaml}`), then `npm run typecheck`, then `npm run test:unit`. `.husky/pre-push` runs `npm run e2e`.
 
 Prefix commands with `rtk`; use `rtk proxy <cmd>` when the wrapper rejects a required flag. Node floor: `>= 22.22.2`. The build must preserve the `/solitaire/` base path.
 
-Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent, 120-column width, semicolons, single quotes, trailing commas; TypeScript strict with no-unused checks; ESLint + typescript-eslint + react-hooks.
+Formatting/lint conventions: Prettier — 4-space indent, 120-column width, semicolons, single quotes, trailing commas; TypeScript strict with no-unused checks; ESLint + typescript-eslint + react-hooks.
 
-**Divergence from the sibling project.** This repo's Prettier semicolon rule, git hooks (husky + lint-staged — new; the sibling has none), and ESLint strictness (`strictTypeChecked`/`stylisticTypeChecked`, vs. the sibling's `recommended`) are deliberate departures from `sanyokkua/minesweeper`. "As in Minesweeper" elsewhere in this file and in `phased-design.md` no longer holds literally for those three things.
+**Divergence from the sibling project.** This repo's Prettier semicolon rule, git hooks (husky + lint-staged — new; the sibling has none), and ESLint strictness (`strictTypeChecked`/`stylisticTypeChecked`, vs. the sibling's `recommended`) are deliberate departures from `sanyokkua/minesweeper`. "As in Minesweeper" elsewhere in this file no longer holds literally for those three things.
 
-## Architecture principles (constitution seed — see phased-design.md §2)
+## Architecture principles (the constitution)
 
 1. **Pure domain.** `src/domain/` and `src/solver/` import nothing from React, Redux, the DOM or storage; tested with seeded deals. One narrow exception: `src/domain/prng.ts` may reference `crypto`, because `cryptoSeed` takes an injectable seed source that defaults to `globalThis.crypto` (it throws when none is available and never falls back to `Math.random`); no other domain file may touch `crypto`. The solver layer is guarded separately by `tests/unit/repo/solverPurity.test.ts` and an ESLint override: it imports only its own siblings and `../domain/name`, uses no `crypto`, and references `self` only in `solver.worker.ts`; `src/features` may not value-import solver code (type imports are fine), because the solver runs in a Web Worker. The pure board layout is guarded the same way: `src/ui/board/{metrics,layout,names,locate,landing,pointerController,keyboardController,cascadeFrames}.ts` import only their siblings and `../../domain/name` (an ESLint override), and `tests/unit/repo/boardPurity.test.ts` bans React, DOM globals, storage, `crypto` and `Math.random` in every module listed in `src/ui/README.md`.
 2. **Deterministic by seed.** Every deal comes from a 32-bit seed via mulberry32 + Fisher–Yates. No `Math.random()` in game logic.
@@ -89,9 +90,9 @@ Formatting/lint conventions (phased-design.md §1): Prettier — 4-space indent,
 7. **Accessible by default.** Accessible names, live announcements, focus management and 4.5:1 contrast are acceptance criteria, not polish.
 8. **Versioned storage.** A single versioned record, decoded defensively; never delete unreadable data silently.
 9. **Docs are part of the change.** Update `README.md`/`docs/`/`AGENTS.md` whenever documented behavior changes.
-10. **Mockup is visual reference only.** Production code does not copy `docs/spec/mockup/klondike-mockup.html`'s structure.
+10. **Look and feel is fixed.** Visual changes are deliberate and reviewed by eye against the committed screenshots in `docs/assets/screenshots/`, which the change regenerates (`rtk npm run screenshots`).
 
-OpenSpec (not Speckit) is installed; this section is the constitution's canonical home directly — there is no `.specify/memory/constitution.md` copy step.
+This section is the constitution's canonical home; `openspec/config.yaml` only summarizes it.
 
 ## Engineering principles
 
@@ -100,7 +101,7 @@ OpenSpec (not Speckit) is installed; this section is the constitution's canonica
 - **SOLID.** Each module/component has one clear responsibility; depend on narrow interfaces rather than concrete details where that adds real value — don't over-abstract for its own sake.
 - **Small, scoped components — no god objects.** Split by responsibility along the layer boundaries in "Repository layout" above; a component, slice, or module doing too much should be broken up rather than grown.
 - **Structure and design matter.** New code goes in the layer it belongs to (domain vs. features vs. ui vs. solver), not wherever is convenient; keep the intended architecture (see "Architecture principles" above) intact as the codebase grows.
-- **Test coverage.** New logic ships with tests at the appropriate layer — unit for `domain`/`solver`, component for UI, Playwright for end-to-end flows (see `docs/spec/phased-design.md` §5).
+- **Test coverage.** New logic ships with tests at the appropriate layer — unit for `domain`/`solver`, component for UI, Playwright for end-to-end flows (see `docs/development/testing.md`).
 - **Documentation stays fresh.** Code comments, README, `docs/`, and this file must reflect current behavior — see "Documentation maintenance" below.
 
 ## Sub-agent driven workflow
@@ -141,11 +142,6 @@ Don't commit or push unless explicitly requested — with one standing exception
 
 Before every commit — each OpenSpec task commit, review-fix commit and doc-only commit included — run the full, unmodified `rtk npm run validate` (no exclusions, no `--ignore-pattern`) and fix everything it reports; commit only when it exits 0. The pre-commit hook lints only staged files, so it does not replace `validate`. Sub-agents that commit must be told to do the same.
 
-No work should happen on the master branch. You need to create feature branches if current branch is master.
+`master` is the release branch; no work happens on it. The release steps (validate, merge, tag) are in `docs/development/release.md`; pushing, opening a pull request and tagging each need an explicit request. Create a feature branch if the current branch is `master`.
 
-Till the App will be implemented and fully working, branch - "feature/app-v1-implementation" is the main integration branch.
-
-For each change should be created separate branch from "feature/app-v1-implementation", using the pattern "feature/change-short-name".
-
-Till the change is archived - all the work happens in the "feature/change-short-name".
-When change is archived - "feature/change-short-name" is squash-merged back to the "feature/app-v1-implementation".
+Each change runs on `feature/<change-name>`, cut from the active integration branch (named in the change's proposal; `feature/app-v1-release` for `finalize-v1-release`) or from `master` when there is none. Until the change is archived, all its work happens on that branch. At archive it is squash-merged back into the integration branch, and the integration branch reaches `master` by pull request.

@@ -1,4 +1,4 @@
-/* Home: the top bar, the hero panel and its floating card fan (mockup `.topbar`, `.home-hero`, `.hero-fan`). Tokens only. */
+/* Home: the top bar, the hero panel and its floating card fan (`.topbar`, `.home-hero`, `.hero-fan`). Tokens only. */
 
 .home-body {
     width: min(100%, 47.5rem);
@@ -247,7 +247,7 @@
     }
 }
 
-/* ---------- mode choice and the Winnable switch (mockup `.section-label`, `.mode-row`, `.mode-card`, `.toggle-card`) ---------- */
+/* ---------- mode choice and the Winnable switch (`.section-label`, `.mode-row`, `.mode-card`, `.toggle-card`) ---------- */
 
 .section-label {
     margin: 1.6rem 0 0.6rem;
@@ -399,15 +399,24 @@
 }
 
 .toggle-card {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
+    display: grid;
+    gap: 0.65rem;
     margin-top: 0.65rem;
     padding: 0.75rem 0.9rem;
     border: 1.5px solid var(--color-outline-soft);
     border-radius: var(--radius-md);
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
+}
+
+.toggle-card__row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.toggle-card .segmented button {
+    padding-inline: 0.2rem;
 }
 
 .toggle-card__copy {
@@ -442,7 +451,7 @@
     }
 }
 
-/* ---------- actions, record strip, links and footer (mockup `.cta-row`, `.footlinks`, `.build-stamp`) ---------- */
+/* ---------- actions, record strip, links and footer (`.cta-row`, `.footlinks`, `.build-stamp`) ---------- */
 
 .cta-row {
     display: flex;
@@ -453,7 +462,7 @@
 }
 
 /* Phones and short screens: the actions stay reachable at the bottom, above the home indicator, while Home scrolls. */
-@media (max-width: 720px), (max-height: 720px) {
+@media (max-width: 720px), (max-height: 800px) {
     .cta-row {
         position: sticky;
         bottom: 0;

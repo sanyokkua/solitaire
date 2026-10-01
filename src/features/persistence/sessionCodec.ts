@@ -1,6 +1,6 @@
 import type { Column, Foundations, GameState, Tableau } from '../../domain/types';
 import { isValidGameState } from '../../domain/validate';
-import { utcDayKey } from '../deal/daily';
+import { hasExactKeys, isDayKey, isRecord } from './guards';
 
 /**
  * The stored form of the unfinished game (D5 and D13): the position in play in full, and its undo and redo steps as
@@ -28,10 +28,13 @@ export interface StoredSession {
     readonly counted: boolean;
 }
 
+/** The record format a session was written in; it selects the key list of the stored game. */
+export type RecordVersion = 1 | 2;
+
 const SESSION_KEYS = ['current', 'history', 'future', 'dailyKey', 'counted'] as const;
 
-/** Every `GameState` field; a stored position must have exactly these keys. */
-const GAME_KEYS = [
+/** Every `GameState` field of a version 1 record; a stored position must have exactly these keys. */
+const GAME_KEYS_V1 = [
     'seed',
     'mode',
     'draw',
@@ -51,12 +54,43 @@ const GAME_KEYS = [
     'status',
 ] as const;
 
+/** The stored game's keys in a version 2 record: those of version 1, with the deal's `grade` right after `attempts`. */
+const GAME_KEYS_V2 = [
+    'seed',
+    'mode',
+    'draw',
+    'scoring',
+    'verdict',
+    'attempts',
+    'grade',
+    'tableau',
+    'stock',
+    'waste',
+    'foundations',
+    'score',
+    'moves',
+    'passes',
+    'elapsedMs',
+    'undos',
+    'started',
+    'status',
+] as const;
+
+const gameKeys = (version: RecordVersion): readonly string[] => (version === 1 ? GAME_KEYS_V1 : GAME_KEYS_V2);
+
+/**
+ * The version 2 game of a stored version 1 game (D10): the same fields and no grade, because a version 1 game never
+ * recorded one. Total; it runs after the exact-key check of the raw version 1 game and before the validity check,
+ * which requires the grade.
+ */
+const upgradeV1 = (game: Record<string, unknown>): Record<string, unknown> => ({ ...game, grade: null });
+
 const CARD_KEYS = ['id', 'up'] as const;
 
 /**
  * A stored step holds only what can differ between two positions of one deal. `elapsedMs`, `undos` and `started` are
  * included because a snapshot keeps the values it had when it was captured, so they cannot be copied from `current`.
- * The constant fields (seed, mode, draw, scoring, verdict, attempts) are copied from `current`, which makes "every step
+ * The constant fields (seed, mode, draw, scoring, verdict, attempts, grade) are copied from `current`, which makes "every step
  * belongs to the same deal" true by construction; `status` is always `playing` for a stored step.
  */
 const STEP_KEYS = [
@@ -72,34 +106,6 @@ const STEP_KEYS = [
     'started',
 ] as const;
 
-/** A plain, non-null, non-array object: the shape every key check assumes it can read. */
-export function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/** Whether `value` has every key in `required` and no key outside `required` and `optional`. Unknown keys fail. */
-export function hasExactKeys(
-    value: Record<string, unknown>,
-    required: readonly string[],
-    optional: readonly string[] = [],
-): boolean {
-    const keys = Object.keys(value);
-    return (
-        required.every((key) => Object.hasOwn(value, key)) &&
-        keys.every((key) => required.includes(key) || optional.includes(key))
-    );
-}
-
-/** A real UTC calendar date written as `YYYY-MM-DD`; `2026-02-30` and `2026-13-01` are not dates. */
-export function isDayKey(value: unknown): value is string {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-    const [year, month, day] = value.split('-').map(Number);
-    // `setUTCFullYear` rather than `Date.UTC`, which would read the years 0 to 99 as 1900 to 1999.
-    const date = new Date(0);
-    date.setUTCFullYear(year ?? 0, (month ?? 1) - 1, day ?? 1);
-    return utcDayKey(date) === value;
-}
-
 const isDayKeyOrNull = (value: unknown): value is string | null => value === null || isDayKey(value);
 
 /** Whether every card of a stored tableau is exactly `{ id, up }`; a non-array tableau or column fails. */
@@ -111,11 +117,6 @@ function hasExactCardKeys(tableau: unknown): boolean {
                 Array.isArray(column) && column.every((card) => isRecord(card) && hasExactKeys(card, CARD_KEYS)),
         )
     );
-}
-
-/** A typed record view of a game state's own keys, with no unsafe cast (D15). */
-function gameStateRecord(state: GameState): Record<string, unknown> {
-    return Object.fromEntries(Object.entries(state));
 }
 
 const cloneColumn = (column: Column): Column => column.map((card) => ({ id: card.id, up: card.up }));
@@ -141,6 +142,7 @@ function cloneGame(state: GameState): GameState {
         scoring: state.scoring,
         verdict: state.verdict,
         attempts: state.attempts,
+        grade: state.grade,
         tableau: cloneTableau(state.tableau),
         stock: [...state.stock],
         waste: [...state.waste],
@@ -199,6 +201,7 @@ function decodeStep(value: unknown, current: GameState): GameState | null {
         scoring: current.scoring,
         verdict: current.verdict,
         attempts: current.attempts,
+        grade: current.grade,
         tableau: value.tableau,
         stock: value.stock,
         waste: value.waste,
@@ -227,17 +230,20 @@ function decodeSteps(value: unknown, current: GameState): GameState[] | null {
 }
 
 /**
- * Accepts `value` only as a stored session: exactly the five known keys, a valid started and still-playing `current`,
- * a Daily date (only for a Daily deal) or `null`, a boolean `counted`, and valid step lists. `current` and every step
- * card have exactly their known keys. Total: never throws, returns `null` on any fault.
+ * Accepts `value` only as a stored session of the given record `version`: exactly the five known keys, a `current`
+ * with exactly that version's game keys that is a valid started and still-playing game, a Daily date (only for a
+ * Daily deal) or `null`, a boolean `counted`, and valid step lists. `current` and every step card have exactly their
+ * known keys. The key check runs on the raw record, before any upgrade or validation; a version 1 game is then
+ * upgraded (`grade: null`), and every restored step copies the grade from it. Total: never throws, returns `null` on
+ * any fault.
  */
-export function decodeSession(value: unknown): StoredSession | null {
+export function decodeSession(value: unknown, version: RecordVersion): StoredSession | null {
     if (!isRecord(value) || !hasExactKeys(value, SESSION_KEYS)) return null;
-    const { current, history, future, dailyKey, counted } = value;
+    const { current: storedGame, history, future, dailyKey, counted } = value;
+    if (!isRecord(storedGame) || !hasExactKeys(storedGame, gameKeys(version))) return null;
+    const current = version === 1 ? upgradeV1(storedGame) : storedGame;
     if (!isValidGameState(current) || !current.started || current.status !== 'playing') return null;
-    if (!hasExactKeys(gameStateRecord(current), GAME_KEYS) || !hasExactCardKeys(current.tableau)) {
-        return null;
-    }
+    if (!hasExactCardKeys(current.tableau)) return null;
     if (typeof counted !== 'boolean' || !isDayKeyOrNull(dailyKey)) return null;
     if (dailyKey !== null && current.mode !== 'daily') return null;
     const stored = cloneGame(current);

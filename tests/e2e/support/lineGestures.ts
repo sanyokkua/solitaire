@@ -1,5 +1,5 @@
 import type { Command } from '../../../src/domain/types';
-import { pileKey } from '../../../src/ui/board/landing';
+import { pileKey } from '../../../src/ui/board/locate';
 import { pileOrder } from '../../../src/ui/board/keyboardController';
 
 /** A pile as the board names it in `data-pile`: `stock`, `waste`, `foundation:<suit>` or `tableau:<col>`. */

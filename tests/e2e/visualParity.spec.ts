@@ -10,7 +10,7 @@ import { seedRecord } from './support/seed';
 
 const OUTPUT_DIR = 'test-results/visual-parity';
 
-/** One mockup screen: its file name (also the mockup's), its CSS size and the seeded state and preferences. */
+/** One screen: its file name (screen and state), its CSS size and the seeded state and preferences. */
 interface Shot {
     readonly file: string;
     readonly width: number;
@@ -20,10 +20,10 @@ interface Shot {
     readonly preferences: Partial<Preferences>;
 }
 
-/** The nine screens of D15: the size is half the mockup's pixel size, and the screenshot is taken at 2x like it. */
+/** The table screens: each is taken at 2x, so the images show fine detail. */
 const SHOTS: readonly Shot[] = [
     {
-        file: '03-game-light-desktop.png',
+        file: 'game-light-desktop.png',
         width: 1180,
         height: 820,
         touch: false,
@@ -31,7 +31,7 @@ const SHOTS: readonly Shot[] = [
         preferences: { theme: 'light' },
     },
     {
-        file: '04-game-dark-desktop.png',
+        file: 'game-dark-desktop.png',
         width: 1180,
         height: 820,
         touch: false,
@@ -39,7 +39,7 @@ const SHOTS: readonly Shot[] = [
         preferences: { theme: 'dark' },
     },
     {
-        file: '05-game-dark-night-cards.png',
+        file: 'game-dark-night-cards.png',
         width: 1180,
         height: 820,
         touch: false,
@@ -47,7 +47,7 @@ const SHOTS: readonly Shot[] = [
         preferences: { theme: 'dark', nightCards: true },
     },
     {
-        file: '06-game-light-phone.png',
+        file: 'game-light-phone.png',
         width: 390,
         height: 844,
         touch: true,
@@ -55,7 +55,7 @@ const SHOTS: readonly Shot[] = [
         preferences: { theme: 'light' },
     },
     {
-        file: '07-game-draw3-waste-fan.png',
+        file: 'game-draw3-waste-fan.png',
         width: 1180,
         height: 820,
         touch: false,
@@ -63,7 +63,7 @@ const SHOTS: readonly Shot[] = [
         preferences: { theme: 'light' },
     },
     {
-        file: '14-phone-landscape-wide-table.png',
+        file: 'game-phone-landscape-wide-table.png',
         width: 852,
         height: 341,
         touch: true,
@@ -71,7 +71,7 @@ const SHOTS: readonly Shot[] = [
         preferences: { theme: 'light' },
     },
     {
-        file: '15-foldable-inner-side-rails.png',
+        file: 'game-foldable-inner-side-rails.png',
         width: 890,
         height: 574,
         touch: true,
@@ -79,7 +79,7 @@ const SHOTS: readonly Shot[] = [
         preferences: { theme: 'light' },
     },
     {
-        file: '16-foldable-cover-portrait.png',
+        file: 'game-foldable-cover-portrait.png',
         width: 416,
         height: 527,
         touch: true,
@@ -87,7 +87,7 @@ const SHOTS: readonly Shot[] = [
         preferences: { theme: 'light' },
     },
     {
-        file: '17-galaxy-s25-portrait-browser.png',
+        file: 'game-galaxy-s25-portrait-browser.png',
         width: 360,
         height: 650,
         touch: true,
@@ -105,8 +105,8 @@ for (const shot of SHOTS) {
             deviceScaleFactor: 2,
         });
 
-        test('is written for a side-by-side look with the mockup', async ({ page }, testInfo) => {
-            test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        test('is written for review', async ({ page }, testInfo) => {
+            test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
             await seedRecord(page, { current: shot.state(), preferences: shot.preferences });
             await continueToGame(page);
             await settled(page);
@@ -119,14 +119,12 @@ for (const shot of SHOTS) {
     });
 }
 
-/** The desktop screens of the interaction states (08, 09 and 12): same size and scale as the table's desktop shots. */
+/** The desktop screens of the interaction states: same size and scale as the table's desktop shots. */
 test.describe('interaction states', () => {
     test.use({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2 });
 
-    test('08-select-mode-legal-targets.png shows the selected card and its legal targets', async ({
-        page,
-    }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+    test('game-select-legal-targets.png shows the selected card and its legal targets', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
         await seedWinningGame(page, { theme: 'light' });
         await continueToGame(page);
         await settled(page);
@@ -136,15 +134,15 @@ test.describe('interaction states', () => {
         await expect(page.locator('.card.is-selected')).toHaveCount(1);
         await expect(page.locator('.ghost[data-ghost]').first()).toBeAttached();
         await settled(page);
-        const path = `${OUTPUT_DIR}/08-select-mode-legal-targets.png`;
+        const path = `${OUTPUT_DIR}/game-select-legal-targets.png`;
 
         await page.screenshot({ path });
 
         expectWritten(path);
     });
 
-    test('09-hint.png shows the hint line and the hinted cards', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+    test('game-hint.png shows the hint line and the hinted cards', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
         // aceHomePosition() has an exposed ace, so the hint is a card move (not a draw, which the stock cards
         // would cover), and both the hinted card's outline and its target ghost show.
         await seedRecord(page, {
@@ -158,7 +156,7 @@ test.describe('interaction states', () => {
         await expect(page.locator('.game-hint')).toHaveText(/\S/);
         await expect(page.locator('.card.is-hint')).toHaveCount(1);
         await expect(page.locator('.ghost.is-hint[data-hint-ghost]')).toHaveCount(1);
-        const path = `${OUTPUT_DIR}/09-hint.png`;
+        const path = `${OUTPUT_DIR}/game-hint.png`;
 
         // The hint clears after 2.2 s, so the shot is taken at once.
         await page.screenshot({ path });
@@ -166,10 +164,10 @@ test.describe('interaction states', () => {
         expectWritten(path);
     });
 
-    test('10-settings-sheet.png shows the Settings sheet over Home, opened from the top bar', async ({
+    test('home-settings-sheet.png shows the Settings sheet over Home, opened from the top bar', async ({
         page,
     }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
         // A fresh browser resolves System to light (the headless colour scheme).
         await page.emulateMedia({ colorScheme: 'light' });
         await page.goto('/');
@@ -177,15 +175,15 @@ test.describe('interaction states', () => {
         await page.getByRole('banner').getByRole('button', { name: 'Settings' }).click();
         await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
         await page.evaluate(() => document.fonts.ready);
-        const path = `${OUTPUT_DIR}/10-settings-sheet.png`;
+        const path = `${OUTPUT_DIR}/home-settings-sheet.png`;
 
         await page.screenshot({ path });
 
         expectWritten(path);
     });
 
-    test('12-win-cascade.png shows the cards in flight after the last move', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+    test('game-win-cascade.png shows the cards in flight after the last move', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
         const commands = parseLine(WINNING_LINE.line);
         await seedRecord(page, {
             current: nearlyWonState(),
@@ -203,7 +201,7 @@ test.describe('interaction states', () => {
                 .some((animation) => animation.playState === 'running' && !(animation instanceof CSSTransition)),
         );
         await page.waitForTimeout(1200);
-        const path = `${OUTPUT_DIR}/12-win-cascade.png`;
+        const path = `${OUTPUT_DIR}/game-win-cascade.png`;
 
         await page.screenshot({ path });
         await played;
@@ -211,8 +209,8 @@ test.describe('interaction states', () => {
         expectWritten(path);
     });
 
-    test('13-win-sheet.png shows the Win sheet over the cascade', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+    test('game-win-sheet.png shows the Win sheet over the cascade', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
         const commands = parseLine(WINNING_LINE.line);
         await seedRecord(page, {
             current: nearlyWonState(),
@@ -223,7 +221,7 @@ test.describe('interaction states', () => {
 
         await playLine(page, 'tap', { commands: commands.slice(-1), movesBefore: WINNING_LINE.moves - 1 });
         await expect(page.getByRole('heading', { name: 'You win!' })).toBeVisible({ timeout: 4000 });
-        const path = `${OUTPUT_DIR}/13-win-sheet.png`;
+        const path = `${OUTPUT_DIR}/game-win-sheet.png`;
 
         await page.screenshot({ path });
 
@@ -231,17 +229,17 @@ test.describe('interaction states', () => {
     });
 });
 
-/** The Home screens and the How to play sheet (01, 02 and 11), which need no seeded game. */
+/** The Home screens and the How to play sheet, which need no seeded game. */
 test.describe('home screens', () => {
     test.use({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2 });
 
-    test('01-home-light-desktop.png shows Home in the light theme', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+    test('home-light-desktop.png shows Home in the light theme', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
         await page.emulateMedia({ colorScheme: 'light' });
         await page.goto('/');
         await expect(page.getByRole('button', { name: 'Deal cards' })).toBeVisible();
         await page.evaluate(() => document.fonts.ready);
-        const path = `${OUTPUT_DIR}/01-home-light-desktop.png`;
+        const path = `${OUTPUT_DIR}/home-light-desktop.png`;
 
         await page.screenshot({ path });
 
@@ -256,13 +254,13 @@ test.describe('home screens', () => {
             colorScheme: 'dark',
         });
 
-        test('02-home-dark-phone.png shows Home in the dark theme', async ({ page }, testInfo) => {
-            test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+        test('home-dark-phone.png shows Home in the dark theme', async ({ page }, testInfo) => {
+            test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
             await page.goto('/');
             await expect(page.getByRole('button', { name: 'Deal cards' })).toBeVisible();
             await page.evaluate(() => document.fonts.ready);
             await page.waitForTimeout(400); // the body's 250 ms colour transition from light to dark
-            const path = `${OUTPUT_DIR}/02-home-dark-phone.png`;
+            const path = `${OUTPUT_DIR}/home-dark-phone.png`;
 
             await page.screenshot({ path });
 
@@ -270,15 +268,15 @@ test.describe('home screens', () => {
         });
     });
 
-    test('11-how-to-play-sheet.png shows the How to play sheet opened from Home', async ({ page }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only (D15)');
+    test('home-how-to-play-sheet.png shows the How to play sheet opened from Home', async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'Screenshots come from desktop Chromium only');
         await page.emulateMedia({ colorScheme: 'light' });
         await page.goto('/');
 
         await page.getByRole('button', { name: 'How to play' }).click();
         await expect(page.getByRole('dialog', { name: 'How to play' })).toBeVisible();
         await page.evaluate(() => document.fonts.ready);
-        const path = `${OUTPUT_DIR}/11-how-to-play-sheet.png`;
+        const path = `${OUTPUT_DIR}/home-how-to-play-sheet.png`;
 
         await page.screenshot({ path });
 

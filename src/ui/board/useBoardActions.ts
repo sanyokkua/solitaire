@@ -14,7 +14,7 @@ import { selectInputEnabled, selectLegalTargets, selectSelection } from '../../f
 import { selectPreference } from '../../features/preferences/preferencesSlice';
 import { SHAKE_CLEAR_MS } from './constants';
 import { cardElement } from './dom';
-import { pileKey } from './landing';
+import { pileKey } from './locate';
 import type { CardHit, Hit } from './pointerController';
 
 const SHAKE_CLASS = 'is-shake';

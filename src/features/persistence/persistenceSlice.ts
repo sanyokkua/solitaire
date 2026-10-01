@@ -16,7 +16,6 @@ const persistenceSlice = createSlice({
     name: 'persistence',
     initialState: initialPersistenceState,
     reducers: {
-        readOnlyEntered: (state) => ({ ...state, readOnly: true }),
         writeFailed: (state) => ({ ...state, lastError: 'write' }),
         /** A later write worked: only a write error clears; a start-up read error stays. */
         writeSucceeded: (state) => (state.lastError === 'write' ? { ...state, lastError: null } : state),
@@ -25,5 +24,5 @@ const persistenceSlice = createSlice({
     },
 });
 
-export const { readOnlyEntered, writeFailed, writeSucceeded, persistenceReset } = persistenceSlice.actions;
+export const { writeFailed, writeSucceeded, persistenceReset } = persistenceSlice.actions;
 export const persistenceReducer = persistenceSlice.reducer;

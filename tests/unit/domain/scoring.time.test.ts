@@ -1,3 +1,4 @@
+// covers: KS-SCO-01, KS-SCO-03, KS-SCO-04
 import { describe, expect, it } from 'vitest';
 import { displayedScore, timePenalty, undoCost, winBonus } from '../../../src/domain/scoring';
 import type { ScoringMode } from '../../../src/domain/types';

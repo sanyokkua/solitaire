@@ -8,6 +8,7 @@ import type { GameState } from '../../../../src/domain/types';
 import {
     ACE_HOME_CARD,
     aceHomePosition,
+    draw3TalonState,
     drawThreeFanState,
     freshDrawOneState,
     freshDrawThreeState,
@@ -16,6 +17,7 @@ import {
     SIX_OF_DIAMONDS,
     twoTargetsPosition,
     undoMovePosition,
+    vegasTalonState,
     worstColumnState,
 } from '../../../fixtures/boardPositions';
 
@@ -39,6 +41,11 @@ describe('board position fixtures decode as a stored record', () => {
         ['the one-legal-move game', () => ({ current: oneMovePosition(), history: [] as GameState[] })],
         ['the two-targets game', () => ({ current: twoTargetsPosition(), history: [] as GameState[] })],
         ['the ace-home game', () => ({ current: aceHomePosition(), history: [] as GameState[] })],
+        ['the Vegas talon game', () => ({ current: vegasTalonState({ passes: 2 }), history: [] as GameState[] })],
+        [
+            'the Draw 3 talon game',
+            () => ({ current: draw3TalonState({ passes: 1, score: 100, elapsedMs: 0 }), history: [] as GameState[] }),
+        ],
     ])('%s survives encode and decode unchanged', (_name, build) => {
         const { current, history } = build();
 

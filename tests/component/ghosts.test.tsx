@@ -1,3 +1,5 @@
+// covers: KS-AST-01
+
 import { act } from '@testing-library/react';
 import { cardId } from '../../src/domain/cards';
 import type { GameState } from '../../src/domain/types';
@@ -107,6 +109,7 @@ describe('legal-target ghosts', () => {
     });
 });
 
+// covers: KS-INP-05
 describe('the hot ghost', () => {
     it('is the one the dragged card overlaps most, and follows the drag', () => {
         const m = mount();
@@ -129,6 +132,7 @@ describe('the hot ghost', () => {
     });
 });
 
+// covers: KS-INP-02
 describe('the selection ring', () => {
     it('rings the selected card only', () => {
         const m = mount();

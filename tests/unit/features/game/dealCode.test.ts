@@ -1,3 +1,4 @@
+// covers: KS-DEAL-02, KS-DEAL-09, KS-DEAL-11
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
 import { dealFromSeed } from '../../../../src/domain/deal';
@@ -5,8 +6,7 @@ import { encodeDealCode } from '../../../../src/domain/dealCode';
 import type { GameState, Mode } from '../../../../src/domain/types';
 import { installed } from '../../../../src/features/game/gameSlice';
 import { play } from '../../../../src/features/game/gameThunks';
-import { playDealCode } from '../../../../src/features/game/navigationThunks';
-import { startGame } from '../../../../src/features/game/sessionThunks';
+import { playDealCode, startGame } from '../../../../src/features/game/sessionThunks';
 import { won } from '../../../../src/features/stats/statsSlice';
 import { WINNING_LINE, parseLine } from '../../../fixtures/deals';
 import { fakeDealService } from '../../../fixtures/dealService';
@@ -40,7 +40,18 @@ describe('playDealCode', () => {
         expect(store.getState().app.route).toBe('game');
         expect(store.getState().game.dailyKey).toBeNull();
         const installedState = current({ store });
-        expect(installedState).toEqual(dealFromSeed(42, 'draw3', { verdict: 'random', attempts: 1 }));
+        expect(installedState).toEqual(dealFromSeed(42, 'draw3', { verdict: 'random', attempts: 1, grade: null }));
+        expect(installedState.grade).toBeNull();
+    });
+
+    it('gives no grade even when a graded game was in play, because a code carries no provenance', () => {
+        const graded = dealFromSeed(42, 'draw3', { verdict: 'win', attempts: 2, grade: 'hard' });
+        const { store } = setup({ ...graded, started: true });
+
+        store.dispatch(playDealCode(encodeDealCode(42, 'draw3')));
+
+        expect(current({ store }).grade).toBeNull();
+        expect(current({ store }).verdict).toBe('random');
     });
 
     it('is deterministic: the same code twice gives the same tableau and stock', () => {

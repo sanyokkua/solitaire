@@ -143,11 +143,11 @@ describe('thunk dependencies', () => {
         const store = createAppStore({ deps: { dealService } });
 
         void store.dispatch((_dispatch, _getState, extra) =>
-            extra.dealService.deal({ mode: 'draw3', winnableOnly: false }),
+            extra.dealService.deal({ mode: 'draw3', winnableOnly: false, target: 'any' }),
         );
 
         expect(dealService.requests).toHaveLength(1);
-        expect(dealService.requests[0]?.request).toEqual({ mode: 'draw3', winnableOnly: false });
+        expect(dealService.requests[0]?.request).toEqual({ mode: 'draw3', winnableOnly: false, target: 'any' });
     });
 });
 

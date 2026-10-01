@@ -9,15 +9,15 @@ and an ESLint override covers `src/i18n`. Module-level notes: [`src/i18n/README.
 
 ### Parts
 
-| Module                                     | Job                                                                                                                       |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `src/i18n/locales/en.ts#en`                | English catalog, `as const satisfies Catalog`. `MessageKey = keyof typeof en` is the typed source of every key.           |
-| `src/i18n/locales/uk.ts#uk`                | Ukrainian catalog, typed `Record<MessageKey, Message>`, so a missing key fails `typecheck`.                               |
-| `src/i18n/catalog.ts#CATALOGS`             | The language registry: one entry per language, `{ name, catalog }`. Order is the order Settings lists them.               |
-| `src/i18n/catalog.ts#SUPPORTED_LOCALES`    | Registry keys. `Locale` is `keyof typeof CATALOGS`.                                                                       |
-| `src/i18n/translate.ts#createTranslator`   | `createTranslator(locale, catalog, fallback)` returns `t(key, params?)`.                                                  |
-| `src/i18n/translate.ts#formatDate`         | Formats a UTC calendar date in the locale's words, independent of the machine time zone.                                  |
-| `src/i18n/useTranslate.ts#useTranslate`    | React hook: reads `state.preferences.locale`, returns `t` memoised on the locale. The only React-aware i18n module.       |
+| Module                                                | Job                                                                                                                                                                              |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/i18n/locales/en.ts#en`                           | English catalog, `as const satisfies Catalog`. `MessageKey = keyof typeof en` is the typed source of every key.                                                                  |
+| `src/i18n/locales/uk.ts#uk`                           | Ukrainian catalog, typed `Record<MessageKey, Message>`, so a missing key fails `typecheck`.                                                                                      |
+| `src/i18n/catalog.ts#CATALOGS`                        | The language registry: one entry per language, `{ name, catalog }`. Order is the order Settings lists them.                                                                      |
+| `src/i18n/catalog.ts#SUPPORTED_LOCALES`               | Registry keys. `Locale` is `keyof typeof CATALOGS`.                                                                                                                              |
+| `src/i18n/translate.ts#createTranslator`              | `createTranslator(locale, catalog, fallback)` returns `t(key, params?)`.                                                                                                         |
+| `src/i18n/translate.ts#formatDate`                    | Formats a UTC calendar date in the locale's words, independent of the machine time zone.                                                                                         |
+| `src/i18n/useTranslate.ts#useTranslate`               | React hook: reads `state.preferences.locale`, returns `t` memoised on the locale. The only React-aware i18n module.                                                              |
 | `src/i18n/localeController.ts#createLocaleController` | Sets `<html lang>` and `document.title` (the `app.title` message) on start and on each locale change. `src/app/lifecycle.tsx` creates and disposes it with the theme controller. |
 
 ### How the translator behaves
@@ -40,6 +40,25 @@ and an ESLint override covers `src/i18n`. Module-level notes: [`src/i18n/README.
 - Saved data: `src/features/persistence/recordCodec.ts` checks the stored locale against `SUPPORTED_LOCALES`. A locale
   not in the registry is rejected when a saved record is decoded.
 
+### Ukrainian terminology
+
+The Ukrainian catalog addresses the player as «ви» and keeps one word per concept. The vocabulary follows the Ukrainian
+Wikipedia pages on solitaire and card suits and Ukrainian Klondike sites (solitaire.net.ua, solitaire.com.ua).
+Sentences avoid case-dependent phrasing around placeholders, so an arrow (`→`) stands in for a preposition.
+
+| English               | Ukrainian                        |
+| --------------------- | -------------------------------- |
+| Klondike              | Косинка                          |
+| stock / waste         | Колода / Резерв                  |
+| foundations / columns | Основи / Стовпці                 |
+| Draw 1 / Draw 3       | Одна карта / Три карти           |
+| deal (of the cards)   | роздача                          |
+| winnable              | виграшна                         |
+| Easy / Medium / Hard  | Легка / Середня / Складна        |
+| card back             | сорочка                          |
+| pass through the deck | прохід колодою                   |
+| Undo / Redo / Hint    | Скасувати / Повторити / Підказка |
+
 ### How to add a language
 
 1. Create `src/i18n/locales/<code>.ts` exporting a catalog typed `Record<MessageKey, Message>`. Import `MessageKey` and
@@ -53,8 +72,11 @@ and an ESLint override covers `src/i18n`. Module-level notes: [`src/i18n/README.
    registry entry, and the stored-locale check follows it.
 5. Run `rtk npm run validate`. `catalog.test.ts` checks that every registered catalog has every English key, no empty
    messages, and valid plural categories.
-6. Check layout: the device-fit suite runs Ukrainian, and a pseudo-locale pass (text 30% longer) guards against
-   clipping. See [testing](../development/testing.md). Whether a new language needs its own device-fit run: TODO: confirm.
+6. Check layout: the device-fit suite (`tests/e2e/deviceFit.spec.ts`) runs English and Ukrainian, and a pseudo-locale
+   catalog (`tests/support/pseudoLocale.ts`, every message 30% longer) is exercised by
+   `tests/component/pseudoLocale.test.tsx` and `tests/e2e/pseudoLocale.spec.ts`, which guard against clipping. See
+   [testing](../development/testing.md). A new language is not in the device-fit run until it is added to its
+   `LOCALES` list.
 
 Adding a key: add it to `en.ts` first (it defines `MessageKey`), then to every other catalog. `tests/component/pseudoLocale.test.tsx`
 fails if any UI text bypasses the catalogs.
@@ -78,6 +100,14 @@ dependency, and no third-party hosts (`scripts/validate-artifact.mjs` checks thi
   worker chunk is precached and `validate-artifact` fails if it is not.
 - `tests/unit/repo/manifest.test.ts` and `tests/unit/repo/icons.test.ts` check the manifest and the generated icons.
   Icons come from `scripts/generate-icons.mjs`.
+- Icons: the mark is a card fan, a checkered sky/navy card back behind a white card face showing a pixel "A" and a
+  spade, on the `#0b2545` background. `scripts/generate-icons.mjs` holds one list of rectangles on a 16 x 16 cell grid
+  and renders it twice: `public/favicon.svg` (`<rect>`s, `viewBox="0 0 16 16"`, `crispEdges`) and the PNGs
+  `icon-192`, `icon-512`, `apple-touch-icon` (180 px, linked from `index.html`) and `icon-maskable-512`. Each PNG uses
+  a whole-pixel scale of `floor(size / 16)` (12, 32 and 11; 16 px is 1 and 32 px is 2), centred with navy padding (2 px
+  each side at 180 px). The maskable icon uses the largest scale (22) whose mark stays inside the centred circle of
+  80 % of the icon (the W3C safe zone). `icons.test.ts` checks every output byte for byte against a fresh render, the
+  sizes, the whole-pixel scaling, the safe zone and that the light card face is present.
 
 ### Runtime flow
 
@@ -111,8 +141,8 @@ flowchart TD
 - Install: `src/pwa/installGateway.ts#createInstallGateway` captures `beforeinstallprompt` (calling `preventDefault`),
   clears it on `appinstalled`, and exposes `onAvailabilityChange(cb)` and `prompt()` (`accepted`, `dismissed` or
   `unavailable`). `lifecycle.tsx` sets `app.installable`; `src/ui/screens/home/HomeLinks.tsx` shows an Install app link
-  while it is true; `installApp` shows the prompt and then hides the link whatever the player chose. Which browsers fire
-  `beforeinstallprompt`: TODO: confirm (the code only reacts to the event).
+  while it is true; `installApp` shows the prompt and then hides the link whatever the player chose. The code only reacts
+  to `beforeinstallprompt`: a browser that never fires it never shows the link.
 
 ### Offline behaviour
 

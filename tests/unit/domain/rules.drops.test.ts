@@ -1,3 +1,4 @@
+// covers: KS-MOVE-01, KS-AST-01
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { canDrop, legalTargets } from '../../../src/domain/rules';

@@ -1,7 +1,11 @@
+// covers: KS-GEN-08
+
 import { expect, test, type Page } from '@playwright/test';
+import { dealFromSeed } from '../../src/domain/deal';
+import { encodeDealCode } from '../../src/domain/dealCode';
 import { drawThreeFanState } from '../fixtures/boardPositions';
-import { continueToGame, near } from './support/cards';
-import { expectClockCarriedOn, readGame } from './support/game';
+import { cardTarget, continueToGame, near } from './support/cards';
+import { expectClockCarriedOn, MOVES_VALUE, placement, placementOf, readGame } from './support/game';
 import { seedRecord } from './support/seed';
 
 interface Sample {
@@ -90,5 +94,73 @@ test.describe('Re-layout on viewport change', () => {
         expect(await places(page)).toEqual(placesBefore);
         expect(after.moves).toBe(before.moves);
         expectClockCarriedOn(before, after);
+    });
+
+    test('Resize during the deal', async ({ page }) => {
+        const seed = 20_260_929;
+        await page.goto('/');
+        await page.getByRole('button', { name: 'Play a deal code' }).click();
+        await page.getByRole('textbox', { name: 'Deal code' }).fill(encodeDealCode(seed, 'draw1'));
+
+        // From the first frame a card carries its deal delay `--d` (cleared when the deal ends, about 1.4 s later).
+        // Waiting for it puts both resizes inside the deal, and `stillDealing` proves it: it is read right after each.
+        await page.evaluate(() => {
+            const w = window as unknown as { dealSeen: Promise<void>; stillDealing: () => boolean };
+            w.stillDealing = () =>
+                [...document.querySelectorAll<HTMLElement>('[data-card-id]')].some(
+                    (card) => card.style.getPropertyValue('--d') !== '',
+                );
+            w.dealSeen = new Promise<void>((resolve, reject) => {
+                const deadline = performance.now() + 30_000;
+                const tick = () => {
+                    if (w.stillDealing()) resolve();
+                    else if (performance.now() > deadline) reject(new Error('the deal never started'));
+                    else requestAnimationFrame(tick);
+                };
+                tick();
+            });
+        });
+        await page.getByRole('button', { name: 'Play', exact: true }).click();
+        await page.evaluate(() => (window as unknown as { dealSeen: Promise<void> }).dealSeen);
+
+        const stillDealing = () =>
+            page.evaluate(() => (window as unknown as { stillDealing: () => boolean }).stillDealing());
+        await page.setViewportSize({ width: 874, height: 402 });
+        expect(await stillDealing(), 'the first resize came while the deal was running').toBe(true);
+        await page.setViewportSize({ width: 360, height: 780 });
+        expect(await stillDealing(), 'the second resize came while the deal was running').toBe(true);
+
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        [...document.querySelectorAll<HTMLElement>('[data-card-id]')].every(
+                            (card) => card.style.getPropertyValue('--d') === '' && card.getAnimations().length === 0,
+                        ) && !document.querySelector('.board')?.hasAttribute('data-resizing'),
+                ),
+            )
+            .toBe(true);
+
+        await expect(page.locator('[data-card-id]')).toHaveCount(52);
+        for (let id = 0; id < 52; id += 1) {
+            const drawn = await page.locator(`[data-card-id='${String(id)}']`).evaluate((card) => {
+                const box = card.getBoundingClientRect();
+                return { x: box.x, y: box.y };
+            });
+            expect(near(drawn, await cardTarget(page, id)), `card ${String(id)} is at its place`).toBe(true);
+        }
+        const root = await page.evaluate(() => ({
+            scrollHeight: document.documentElement.scrollHeight,
+            scrollWidth: document.documentElement.scrollWidth,
+            innerHeight: window.innerHeight,
+            innerWidth: window.innerWidth,
+        }));
+        expect(root.scrollHeight).toBeLessThanOrEqual(root.innerHeight);
+        expect(root.scrollWidth).toBeLessThanOrEqual(root.innerWidth);
+        expect(root.innerWidth).toBe(360);
+        await expect(page.locator(MOVES_VALUE)).toHaveText('000');
+        expect(await placement(page)).toEqual(
+            placementOf(dealFromSeed(seed, 'draw1', { verdict: 'random', attempts: 1 })),
+        );
     });
 });

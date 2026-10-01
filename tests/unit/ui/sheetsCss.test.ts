@@ -1,7 +1,9 @@
+// covers: KS-SET-04
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { rulesFor, stripComments } from '../../support/css';
+import { blockAfter, rulesFor, stripComments } from '../../support/css';
 
 const STYLES_DIR = resolve(import.meta.dirname, '../../../src/ui/styles');
 const globalCss = readFileSync(resolve(STYLES_DIR, 'global.css'), 'utf-8');
@@ -39,6 +41,17 @@ describe('sheets.css and controls.css', () => {
 
     it.each(SHEETS)('%s never queries prefers-reduced-motion', (_file, css) => {
         expect(css).not.toMatch(/prefers-reduced-motion/);
+    });
+
+    it('keeps every segmented option at least 2.75rem (44px) square on a coarse pointer, wherever it is used', () => {
+        const coarse = rulesFor(blockAfter(controlsCss, '@media (pointer: coarse)'), '.segmented button').join(' ');
+        expect(coarse).toMatch(/min-width:\s*2\.75rem/);
+        expect(coarse).toMatch(/min-height:\s*2\.75rem/);
+        for (const css of [sheetsCss, homeCss]) {
+            for (const body of rulesFor(css, '.toggle-card .segmented button')) {
+                expect(body).not.toMatch(/(?:min-|max-)?(?:width|height):/);
+            }
+        }
     });
 });
 

@@ -1,3 +1,4 @@
+// covers: KS-STA-04
 import { describe, expect, it } from 'vitest';
 import {
     dailyCompleted,

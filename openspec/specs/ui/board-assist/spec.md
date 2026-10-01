@@ -3,7 +3,7 @@
 ## Purpose
 
 Defines what assistance looks like on the table — legal-target ghosts, the selection ring, shake,
-hint pulses and the focus ring — following the mockup, and how each behaves with motion off.
+hint pulses and the focus ring — as drawn in the committed screenshots (`docs/assets/screenshots/`), and how each behaves with motion off.
 
 ## Requirements
 

@@ -4,6 +4,7 @@ import type {
     DealRequest,
     DealService,
     HintOutcome,
+    PoolChoice,
 } from '../../src/features/deal/dealService';
 import type { GameState } from '../../src/domain/types';
 
@@ -32,10 +33,15 @@ export interface FakeDealService extends DealService {
     deferHints: boolean;
     /** Settles deferred hint request `index` with `outcome` (default: `hintOutcome`). Throws if it already settled. */
     readonly resolveHint: (index: number, outcome?: HintOutcome) => void;
+    /** Every choice `prefetch()` received, in call order. */
+    readonly prefetches: PoolChoice[];
+    /** How many times `pause()` was called. */
+    pauses: number;
 }
 
 /**
- * Creates a fake deal service: `deal` records the request and waits, `hint` answers `hintOutcome` (`none` unless set), or waits for `resolveHint` while `deferHints` is on, `dispose` is noted. Like
+ * Creates a fake deal service: `deal` records the request and waits, `hint` answers `hintOutcome` (`none` unless set),
+ * or waits for `resolveHint` while `deferHints` is on, `prefetch` and `pause` are recorded, `dispose` is noted. Like
  * the real service, a new `deal()` and `dispose()` settle every request still pending as `cancelled`, and settling a
  * request that has already settled throws.
  */
@@ -93,6 +99,14 @@ export function fakeDealService(): FakeDealService {
             }
             pendingHints[index] = undefined;
             resolve(outcome ?? fake.hintOutcome);
+        },
+        prefetches: [],
+        pauses: 0,
+        prefetch: (choice) => {
+            fake.prefetches.push(choice);
+        },
+        pause: () => {
+            fake.pauses++;
         },
         dispose: () => {
             cancelPending();

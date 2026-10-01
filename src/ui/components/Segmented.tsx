@@ -13,17 +13,28 @@ export interface SegmentedProps<T extends string> {
     readonly onChange: (value: T) => void;
     /** Set on the first option's button, e.g. for a sheet's `ModalSheet.initialFocusRef` (I5). */
     readonly firstOptionRef?: RefObject<HTMLButtonElement | null>;
+    /** A disabled group still shows `value`, is exposed as disabled and never calls `onChange`. */
+    readonly disabled?: boolean;
 }
 
 /**
  * A named single-choice group of buttons (`.segmented`, D13): each option is a `role="radio"` with the group's
  * checked state. Left/right (and up/down) arrows move to and select the neighbouring option, wrapping at the ends,
- * and move focus there too — a roving-tabindex group, so only the checked option is in the Tab order.
+ * and move focus there too — a roving-tabindex group, so only the checked option is in the Tab order. `disabled`
+ * disables every option and marks the group `aria-disabled`.
  */
-export function Segmented<T extends string>({ label, options, value, onChange, firstOptionRef }: SegmentedProps<T>) {
+export function Segmented<T extends string>({
+    label,
+    options,
+    value,
+    onChange,
+    firstOptionRef,
+    disabled = false,
+}: SegmentedProps<T>) {
     const buttons = useRef<(HTMLButtonElement | null)[]>([]);
 
     function focusAndSelect(index: number): void {
+        if (disabled) return;
         const wrapped = (index + options.length) % options.length;
         const option = options[wrapped];
         if (option === undefined) return;
@@ -42,7 +53,7 @@ export function Segmented<T extends string>({ label, options, value, onChange, f
     }
 
     return (
-        <div className="segmented" role="radiogroup" aria-label={label}>
+        <div className="segmented" role="radiogroup" aria-label={label} aria-disabled={disabled || undefined}>
             {options.map((option, index) => (
                 <button
                     key={option.value}
@@ -53,9 +64,11 @@ export function Segmented<T extends string>({ label, options, value, onChange, f
                     type="button"
                     role="radio"
                     aria-checked={option.value === value}
+                    disabled={disabled}
                     tabIndex={option.value === value ? 0 : -1}
                     className={option.value === value ? 'is-active' : undefined}
                     onClick={() => {
+                        if (disabled) return;
                         onChange(option.value);
                     }}
                     onKeyDown={(event) => {

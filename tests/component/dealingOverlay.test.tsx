@@ -1,3 +1,5 @@
+// covers: KS-DEAL-04
+
 import { act, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { dealingProgressed } from '../../src/app/appSlice';
@@ -48,7 +50,7 @@ describe('DealingOverlay', () => {
         const { container } = renderGame({ overlay: true, attempt: 3 });
 
         const box = container.querySelector('.deal-overlay .deal-overlay__box');
-        expect(box).toHaveTextContent('Shuffling a winnable deal…');
+        expect(box).toHaveTextContent('Shuffling cards before the game…');
         expect(box).toHaveTextContent('deal #3');
     });
 
@@ -56,8 +58,8 @@ describe('DealingOverlay', () => {
         const { container } = renderGame({ overlay: true, attempt: 2 }, 'uk');
 
         const box = container.querySelector('.deal-overlay__box');
-        expect(box).toHaveTextContent('Тасуємо виграшну роздачу…');
-        expect(box).toHaveTextContent('роздача №2');
+        expect(box).toHaveTextContent('Тасуємо карти перед грою…');
+        expect(box).toHaveTextContent('роздача № 2');
     });
 
     it('keeps one polite status that still announces dealing while the overlay shows', () => {

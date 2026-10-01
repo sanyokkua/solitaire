@@ -1,3 +1,4 @@
+// covers: KS-AST-07, KS-AST-08, KS-SCO-03, KS-SCO-05
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../../src/domain/cards';
 import { dealFromSeed } from '../../../../src/domain/deal';

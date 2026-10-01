@@ -120,6 +120,6 @@ describe('GameScreen chrome profiles', () => {
         renderGame('uk');
 
         expect(screen.getByRole('button', { name: 'На головну' })).toBeInTheDocument();
-        expect(screen.getByRole('navigation', { name: 'Дії гри' })).toBeInTheDocument();
+        expect(screen.getByRole('navigation', { name: 'Дії в грі' })).toBeInTheDocument();
     });
 });

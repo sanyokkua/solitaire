@@ -1,23 +1,21 @@
-import { expect, test } from '@playwright/test';
-import { continueToGame } from './support/cards';
-import { playLine, seedWinningGame } from './support/play';
+// covers: KS-INP-04, KS-INP-06, KS-MOVE-07
 
-const ANNOUNCER = '[aria-live="polite"].sr-only';
-const MOVES_VALUE = '.stat-display--moves .stat-display__value';
+import { test } from '@playwright/test';
+import { continueToGame } from './support/cards';
+import { WINNING_LINE } from '../fixtures/deals';
+import { expectWon, playLine, seedWinningGame, skipOutsideFullGameProjects } from './support/play';
 
 test.describe('Playing by dragging', () => {
     test('the whole recorded line, played by dragging cards and clicking the stock, wins the game', async ({
         page,
     }, testInfo) => {
-        test.skip(testInfo.project.name !== 'chromium', 'the 117-command line is played once, in Desktop Chrome');
+        skipOutsideFullGameProjects(testInfo);
         test.setTimeout(180_000);
         await seedWinningGame(page);
         await continueToGame(page);
 
         await playLine(page, 'drag');
 
-        await expect(page.locator(ANNOUNCER)).toContainText('You win');
-        await expect(page.locator(MOVES_VALUE)).toHaveText('117');
-        await expect(page.getByRole('heading', { name: 'You win!' })).toBeVisible({ timeout: 4000 });
+        await expectWon(page, WINNING_LINE);
     });
 });

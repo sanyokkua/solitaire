@@ -1,9 +1,10 @@
 // @vitest-environment node
+// covers: KS-DEAL-04, KS-DEAL-10
 import '@vitest/web-worker';
 import { afterEach, describe, expect, it } from 'vitest';
 import { solverHint } from '../../../src/solver/hint';
 import type { SolverRequest, SolverResponse } from '../../../src/solver/protocol';
-import { findWinnable } from '../../../src/solver/winnable';
+import { findWinnable, type Outcome } from '../../../src/solver/winnable';
 import { corpusSeeds, MIDGAME_POSITIONS, midgameState } from '../../fixtures/solverCorpus';
 
 const FIND_BUDGET = 5000;
@@ -55,13 +56,17 @@ describe('solver.worker round-trip', () => {
             type: 'findWinnable',
             seeds,
             budget: FIND_BUDGET,
+            mode: 'draw1',
         });
-        const direct = findWinnable(seeds, FIND_BUDGET);
+        const outcomes: Outcome[] = [];
+        const direct = findWinnable(seeds, FIND_BUDGET, 'draw1', { onOutcome: (outcome) => outcomes.push(outcome) });
 
         expect(direct.attempts).toBe(2);
         expect(messages).toEqual([
             { id: REQUEST_ID, type: 'progress', attempt: 1 },
+            { id: REQUEST_ID, type: 'outcome', outcome: outcomes[0] },
             { id: REQUEST_ID, type: 'progress', attempt: 2 },
+            { id: REQUEST_ID, type: 'outcome', outcome: outcomes[1] },
             { id: REQUEST_ID, type: 'findWinnable', ...direct },
         ]);
     });
@@ -87,9 +92,33 @@ describe('solver.worker round-trip', () => {
         });
 
         worker.terminate();
-        worker.postMessage({ id: REQUEST_ID, type: 'findWinnable', seeds: [WIN_SEED], budget: FIND_BUDGET });
+        worker.postMessage({
+            id: REQUEST_ID,
+            type: 'findWinnable',
+            seeds: [WIN_SEED],
+            budget: FIND_BUDGET,
+            mode: 'draw1',
+        });
         await new Promise((resolve) => setTimeout(resolve, SILENCE_MS));
 
         expect(received).toEqual([]);
+    });
+});
+
+describe('solver.worker in Draw 3', () => {
+    it('answers a Draw 3 findWinnable request with the direct result', async () => {
+        const seeds = [1, 10, 8];
+        const messages = await roundTrip(startWorker(), {
+            id: REQUEST_ID,
+            type: 'findWinnable',
+            seeds,
+            budget: FIND_BUDGET,
+            mode: 'draw3',
+        });
+        expect(messages.at(-1)).toEqual({
+            id: REQUEST_ID,
+            type: 'findWinnable',
+            ...findWinnable(seeds, FIND_BUDGET, 'draw3'),
+        });
     });
 });

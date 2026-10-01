@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { STORAGE_KEY } from '../../src/features/persistence/recordCodec';
 import { worstColumnState } from '../fixtures/boardPositions';
 import { seedRecord } from './support/seed';
 
@@ -15,6 +16,7 @@ const VIEWPORTS = [
     { width: 2560, height: 1440 },
 ] as const;
 
+// covers: KS-GEN-03, KS-GEN-09
 for (const { width, height } of VIEWPORTS) {
     test.describe(`Home at ${String(width)}x${String(height)}`, () => {
         test('keeps Deal cards and Continue game inside the viewport without scrolling', async ({ page }) => {
@@ -65,6 +67,7 @@ test('stacks the hero, copy above the card fan, at 390x844', async ({ page }) =>
     expect(art.y).toBeGreaterThanOrEqual(copy.y + copy.height - TOLERANCE);
 });
 
+// covers: KS-GEN-11
 test('keeps the footer links and the build stamp reachable below the record strip', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
@@ -73,5 +76,108 @@ test('keeps the footer links and the build stamp reachable below the record stri
     for (const name of ['Statistics', 'Settings', 'Play a deal code', 'About']) {
         await expect(page.getByRole('navigation', { name: 'More' }).getByRole('button', { name })).toBeAttached();
     }
-    await expect(page.getByLabel(/^App build:/)).toBeAttached();
+    await expect(page.getByLabel(/^App build:/)).toHaveAccessibleName(
+        /^App build: (Build \d+|Development build) · \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/,
+    );
+});
+
+// covers: KS-DEAL-11
+test('chooses Hard in Draw 3 by keyboard, then deals', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'keyboard input is exercised once, in Desktop Chrome');
+    await page.goto('/');
+    const tile = page.getByRole('radio', { name: 'Draw 3' });
+    await tile.click();
+    await tile.focus();
+
+    // Tab leaves the tile for the switch, then lands on the Difficulty group at its checked option.
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('switch', { name: 'Winnable deals only' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    const group = page.getByRole('radiogroup', { name: 'Difficulty' });
+    await expect(group.getByRole('radio', { name: 'Any' })).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await expect(group.getByRole('radio', { name: 'Hard' })).toBeFocused();
+    await expect(group.getByRole('radio', { name: 'Hard' })).toHaveAttribute('aria-checked', 'true');
+    await expect(group.getByRole('radio', { name: 'Any' })).toHaveAttribute('aria-checked', 'false');
+
+    await page.getByRole('button', { name: 'Deal cards' }).click();
+    await expect(page.locator('.board')).toBeVisible();
+    await expect(page.locator('[data-card-id]').first()).toBeAttached();
+
+    await expect
+        .poll(() =>
+            page.evaluate((key) => {
+                const stored = JSON.parse(window.localStorage.getItem(key) ?? 'null') as {
+                    preferences?: { difficulty?: string; selectedMode?: string };
+                } | null;
+                return `${stored?.preferences?.selectedMode ?? ''}:${stored?.preferences?.difficulty ?? ''}`;
+            }, STORAGE_KEY),
+        )
+        .toBe('draw3:hard');
+});
+
+// covers: KS-A11Y-04
+test.describe('Difficulty option size', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/');
+        const coarse = await page.evaluate(() => window.matchMedia('(pointer: coarse)').matches);
+        test.skip(!coarse, 'Touch targets are only required where the pointer is coarse.');
+    });
+
+    for (const size of [null, { width: 320, height: 480 }] as const) {
+        const label = size ? `${String(size.width)}x${String(size.height)}` : 'the project viewport';
+        test(`every Difficulty option is at least 44x44 in ${label}`, async ({ page }) => {
+            if (size) {
+                await page.setViewportSize(size);
+                await page.goto('/');
+            }
+            const options = page.locator('.toggle-card .segmented button');
+            await expect(options).toHaveCount(4);
+
+            for (const option of await options.all()) {
+                const box = await option.boundingBox();
+                const name = (await option.textContent()) ?? '';
+                expect(box, `${label}: ${name}`).not.toBeNull();
+                expect(box?.width, `${label}: ${name} width`).toBeGreaterThanOrEqual(44);
+                expect(box?.height, `${label}: ${name} height`).toBeGreaterThanOrEqual(44);
+            }
+        });
+    }
+});
+
+// covers: KS-A11Y-04
+test.describe('Settings option size', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/');
+        const coarse = await page.evaluate(() => window.matchMedia('(pointer: coarse)').matches);
+        test.skip(!coarse, 'Touch targets are only required where the pointer is coarse.');
+    });
+
+    for (const size of [null, { width: 320, height: 480 }] as const) {
+        const label = size ? `${String(size.width)}x${String(size.height)}` : 'the project viewport';
+        test(`every Settings choice option is at least 44x44 in ${label}`, async ({ page }) => {
+            if (size) {
+                await page.setViewportSize(size);
+                await page.goto('/');
+            }
+            await page.getByRole('button', { name: 'Settings' }).first().click();
+            const options = page.locator('.modal-sheet .segmented button');
+            await expect(options.first()).toBeVisible();
+            // The sheet scales in over 180 ms; measure it at rest.
+            await page.evaluate(() =>
+                Promise.all((document.querySelector('.modal-sheet')?.getAnimations() ?? []).map((a) => a.finished)),
+            );
+            expect(await options.count()).toBeGreaterThanOrEqual(6);
+
+            for (const option of await options.all()) {
+                const box = await option.boundingBox();
+                const name = (await option.textContent()) ?? '';
+                expect(box, `${label}: ${name}`).not.toBeNull();
+                expect(box?.width, `${label}: ${name} width`).toBeGreaterThanOrEqual(44);
+                expect(box?.height, `${label}: ${name} height`).toBeGreaterThanOrEqual(44);
+            }
+        });
+    }
 });

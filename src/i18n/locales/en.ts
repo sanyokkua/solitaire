@@ -86,7 +86,7 @@ export const en = {
 
     'game.heading': 'Klondike',
     'game.dealing': 'Dealing…',
-    'game.dealingOverlay.title': 'Shuffling a winnable deal…',
+    'game.dealingOverlay.title': 'Shuffling cards before the game…',
     'game.dealingOverlay.attempt': 'deal #{count}',
     'game.back': 'Back to Home',
     'game.hintLine.smart': 'Tap a card to send it to its best spot · drag to place it yourself',
@@ -98,11 +98,17 @@ export const en = {
     'game.chip.mode.daily': 'Daily',
     'game.chip.mode.dailyOn': 'Daily · {date}',
     'game.chip.deal.winnable': 'Winnable',
-    'game.chip.deal.winnableShuffles': { one: 'Winnable · {count} shuffle', other: 'Winnable · {count} shuffles' },
+    'game.chip.deal.winnableGraded': 'Winnable · {grade}',
+    'game.chip.deal.shuffleNote': { one: 'found after {count} shuffle', other: 'found after {count} shuffles' },
     'game.chip.deal.random': 'Random deal',
 
+    'grade.easy': 'Easy',
+    'grade.medium': 'Medium',
+    'grade.hard': 'Hard',
+
     'build.label': 'App build: {value}',
-    'build.dev': 'dev version',
+    'build.number': 'Build {number} · {time}',
+    'build.dev': 'Development build · {time}',
 
     'home.deal': 'Deal cards',
     'home.continue': 'Continue game',
@@ -120,7 +126,7 @@ export const en = {
     'home.links.install': 'Install app',
     'home.hero.badge': 'Klondike · Draw 1 & 3',
     'home.hero.pitch':
-        'A quiet table and a fresh deck. Build every suit from Ace to King — drag, tap or play from the keyboard. Draw 1 deals are checked before you see them, so each one can be won.',
+        'A quiet table and a fresh deck. Build every suit from Ace to King — drag, tap or play from the keyboard. Choose winnable deals and each one is checked before you see it, so it can be won.',
     'home.theme.switchToDark': 'Switch to dark theme',
     'home.theme.switchToLight': 'Switch to light theme',
     'home.section.choose': 'Choose a game',
@@ -130,14 +136,16 @@ export const en = {
     'home.modes.draw3.name': 'Draw 3',
     'home.modes.draw3.meta': 'Standard · 3 cards',
     'home.modes.vegas.name': 'Vegas',
-    'home.modes.vegas.meta': '−$52 · 3 passes',
+    'home.modes.vegas.meta': '-$52 · 3 passes',
     'home.modes.daily.name': 'Daily deal',
     'home.modes.best': 'Best {value}',
     'home.modes.noRecord': 'No record yet',
     'home.winnable.label': 'Winnable deals only',
-    'home.winnable.captionDraw1': 'A built-in solver checks every Draw 1 deal before you see it.',
-    'home.winnable.captionSolver': 'Draw 3 and Vegas deals are not checked by the solver, so they may be unwinnable.',
-    'home.winnable.captionDaily': 'Daily deals are always winnable.',
+    'home.winnable.caption':
+        'A built-in solver checks every deal before it is shown. A deal it cannot prove winnable within the attempt limit is marked “Random deal”.',
+    'home.winnable.captionDaily': 'Daily deals are always checked, so they are always winnable.',
+    'home.difficulty.label': 'Difficulty',
+    'home.difficulty.any': 'Any',
 
     'sheet.close': 'Close',
 
@@ -215,6 +223,16 @@ export const en = {
     'help.scoring.standard':
         'Standard: +10 to a foundation, +5 waste to table, +5 per card turned over, −2 every 10 s, −100 per redeal in Draw 1.',
     'help.scoring.vegas': 'Vegas: start at −$52, win $5 per card home, three passes through the deck.',
+    'help.winnable.heading': 'Winnable deals',
+    'help.winnable.intro':
+        'With Winnable deals only on, a built-in solver proves every Draw 1, Draw 3 and Vegas deal winnable before it is shown.',
+    'help.winnable.grading':
+        'A proven deal is graded by replaying it the way a person plays, seeing only the face-up cards, and asking the solver whether it can still be won.',
+    'help.winnable.easy': 'Stays winnable through many plausible mistakes.',
+    'help.winnable.medium': 'Stays winnable through some plausible mistakes.',
+    'help.winnable.hard':
+        'Only a narrow line wins: a few plausible mistakes make it unwinnable, although the solver proved it winnable.',
+    'help.winnable.difficulty': 'Difficulty on Home asks for one of these grades.',
 
     'stats.heading': 'Statistics',
     'stats.mode.draw1': 'Draw 1',
@@ -249,6 +267,9 @@ export const en = {
     'win.summary': 'All 52 cards are home.',
     'win.summaryBonus': 'All 52 cards are home, plus a {bonus}-point time bonus.',
     'win.bestTime': 'New best time',
+    'win.grade.easy': 'Easy deal',
+    'win.grade.medium': 'Medium deal',
+    'win.grade.hard': 'Hard deal',
     'win.menu': 'Menu',
     'win.dealAgain': 'Deal again',
 

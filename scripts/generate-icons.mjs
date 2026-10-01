@@ -1,4 +1,5 @@
-// Draws the pixel-dot mark (three blocks: on-bg, primary, secondary) on the harbour background.
+// Draws the card-fan mark (a checkered card back behind a white card face showing a pixel "A" and a spade) on the
+// harbour background. ONE rectangle list on a 16 x 16 cell grid feeds both the SVG favicon and the PNG icons.
 // Dependency-free: PNGs are encoded with node:zlib. Run `node scripts/generate-icons.mjs` to rewrite public/.
 import { Buffer } from 'node:buffer';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -7,22 +8,98 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { crc32, deflateSync } from 'node:zlib';
 
-const BACKGROUND = [0x0b, 0x25, 0x45];
-const BLOCKS = [
-    [0xee, 0xf4, 0xed],
-    [0x5b, 0xc0, 0xeb],
-    [0xa8, 0xda, 0xdc],
+const GRID = 16;
+const BACKGROUND = '#0b2545';
+const SKY = '#5bc0eb';
+const NAVY = '#1d3f70';
+const RIM = '#f1faee';
+const FACE = '#fbfdfb';
+const INK = '#13315c';
+
+const CARD_WIDTH = 7;
+const CARD_HEIGHT = 13;
+const BACK_AT = [2, 1];
+const FACE_AT = [7, 2];
+
+const LETTER_A = ['.###.', '#...#', '#####', '#...#', '#...#'];
+const SPADE = ['..#..', '.###.', '#####', '#####', '..#..'];
+
+/** Rectangles for the `#` cells of a bitmap placed at (x, y); each row's runs of `#` become one rectangle. */
+function bitmapRects(rows, [x, y], fill) {
+    const rects = [];
+    rows.forEach((row, rowIndex) => {
+        for (const run of row.matchAll(/#+/g)) {
+            rects.push({ x: x + run.index, y: y + rowIndex, w: run[0].length, h: 1, fill });
+        }
+    });
+    return rects;
+}
+
+/** The card back: a cream rim around a sky/navy checker. */
+function cardBackRects([x, y]) {
+    const rects = [
+        { x, y, w: CARD_WIDTH, h: CARD_HEIGHT, fill: RIM },
+        { x: x + 1, y: y + 1, w: CARD_WIDTH - 2, h: CARD_HEIGHT - 2, fill: NAVY },
+    ];
+    for (let row = 0; row < CARD_HEIGHT - 2; row += 1) {
+        for (let column = 0; column < CARD_WIDTH - 2; column += 1) {
+            if ((row + column) % 2 === 0) rects.push({ x: x + 1 + column, y: y + 1 + row, w: 1, h: 1, fill: SKY });
+        }
+    }
+    return rects;
+}
+
+/** Back to front; the first entry is the background, the rest form the mark. */
+const RECTS = [
+    { x: 0, y: 0, w: GRID, h: GRID, fill: BACKGROUND },
+    ...cardBackRects(BACK_AT),
+    { x: FACE_AT[0], y: FACE_AT[1], w: CARD_WIDTH, h: CARD_HEIGHT, fill: FACE },
+    ...bitmapRects(LETTER_A, [FACE_AT[0] + 1, FACE_AT[1] + 1], INK),
+    ...bitmapRects(SPADE, [FACE_AT[0] + 1, FACE_AT[1] + 7], INK),
 ];
-const BLOCK_CELLS = 3;
-const GAP_CELLS = 1;
-const MARK_WIDTH_CELLS = BLOCKS.length * BLOCK_CELLS + (BLOCKS.length - 1) * GAP_CELLS;
 
-/** Share of the icon width the mark may cover; the maskable icon keeps it well inside the 80 % safe zone. */
-const MARK_SHARE = 0.6;
-const MASKABLE_MARK_SHARE = 0.48;
+/** Bounding box of the mark (everything except the background rectangle), in cells. */
+const MARK = RECTS.slice(1).reduce(
+    (box, { x, y, w, h }) => ({
+        left: Math.min(box.left, x),
+        top: Math.min(box.top, y),
+        right: Math.max(box.right, x + w),
+        bottom: Math.max(box.bottom, y + h),
+    }),
+    { left: GRID, top: GRID, right: 0, bottom: 0 },
+);
 
-function hex(rgb) {
-    return `#${rgb.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+/** Fill colour of each grid cell, painted from RECTS. */
+const CELLS = (() => {
+    const cells = Array.from({ length: GRID * GRID }, () => BACKGROUND);
+    for (const { x, y, w, h, fill } of RECTS) {
+        for (let cy = y; cy < y + h; cy += 1) for (let cx = x; cx < x + w; cx += 1) cells[cy * GRID + cx] = fill;
+    }
+    return cells;
+})();
+
+function rgb(hex) {
+    return Buffer.from(hex.slice(1), 'hex');
+}
+
+function gridOffset(size, scale) {
+    return Math.floor((size - GRID * scale) / 2);
+}
+
+/** Whether every corner of the mark's pixel box lies inside the centred circle of 80 % of `size`. */
+function fitsSafeZone(size, scale) {
+    const offset = gridOffset(size, scale);
+    const centre = size / 2;
+    const dx = Math.max(Math.abs(offset + MARK.left * scale - centre), Math.abs(offset + MARK.right * scale - centre));
+    const dy = Math.max(Math.abs(offset + MARK.top * scale - centre), Math.abs(offset + MARK.bottom * scale - centre));
+    return Math.hypot(dx, dy) <= size * 0.4;
+}
+
+/** Integer scale of one grid cell: as large as fits, and for a maskable icon as large as fits the safe zone. */
+function scaleFor(size, maskable) {
+    let scale = Math.floor(size / GRID);
+    while (maskable && scale > 1 && !fitsSafeZone(size, scale)) scale -= 1;
+    return scale;
 }
 
 function chunk(type, data) {
@@ -34,26 +111,23 @@ function chunk(type, data) {
     return Buffer.concat([length, body, crc]);
 }
 
-/** Encodes a square 8-bit RGB PNG of `size` pixels with the mark centred. */
-export function drawIconPng(size, markShare) {
-    const scale = Math.floor((size * markShare) / MARK_WIDTH_CELLS);
-    const markWidth = MARK_WIDTH_CELLS * scale;
-    const markHeight = BLOCK_CELLS * scale;
-    const left = Math.floor((size - markWidth) / 2);
-    const top = Math.floor((size - markHeight) / 2);
+/**
+ * Encodes a square 8-bit RGB PNG of `size` pixels: the grid at an integer scale, centred, with background padding.
+ * A `maskable` icon uses the largest scale whose mark stays inside the safe-zone circle.
+ */
+export function drawIconPng(size, maskable) {
+    const scale = scaleFor(size, maskable);
+    const offset = gridOffset(size, scale);
     const rowBytes = 1 + size * 3;
     const raw = Buffer.alloc(rowBytes * size);
+    const background = rgb(BACKGROUND);
     for (let y = 0; y < size; y += 1) {
         const rowStart = y * rowBytes;
+        const cellY = Math.floor((y - offset) / scale);
         for (let x = 0; x < size; x += 1) {
-            let colour = BACKGROUND;
-            const cellX = Math.floor((x - left) / scale);
-            const cellY = Math.floor((y - top) / scale);
-            if (x >= left && x < left + markWidth && cellY >= 0 && cellY < BLOCK_CELLS && y >= top) {
-                const slot = Math.floor(cellX / (BLOCK_CELLS + GAP_CELLS));
-                if (cellX % (BLOCK_CELLS + GAP_CELLS) < BLOCK_CELLS) colour = BLOCKS[slot];
-            }
-            raw.set(colour, rowStart + 1 + x * 3);
+            const cellX = Math.floor((x - offset) / scale);
+            const inGrid = cellX >= 0 && cellX < GRID && cellY >= 0 && cellY < GRID;
+            raw.set(inGrid ? rgb(CELLS[cellY * GRID + cellX]) : background, rowStart + 1 + x * 3);
         }
     }
     const header = Buffer.alloc(13);
@@ -69,17 +143,13 @@ export function drawIconPng(size, markShare) {
 }
 
 function drawFaviconSvg() {
-    const side = 23;
-    const left = (side - MARK_WIDTH_CELLS) / 2;
-    const top = (side - BLOCK_CELLS) / 2;
-    const rects = BLOCKS.map((colour, index) => {
-        const x = left + index * (BLOCK_CELLS + GAP_CELLS);
-        return `<rect x="${x}" y="${top}" width="${BLOCK_CELLS}" height="${BLOCK_CELLS}" fill="${hex(colour)}"/>`;
-    });
     return [
-        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${side} ${side}" shape-rendering="crispEdges">`,
-        `<rect width="${side}" height="${side}" fill="${hex(BACKGROUND)}"/>`,
-        ...rects,
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GRID} ${GRID}" shape-rendering="crispEdges">`,
+        ...RECTS.map(({ x, y, w, h, fill }) =>
+            x === 0 && y === 0
+                ? `<rect width="${w}" height="${h}" fill="${fill}"/>`
+                : `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`,
+        ),
         '</svg>',
         '',
     ].join('\n');
@@ -88,10 +158,10 @@ function drawFaviconSvg() {
 /** Every generated file, keyed by its path relative to `public/`. Pure: no file access. */
 export function generateIcons() {
     return new Map([
-        ['icons/icon-192.png', drawIconPng(192, MARK_SHARE)],
-        ['icons/icon-512.png', drawIconPng(512, MARK_SHARE)],
-        ['icons/icon-maskable-512.png', drawIconPng(512, MASKABLE_MARK_SHARE)],
-        ['icons/apple-touch-icon.png', drawIconPng(180, MARK_SHARE)],
+        ['icons/icon-192.png', drawIconPng(192, false)],
+        ['icons/icon-512.png', drawIconPng(512, false)],
+        ['icons/icon-maskable-512.png', drawIconPng(512, true)],
+        ['icons/apple-touch-icon.png', drawIconPng(180, false)],
         ['favicon.svg', drawFaviconSvg()],
     ]);
 }

@@ -1,4 +1,5 @@
 // @vitest-environment node
+// covers: KS-DEAL-04, KS-DEAL-10
 import '@vitest/web-worker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dealFromSeed } from '../../../../src/domain/deal';
@@ -45,10 +46,10 @@ describe('solver client with the real worker', () => {
         const client = track(createSolverClient(factory.create));
         expect(factory.workers).toHaveLength(0);
 
-        await client.findWinnable([WIN_SEED], FIND_BUDGET);
+        await client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         expect(factory.workers).toHaveLength(1);
 
-        await client.findWinnable([WIN_SEED], FIND_BUDGET);
+        await client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         expect(factory.workers).toHaveLength(1);
     });
 
@@ -56,17 +57,89 @@ describe('solver client with the real worker', () => {
         const client = track(createSolverClient());
         const seeds = [LOSS_SEED, WIN_SEED];
 
-        const outcome = await client.findWinnable(seeds, FIND_BUDGET);
+        const outcome = await client.findWinnable(seeds, FIND_BUDGET, 'draw1');
 
-        expect(outcome).toEqual({ status: 'ok', result: findWinnable(seeds, FIND_BUDGET) });
+        expect(outcome).toEqual({ status: 'ok', result: findWinnable(seeds, FIND_BUDGET, 'draw1') });
+    });
+
+    it('deals the seeds in the mode it is given', async () => {
+        const client = track(createSolverClient());
+        const seeds = [1, 10, 8];
+
+        const outcome = await client.findWinnable(seeds, FIND_BUDGET, 'draw3');
+
+        expect(outcome).toMatchObject({ status: 'ok', result: { seed: 8, verdict: 'win', attempts: 3 } });
+        expect(outcome).toEqual({ status: 'ok', result: findWinnable(seeds, FIND_BUDGET, 'draw3') });
+    });
+
+    it('posts the mode with the seeds and the budget', () => {
+        const factory = stubFactory();
+        const client = track(createSolverClient(factory.create));
+
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'vegas');
+
+        expect(stubAt(factory.stubs, 0).requests).toEqual([
+            {
+                id: expect.any(Number) as number,
+                type: 'findWinnable',
+                seeds: [WIN_SEED],
+                budget: FIND_BUDGET,
+                mode: 'vegas',
+            },
+        ]);
+    });
+
+    it('posts the selection it is given and resolves with the grade and spares the worker replies', async () => {
+        const factory = stubFactory();
+        const client = track(createSolverClient(factory.create));
+        const selection = { target: 'hard', gradeLimit: 3 } as const;
+
+        const deal = client.findWinnable([WIN_SEED, LOSS_SEED], FIND_BUDGET, 'draw3', { selection });
+
+        const stub = stubAt(factory.stubs, 0);
+        expect(stub.requests[0]).toMatchObject({ type: 'findWinnable', mode: 'draw3', selection });
+        const spares = [{ seed: LOSS_SEED, grade: 'easy' }] as const;
+        stub.reply({
+            id: stub.idOf(0),
+            type: 'findWinnable',
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 2,
+            grade: 'hard',
+            spares,
+        });
+        expect(await deal).toEqual({
+            status: 'ok',
+            result: { seed: WIN_SEED, verdict: 'win', attempts: 2, grade: 'hard', spares },
+        });
+    });
+
+    it('posts the known verdicts and hands each outcome the worker reports to onOutcome, for the pending deal only', () => {
+        const factory = stubFactory();
+        const client = track(createSolverClient(factory.create));
+        const known = [{ seed: LOSS_SEED, verdict: 'loss', grade: undefined }] as const;
+        const outcomes: unknown[] = [];
+
+        void client.findWinnable([LOSS_SEED, WIN_SEED], FIND_BUDGET, 'draw1', {
+            known,
+            onOutcome: (outcome) => outcomes.push(outcome),
+        });
+
+        const stub = stubAt(factory.stubs, 0);
+        expect(stub.requests[0]).toMatchObject({ type: 'findWinnable', known });
+        stub.reply({ id: stub.idOf(0), type: 'outcome', outcome: { seed: WIN_SEED, verdict: 'win', grade: 'easy' } });
+        stub.reply({ id: stub.idOf(0) + 1, type: 'outcome', outcome: { seed: 5, verdict: 'loss', grade: undefined } });
+        expect(outcomes).toEqual([{ seed: WIN_SEED, verdict: 'win', grade: 'easy' }]);
     });
 
     it('reports progress in order for the pending deal', async () => {
         const client = track(createSolverClient(realFactory().create));
         const attempts: number[] = [];
 
-        const outcome = await client.findWinnable([LOSS_SEED, WIN_SEED], FIND_BUDGET, (attempt) => {
-            attempts.push(attempt);
+        const outcome = await client.findWinnable([LOSS_SEED, WIN_SEED], FIND_BUDGET, 'draw1', {
+            onProgress: (attempt) => {
+                attempts.push(attempt);
+            },
         });
 
         expect(outcome.status).toBe('ok');
@@ -82,13 +155,13 @@ describe('solver client with the real worker', () => {
             // The in-process worker runs on this thread and posts synchronously, so this runs mid-search: the first
             // request is certainly pending and its worker busy. Starting the second here rather than back to back
             // also lets the first worker finish loading, which the polyfill needs before a second one may load.
-            second ??= client.findWinnable(seeds, FIND_BUDGET);
+            second ??= client.findWinnable(seeds, FIND_BUDGET, 'draw1');
         });
 
-        const first = client.findWinnable([WIN_SEED], FIND_BUDGET, onFirstProgress);
+        const first = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1', { onProgress: onFirstProgress });
 
         expect(await first).toEqual({ status: 'cancelled' });
-        expect(await second).toEqual({ status: 'ok', result: findWinnable(seeds, FIND_BUDGET) });
+        expect(await second).toEqual({ status: 'ok', result: findWinnable(seeds, FIND_BUDGET, 'draw1') });
         expect(onFirstProgress).toHaveBeenCalledExactlyOnceWith(1);
         expect(factory.workers).toHaveLength(2);
     });
@@ -110,11 +183,11 @@ describe('solver client with the real worker', () => {
         const factory = realFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const hint = await client.hint(STATE, HINT_BUDGET, 60_000);
 
         expect(hint).toEqual({ status: 'busy' });
-        expect(await deal).toEqual({ status: 'ok', result: findWinnable([WIN_SEED], FIND_BUDGET) });
+        expect(await deal).toEqual({ status: 'ok', result: findWinnable([WIN_SEED], FIND_BUDGET, 'draw1') });
         expect(factory.workers).toHaveLength(1);
     });
 
@@ -122,7 +195,7 @@ describe('solver client with the real worker', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        void client.findWinnable([WIN_SEED], FIND_BUDGET);
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const stub = stubAt(factory.stubs, 0);
         await client.hint(STATE, HINT_BUDGET, HINT_TIMEOUT_MS);
 
@@ -133,7 +206,7 @@ describe('solver client with the real worker', () => {
     it('terminates the worker on dispose() and settles anything pending as cancelled', async () => {
         const factory = realFactory();
         const client = track(createSolverClient(factory.create));
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const worker = factory.workers[0];
         if (worker === undefined) {
             throw new Error('the deal did not start a worker');
@@ -215,7 +288,7 @@ describe('solver client with a silent stub', () => {
         const hint = client.hint(STATE, HINT_BUDGET, HINT_TIMEOUT_MS);
         await vi.advanceTimersByTimeAsync(HINT_TIMEOUT_MS);
         expect(await hint).toEqual({ status: 'timeout' });
-        void client.findWinnable([WIN_SEED], FIND_BUDGET);
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
 
         expect(factory.stubs).toHaveLength(2);
         expect(stubAt(factory.stubs, 0).terminated).toBe(true);
@@ -232,7 +305,7 @@ describe('solver client with a silent stub', () => {
         await vi.advanceTimersByTimeAsync(HINT_TIMEOUT_MS);
         await hint;
         stub.reply({ id: stub.idOf(0), type: 'hint', hint: undefined });
-        void client.findWinnable([WIN_SEED], FIND_BUDGET);
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
 
         expect(factory.stubs).toHaveLength(1);
         expect(stub.terminated).toBe(false);
@@ -281,12 +354,23 @@ describe('solver client with a silent stub', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const stub = stubAt(factory.stubs, 0);
         client.cancelHints();
-        stub.reply({ id: stub.idOf(0), type: 'findWinnable', seed: WIN_SEED, verdict: 'win', attempts: 1 });
+        stub.reply({
+            id: stub.idOf(0),
+            type: 'findWinnable',
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 1,
+            grade: 'easy',
+            spares: [],
+        });
 
-        expect(await deal).toEqual({ status: 'ok', result: { seed: WIN_SEED, verdict: 'win', attempts: 1 } });
+        expect(await deal).toEqual({
+            status: 'ok',
+            result: { seed: WIN_SEED, verdict: 'win', attempts: 1, grade: 'easy', spares: [] },
+        });
         expect(stub.terminated).toBe(false);
     });
 
@@ -305,7 +389,7 @@ describe('solver client with a silent stub', () => {
 
         void client.hint(STATE, HINT_BUDGET, 60_000);
         void client.hint(STATE, HINT_BUDGET, 60_000);
-        void client.findWinnable([WIN_SEED], FIND_BUDGET);
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const ids = stubAt(factory.stubs, 0).requests.map((request) => request.id);
 
         expect(ids).toHaveLength(2);
@@ -318,12 +402,20 @@ describe('solver client with a silent stub', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const stub = stubAt(factory.stubs, 0);
-        stub.reply({ id: stub.idOf(0), type: 'findWinnable', seed: WIN_SEED, verdict: 'win', attempts: 1 });
+        stub.reply({
+            id: stub.idOf(0),
+            type: 'findWinnable',
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 1,
+            grade: 'easy',
+            spares: [],
+        });
         await deal;
         client.cancel();
-        void client.findWinnable([WIN_SEED], FIND_BUDGET);
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
 
         expect(stub.terminated).toBe(false);
         expect(factory.stubs).toHaveLength(1);
@@ -334,14 +426,14 @@ describe('solver client with a silent stub', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const stub = stubAt(factory.stubs, 0);
         client.cancel();
 
         expect(await deal).toEqual({ status: 'cancelled' });
         expect(stub.terminated).toBe(true);
         expect(factory.stubs).toHaveLength(1);
-        void client.findWinnable([WIN_SEED], FIND_BUDGET);
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         expect(factory.stubs).toHaveLength(2);
     });
 
@@ -350,21 +442,40 @@ describe('solver client with a silent stub', () => {
         const client = track(createSolverClient(factory.create));
         const onProgress = vi.fn();
 
-        const first = client.findWinnable([LOSS_SEED, WIN_SEED], FIND_BUDGET, onProgress);
+        const first = client.findWinnable([LOSS_SEED, WIN_SEED], FIND_BUDGET, 'draw1', { onProgress });
         const stub = stubAt(factory.stubs, 0);
         const firstId = stub.idOf(0);
         stub.reply({ id: firstId, type: 'progress', attempt: 1 });
         expect(onProgress).toHaveBeenCalledExactlyOnceWith(1);
 
-        const second = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const second = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         expect(await first).toEqual({ status: 'cancelled' });
         stub.reply({ id: firstId, type: 'progress', attempt: 2 });
-        stub.reply({ id: firstId, type: 'findWinnable', seed: LOSS_SEED, verdict: 'random', attempts: 2 });
+        stub.reply({
+            id: firstId,
+            type: 'findWinnable',
+            seed: LOSS_SEED,
+            verdict: 'random',
+            attempts: 2,
+            grade: undefined,
+            spares: [],
+        });
         expect(onProgress).toHaveBeenCalledTimes(1);
 
         const fresh = stubAt(factory.stubs, 1);
-        fresh.reply({ id: fresh.idOf(0), type: 'findWinnable', seed: WIN_SEED, verdict: 'win', attempts: 1 });
-        expect(await second).toEqual({ status: 'ok', result: { seed: WIN_SEED, verdict: 'win', attempts: 1 } });
+        fresh.reply({
+            id: fresh.idOf(0),
+            type: 'findWinnable',
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 1,
+            grade: 'easy',
+            spares: [],
+        });
+        expect(await second).toEqual({
+            status: 'ok',
+            result: { seed: WIN_SEED, verdict: 'win', attempts: 1, grade: 'easy', spares: [] },
+        });
     });
 
     it('passes progress to the pending deal in the order it arrives', () => {
@@ -372,8 +483,10 @@ describe('solver client with a silent stub', () => {
         const client = track(createSolverClient(factory.create));
         const attempts: number[] = [];
 
-        void client.findWinnable([LOSS_SEED, WIN_SEED], FIND_BUDGET, (attempt) => {
-            attempts.push(attempt);
+        void client.findWinnable([LOSS_SEED, WIN_SEED], FIND_BUDGET, 'draw1', {
+            onProgress: (attempt) => {
+                attempts.push(attempt);
+            },
         });
         const stub = stubAt(factory.stubs, 0);
         stub.reply({ id: stub.idOf(0), type: 'progress', attempt: 1 });
@@ -386,7 +499,7 @@ describe('solver client with a silent stub', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const stub = stubAt(factory.stubs, 0);
         stub.reply({ id: stub.idOf(0), type: 'hint', hint: undefined });
 
@@ -400,13 +513,13 @@ describe('solver client failures', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const stub = stubAt(factory.stubs, 0);
         stub.emit('error', { message: 'boom' });
 
         expect(await deal).toEqual({ status: 'failed' });
         expect(stub.terminated).toBe(true);
-        void client.findWinnable([WIN_SEED], FIND_BUDGET);
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         expect(factory.stubs).toHaveLength(2);
         expect(stubAt(factory.stubs, 1).requests).toHaveLength(1);
     });
@@ -425,7 +538,7 @@ describe('solver client failures', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         stubAt(factory.stubs, 0).emit('messageerror');
         expect(await deal).toEqual({ status: 'failed' });
 
@@ -445,7 +558,7 @@ describe('solver client failures', () => {
             const factory = stubFactory();
             const client = track(createSolverClient(factory.create));
 
-            const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+            const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
             const stub = stubAt(factory.stubs, 0);
             stub.emit('message', { data });
 
@@ -470,13 +583,24 @@ describe('solver client failures', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const stub = stubAt(factory.stubs, 0);
         stub.reply({ id: 9999, type: 'hint', hint: undefined });
         stub.reply({ id: 9999, type: 'progress', attempt: 1 });
-        stub.reply({ id: stub.idOf(0), type: 'findWinnable', seed: WIN_SEED, verdict: 'win', attempts: 1 });
+        stub.reply({
+            id: stub.idOf(0),
+            type: 'findWinnable',
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 1,
+            grade: 'easy',
+            spares: [],
+        });
 
-        expect(await deal).toEqual({ status: 'ok', result: { seed: WIN_SEED, verdict: 'win', attempts: 1 } });
+        expect(await deal).toEqual({
+            status: 'ok',
+            result: { seed: WIN_SEED, verdict: 'win', attempts: 1, grade: 'easy', spares: [] },
+        });
         expect(stub.terminated).toBe(false);
     });
 
@@ -484,14 +608,25 @@ describe('solver client failures', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        void client.findWinnable([WIN_SEED], FIND_BUDGET);
+        void client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const first = stubAt(factory.stubs, 0);
-        const second = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const second = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         first.emit('error', { message: 'late' });
         const fresh = stubAt(factory.stubs, 1);
-        fresh.reply({ id: fresh.idOf(0), type: 'findWinnable', seed: WIN_SEED, verdict: 'win', attempts: 1 });
+        fresh.reply({
+            id: fresh.idOf(0),
+            type: 'findWinnable',
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 1,
+            grade: 'easy',
+            spares: [],
+        });
 
-        expect(await second).toEqual({ status: 'ok', result: { seed: WIN_SEED, verdict: 'win', attempts: 1 } });
+        expect(await second).toEqual({
+            status: 'ok',
+            result: { seed: WIN_SEED, verdict: 'win', attempts: 1, grade: 'easy', spares: [] },
+        });
         expect(fresh.terminated).toBe(false);
     });
 
@@ -501,7 +636,7 @@ describe('solver client failures', () => {
         });
         const client = track(createSolverClient(create));
 
-        expect(await client.findWinnable([WIN_SEED], FIND_BUDGET)).toEqual({ status: 'failed' });
+        expect(await client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1')).toEqual({ status: 'failed' });
         expect(await client.hint(STATE, HINT_BUDGET, HINT_TIMEOUT_MS)).toEqual({ status: 'failed' });
         expect(create).toHaveBeenCalledTimes(2);
     });
@@ -510,9 +645,17 @@ describe('solver client failures', () => {
         const factory = stubFactory();
         const client = track(createSolverClient(factory.create));
 
-        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET);
+        const deal = client.findWinnable([WIN_SEED], FIND_BUDGET, 'draw1');
         const stub = stubAt(factory.stubs, 0);
-        stub.reply({ id: stub.idOf(0), type: 'findWinnable', seed: WIN_SEED, verdict: 'win', attempts: 1 });
+        stub.reply({
+            id: stub.idOf(0),
+            type: 'findWinnable',
+            seed: WIN_SEED,
+            verdict: 'win',
+            attempts: 1,
+            grade: 'easy',
+            spares: [],
+        });
         await deal;
         stub.postError = new Error('cannot clone');
         const failed = client.hint(STATE, HINT_BUDGET, HINT_TIMEOUT_MS);

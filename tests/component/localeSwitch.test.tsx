@@ -1,3 +1,5 @@
+// covers: KS-I18N-01
+
 import { act, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { preferenceSet } from '../../src/features/preferences/preferencesSlice';
@@ -24,7 +26,7 @@ describe('switching language while the Game screen is shown', () => {
         });
 
         expect(screen.getByRole('button', { name: 'На головну' })).toBeInTheDocument();
-        expect(screen.getByRole('navigation', { name: 'Дії гри' })).toBeInTheDocument();
+        expect(screen.getByRole('navigation', { name: 'Дії в грі' })).toBeInTheDocument();
         expect(container.querySelector('.board-panel')).toBe(board);
         expect(
             screen.getByText('Рахунок').closest('.stat-display')?.querySelector('.stat-display__value'),

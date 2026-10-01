@@ -22,9 +22,10 @@ const changes = [
     { key: 'locale', value: 'uk' },
     { key: 'winnableOnly', value: false },
     { key: 'selectedMode', value: 'vegas' },
+    { key: 'difficulty', value: 'hard' },
 ] as const;
 
-describe('defaultPreferences (specification section 6)', () => {
+describe('defaultPreferences', () => {
     it('holds the specified defaults', () => {
         expect(defaultPreferences('en')).toEqual({
             theme: 'system',
@@ -39,6 +40,7 @@ describe('defaultPreferences (specification section 6)', () => {
             locale: 'en',
             winnableOnly: true,
             selectedMode: 'draw1',
+            difficulty: 'any',
         });
     });
 
@@ -85,6 +87,8 @@ describe('preferencesReducer', () => {
         preferenceSet({ key: 'theme', value: true });
         // @ts-expect-error a Theme is not a boolean
         preferenceSet({ key: 'nightCards', value: 'dark' });
+        // @ts-expect-error a difficulty is one of any, easy, medium and hard
+        preferenceSet({ key: 'difficulty', value: 'extreme' });
     });
 });
 

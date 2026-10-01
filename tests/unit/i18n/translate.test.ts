@@ -1,3 +1,4 @@
+// covers: KS-I18N-01
 import { describe, expect, it } from 'vitest';
 import { createTranslator, formatDate, type Catalog } from '../../../src/i18n/translate';
 

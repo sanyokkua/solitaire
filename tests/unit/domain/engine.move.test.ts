@@ -1,3 +1,4 @@
+// covers: KS-MOVE-01, KS-MOVE-02, KS-MOVE-05, KS-MOVE-07, KS-SCO-05
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { applyCommand } from '../../../src/domain/engine';
@@ -433,6 +434,7 @@ describe('fields the engine does not own', () => {
                 scoring: 'vegas',
                 verdict: 'win',
                 attempts: 7,
+                grade: 'hard',
                 elapsedMs: 12_345,
                 ...over,
             }),
@@ -444,6 +446,7 @@ describe('fields the engine does not own', () => {
         scoring: s.scoring,
         verdict: s.verdict,
         attempts: s.attempts,
+        grade: s.grade,
         elapsedMs: s.elapsedMs,
     });
 

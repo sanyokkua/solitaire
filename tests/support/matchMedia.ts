@@ -1,22 +1,16 @@
 import { act } from '@testing-library/react';
-
-type Listener = (event: MediaQueryListEvent) => void;
+import { createMatchMedia, type MediaQueryListOptions } from './mediaQueryList';
 
 /** The descriptor `tests/setup.ts` installed, captured before any test file replaces it. */
 const originalDescriptor = Object.getOwnPropertyDescriptor(window, 'matchMedia');
 
-function install(value: (query: string) => unknown): void {
+function install(value: ((query: string) => unknown) | undefined): void {
     Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value });
 }
 
 /** Makes exactly the queries in `matching` match; nothing else does, and no listener ever fires. */
 export function stubMatchMedia(matching: readonly string[]): void {
-    install((query) => ({
-        matches: matching.includes(query),
-        media: query,
-        addEventListener: () => undefined,
-        removeEventListener: () => undefined,
-    }));
+    install(createMatchMedia(Object.fromEntries(matching.map((query) => [query, true]))).matchMedia);
 }
 
 export interface ControllableMatchMedia {
@@ -26,44 +20,29 @@ export interface ControllableMatchMedia {
     listenerCount(query: string): number;
 }
 
-/** Installs a `matchMedia` with one live fake per query; nothing matches until the test calls `set`. */
-export function controllableMatchMedia(): ControllableMatchMedia {
-    const fakes = new Map<string, { matches: boolean; readonly listeners: Set<Listener> }>();
-    const fakeFor = (query: string) => {
-        let fake = fakes.get(query);
-        if (!fake) {
-            fake = { matches: false, listeners: new Set() };
-            fakes.set(query, fake);
-        }
-        return fake;
-    };
-    install((query) => {
-        const fake = fakeFor(query);
-        return {
-            get matches() {
-                return fake.matches;
-            },
-            media: query,
-            addEventListener: (_type: string, listener: Listener) => {
-                fake.listeners.add(listener);
-            },
-            removeEventListener: (_type: string, listener: Listener) => {
-                fake.listeners.delete(listener);
-            },
-        };
-    });
+/**
+ * Installs a `matchMedia` with one live fake per query. Only the queries in `initial` match (when true) until the test
+ * calls `set`; `options.withoutEventListener` gives lists that have no `addEventListener`.
+ */
+export function controllableMatchMedia(
+    initial: Readonly<Record<string, boolean>> = {},
+    options: MediaQueryListOptions = {},
+): ControllableMatchMedia {
+    const fake = createMatchMedia(initial, options);
+    install(fake.matchMedia);
     return {
         set(query, matches) {
-            const fake = fakeFor(query);
-            fake.matches = matches;
             act(() => {
-                fake.listeners.forEach((listener) => {
-                    listener({ matches } as MediaQueryListEvent);
-                });
+                fake.set(query, matches);
             });
         },
-        listenerCount: (query) => fakeFor(query).listeners.size,
+        listenerCount: (query) => fake.listenerCount(query),
     };
+}
+
+/** Removes `window.matchMedia`, as an environment without it; `restoreMatchMedia` puts the setup one back. */
+export function removeMatchMedia(): void {
+    install(undefined);
 }
 
 /** Puts back the `matchMedia` that `tests/setup.ts` installed; call it in `afterEach`. */

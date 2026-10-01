@@ -7,28 +7,29 @@ snapshots; they never apply game rules.
   log (KS-A11Y-02, KS-I18N-01). Descriptors carry no text; the words reuse `cardName` from `board/names.ts` and a
   private `place(t, ref)` for the mid-sentence pile phrase ("Seven of Clubs moved to column 4", "Moved 3 cards to
   the foundations", "No redeals left" for a `pass-limit` refusal, "Hint: move the Four of Hearts onto column 6").
-- `components/` — small shared components (`Announcer.tsx`, `BuildStamp.tsx`, `DealChip.tsx`, `Hud.tsx`,
-  `Icon.tsx`, `ModeChip.tsx`, `NewDealButton.tsx`, `Notices.tsx`, `Segmented.tsx`, `SettingRow.tsx`,
-  `SettingsButton.tsx`, `Swatches.tsx`, `Switch.tsx`, `ThemeToggle.tsx` and `Toolbar.tsx`, described below).
+- `components/` — small shared components (`Announcer.tsx`, `BuildStamp.tsx`, `ConfirmAction.tsx`, `DealChip.tsx`,
+  `DealCode.tsx`, `DealingOverlay.tsx`, `HintLine.tsx`, `Hud.tsx`, `Icon.tsx`, `ModeChip.tsx`, `NewDealButton.tsx`,
+  `Notices.tsx`, `Segmented.tsx`, `SettingRow.tsx`, `SettingsButton.tsx`, `Swatches.tsx`, `Switch.tsx`,
+  `ThemeToggle.tsx` and `Toolbar.tsx`, described below).
 - `screens/` — the Home and Game screens (`HomeScreen.tsx`, `GameScreen.tsx`), Home's parts in `screens/home/`
   (`HomeTopbar.tsx`, `HomeHero.tsx`, `ModeTiles.tsx`, `WinnableToggle.tsx`, `HomeActions.tsx`, `RecordStrip.tsx`, `HomeLinks.tsx`) and `profiles.ts`, described below.
 - `sheets/` — the sheet host (D2): `ModalSheet.tsx`, the one generic dialog every sheet wraps its content in (a
   scrim, a centred panel with `role="dialog"`, a focus trap, Escape/backdrop dismissal unless `dismissable={false}`,
-  and focus return to the opener or, when it is gone, to `returnFocusFallback`; the opener is captured on mount as
-  `document.activeElement` and excludes `document.body`/`document.documentElement` from "still reachable", 5.7, so a
-  sheet opened with nothing focused always falls back to `returnFocusFallback` instead of a no-op `body.focus()`),
-  `SheetHost.tsx`, mounted once by `App` (a `SheetId → component` map; `settings`, `help`, `stats`, `newDeal`,
-  `paused`, `win`, `dealCode` and `about` are registered), and
+  and focus return to the opener or, when it is gone, to `returnFocusFallback` (optional, defaulting to `onDismiss`);
+  the opener is captured on mount as `document.activeElement` and excludes `document.body`/`document.documentElement`
+  from "still reachable", 5.7, so a sheet opened with nothing focused always falls back to `returnFocusFallback`
+  instead of a no-op `body.focus()`),
+  `SheetHost.tsx`, mounted once by `App` (an exhaustive `Record<SheetId, component>` covering all eight sheets), and
   `SettingsSheet.tsx`/`HelpSheet.tsx`/`StatsSheet.tsx`/`NewDealSheet.tsx`/`PausedSheet.tsx`/`WinSheet.tsx`/`DealCodeSheet.tsx`/**`AboutSheet.tsx`**,
   described below. Both
-  `ModalSheet` and `SheetHost` are Redux-agnostic: the caller (each concrete sheet) supplies `onDismiss` and
-  `returnFocusFallback`.
+  `ModalSheet` and `SheetHost` are Redux-agnostic: the caller (each concrete sheet) supplies `onDismiss` and, only
+  when focus should go somewhere other than a dismissal (Settings, Win, Paused, Deal code), `returnFocusFallback`.
 - `styles/` — the CSS token contract (`tokens.css`), card faces and backs (`cards.css`), the board panel, pile slots
   and the stock badge (`board.css`), the HUD stat-display colours (`hud.css`), the Game frame layout (`layout.css`),
   the shared sheet/HUD controls — settings row, switch, segmented, swatch, action buttons (including the pixel
   "Deal cards" look), `.sub-label`, key chips and the LCD-styled record strip (`controls.css`) — the modal sheet
   chrome: backdrop and panel, reusing `layout.css`'s `sheet-in` keyframes (`sheets.css`), Home's top bar, hero and
-  floating card fan (`home.css`), and global rules (`global.css`, which imports the other eight sheets).
+  floating card fan (`home.css`), and global rules (`global.css`, which imports the eight other stylesheets).
 - `board/` — the table: pure layout geometry and naming, listed below, the React card, slot, badge and `Board`
   components, the board size hook and the board selectors.
 - `format.ts` — the pure HUD text formatters: `formatScore` and `formatMoves` (three-digit zero pad), `formatBank`
@@ -67,8 +68,9 @@ snapshots; they never apply game rules.
   `finish`. Native buttons give Enter and Space and the global focus ring; `styles/layout.css` sizes and arranges it
   (each tool keeps a 44 px floor under a coarse pointer, and four fit at 320 px wide and in the side-rails column).
 - `components/BuildStamp.tsx` — `BuildStamp`, a `footer` naming the running build: `t('build.label', { value })`,
-  where `value` is `__APP_BUILD_TIMESTAMP__` when Vite defines it, otherwise `t('build.dev')`. Both the text content
-  and the `aria-label` are the same localised string.
+  where `value` is `t('build.number', { number, time })` ("Build 57 · 2026-09-28 14:03 UTC") or, without a build
+  number, `t('build.dev', { time })`, from `__APP_BUILD__` (`scripts/build-info.mjs`, D13). The number and time are never
+  translated. Both the text content and the `aria-label` are the same localised string.
 - `sheets/PausedSheet.tsx` — `PausedSheet`, registered in `SheetHost` as `paused` (5.7, D6, SH "Paused sheet").
   Opened by `pause()` (the HUD Time control or P). Shows the frozen time (`formatTime`, read from the game the same
   way `Hud` reads it — the clock cannot advance while any sheet is open) in a `div.stat-display.stat-display--timer`,
@@ -80,9 +82,11 @@ snapshots; they never apply game rules.
   inert, by the time it runs), so this fallback only fires when nothing was focused.
 - `sheets/WinSheet.tsx` — `WinSheet`, registered in `SheetHost` as `win` (5.8, D4, SH "Win sheet"). Opened by
   `useWinSheet` (`board/useWinSheet.ts`, below), 2,400 ms after the win (at once with reduced motion). Reads
-  `selectWinSummary` (`features/interaction/selectors.ts`) and renders nothing while it is `null`. Follows the
-  mockup's `.outcome-sheet`: the heading `t('win.heading')` ("You win!"), a "New best time" badge
-  (`.best-badge`, `t('win.bestTime')`) shown only when `winSummary.newBestTime`, a one-line summary that names the
+  `selectWinSummary` (`features/interaction/selectors.ts`) and renders nothing while it is `null`. Shows the
+  heading `t('win.heading')` ("You win!", set in the pixel typeface with the Home wordmark's stepped shadow: `ModalSheet`'s
+  `headingClassName` prop puts `modal-sheet__title--pixel` on the `<h2>`, and no other sheet passes it), a "New best time" badge
+  (`.best-badge`, `t('win.bestTime')`) shown only when `winSummary.newBestTime`, the deal's grade as a `.outcome-grade` line
+  ("Easy deal", "Medium deal" or "Hard deal", `win.grade.*`) only when `winSummary.grade` is not `null`, a one-line summary that names the
   Standard time bonus (`t('win.summaryBonus', { bonus })`) or, for Vegas, the plain `t('win.summary')` with no bonus
   line, and an `.outcome-stats` grid of three `.outcome-stat` tiles — Score (Bank in Vegas, `formatBank`/`formatScore`
   as `Hud` formats them), Time (`formatTime`) and Moves (`formatMoves`). Two `.modal-sheet__actions` buttons: Menu
@@ -94,7 +98,7 @@ snapshots; they never apply game rules.
 - `sheets/DealCodeSheet.tsx` — `DealCodeSheet`, registered in `SheetHost` as `dealCode` (5.9, D5, SH "Play a deal
   code sheet"), opened from Home's "Play a deal code" link. A `<form>` holding a labelled input (initial focus, I5)
   and a Play button, so Enter in the input submits alongside a click on Play. Submitting dispatches
-  `playDealCode(code)` (`features/game/navigationThunks.ts`), which trims whitespace and ignores case; on `{ ok:
+  `playDealCode(code)` (`features/game/sessionThunks.ts`), which trims whitespace and ignores case; on `{ ok:
 true }` this component dispatches `closeSheet()` itself, since the thunk installs the deal and shows Game but does
   not close the sheet. On `{ ok: false }` nothing else is dispatched: an inline error (`t('dealCode.error')`) is
   shown tied to the input through `aria-describedby`, the input gets `aria-invalid`, and focus is put back in it.
@@ -103,7 +107,7 @@ true }` this component dispatches `closeSheet()` itself, since the thunk install
   the same way `WinSheet` does: the Game screen's heading after a valid code, or the Home screen's heading otherwise.
 - `sheets/AboutSheet.tsx` — `AboutSheet`, registered in `SheetHost` as `about` (5.10, D2, SH "About sheet", AS "Build
   identification"). A static reference sheet: the app name (`t('app.title')`), the running version (`__APP_VERSION__`
-  behind the same `typeof … === 'string'` guard `BuildStamp` uses for `__APP_BUILD_TIMESTAMP__`, falling back to
+  behind a `typeof … === 'string'` guard, falling back to
   `t('about.versionDev')` when Vite has not defined it, as under Vitest), the reused `BuildStamp`, a source-repository
   link and a licence link (`https://github.com/sanyokkua/solitaire` and its `LICENSE` file, both `rel="noopener
 noreferrer"`, their visible text also their accessible name), and a privacy line stating no data leaves the device.
@@ -132,7 +136,7 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   went shows for the full time). The storage ids (`storage-read`, `storage-read-only`, `storage-write`) are each a
   `role="status"` with a `button.notice-dismiss` named through `t('notice.dismiss')` that dispatches
   `noticeDismissed`, and stay until dismissed. `update-ready` is its own `role="status"`, kept until Update (the
-  `onUpdate` prop `Notices` takes; App passes a no-op until Phase 8 wires the real PWA update thunk) or Later
+  `onUpdate` prop `Notices` takes; `App` passes one that dispatches `applyUpdate()` from `app/pwaThunks.ts`) or Later
   (`noticeDismissed('update-ready')`); its text warns that the current game will not be kept when
   `persistence.readOnly` or `persistence.lastError === 'write'`. No notice ever takes focus or blocks the board.
   Mounted once by `App`, outside every screen (NT "Transient notices"), not by `GameScreen`.
@@ -142,12 +146,14 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
 - `components/Switch.tsx` — `Switch({ label, checked, onChange })` (D13): a `button.switch[role=switch]` named by
   `label`, with `aria-checked` mirroring `checked`; a click calls `onChange(!checked)`. Native buttons give Enter and
   Space activation for free.
-- `components/Segmented.tsx` — `Segmented<T>({ label, options, value, onChange, firstOptionRef? })` (D13): a named
+- `components/Segmented.tsx` — `Segmented<T>({ label, options, value, onChange, firstOptionRef?, disabled? })` (D13): a named
   `div.segmented[role=radiogroup]` of `button[role=radio]` options, the current `value` marked `aria-checked` and
   `.is-active`. A roving-tabindex group: only the checked option is in the Tab order, and the left/right (and
   up/down) arrows move to and select the neighbouring option, wrapping at the ends, moving DOM focus there too.
   `firstOptionRef`, when given, is set to the first option's button — `SettingsSheet` passes its Theme control's ref
-  through to `ModalSheet.initialFocusRef` this way (I5).
+  through to `ModalSheet.initialFocusRef` this way (I5). `disabled` disables every option, marks the group
+  `aria-disabled` (dimmed to 0.45) and blocks clicks and arrow selection while `value` is still shown. On a coarse
+  pointer every option is at least 44×44 px.
 - `components/Swatches.tsx` — `Swatches<T>({ label, options, value, onChange })` (D13): the same named
   roving-tabindex radiogroup as `Segmented`, rendered as `.swatches` colour tiles (`--sa`/`--sb` custom properties per
   option) instead of labelled buttons. Each swatch's accessible name is its colour's own name (`aria-label`), never
@@ -162,10 +168,11 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   which leaves no trigger to return to. Reused by `SettingsSheet`'s Data group (5.2) and Statistics' own Reset
   control (5.4).
 - `sheets/SettingsSheet.tsx` — `SettingsSheet`, registered in `SheetHost` as `settings` (D2, D13). Wraps its rows in
-  `ModalSheet`, heading `t('settings.heading')`, `onDismiss`/`returnFocusFallback` both `closeSheet()`. Renders the
+  `ModalSheet`, heading `t('settings.heading')`, `onDismiss` and `returnFocusFallback` both `closeSheet()`. Renders the
   Appearance group (`.sub-label` "Appearance": Theme `Segmented`, Night cards and Four-colour deck `Switch`, Card back
   `Swatches`), the Play group (`.sub-label` "Play": Tap a card to… `Segmented`, Highlight legal moves / Auto-move safe
-  cards / Stock on the right / Animations `Switch`), the Language group (`.sub-label` "Language": one `Segmented`
+  cards / Stock on the right / Animations `Switch`; the six switch rows are built from two key lists, `APPEARANCE_SWITCHES` and
+  `PLAY_SWITCHES`, typed to boolean preferences), the Language group (`.sub-label` "Language": one `Segmented`
   radiogroup built straight from `i18n/catalog.ts`'s `CATALOGS`/`SUPPORTED_LOCALES` registry, each option labelled by
   that language's own name — adding a language needs no change here), and the Data group (`.sub-label` "Data": Reset
   statistics and Reset all local data, each a `ConfirmAction` dispatching `resetStatistics()`/`resetAllLocalData()`
@@ -176,17 +183,20 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
   focus lands on the Theme control's first option (`Segmented`'s `firstOptionRef`, wired to `ModalSheet.initialFocusRef`)
   regardless of which theme is active (I5).
 - `sheets/HelpSheet.tsx` — `HelpSheet`, registered in `SheetHost` as `help` (D2, D13, 5.3). Wraps a static reference
-  in `ModalSheet`, heading `t('help.heading')`, `onDismiss`/`returnFocusFallback` both `closeSheet()`: four
+  in `ModalSheet`, heading `t('help.heading')`, `onDismiss` `closeSheet()` (also the default focus fallback): four
   `.help-rule` cards (SH "How to play sheet") covering the foundations win condition, the alternating-colour build
   rule, the empty-column Kings-only rule, and Draw 1 vs Draw 3; a `.sub-label` "Controls" `.keys-table` listing every
   documented shortcut (KS-INP-08) — Tap/Click, Drag, Double-click, Space, Ctrl+Z/Ctrl+Y, H, A, N, P and Esc — each key
-  name marked up as `<kbd>` so assistive technology reads it in full; and a `.sub-label` "Scoring" summary for
-  Standard and Vegas. The one action, "Got it" (`action-button--filled`), both dispatches `closeSheet()` and is the
+  name marked up as `<kbd>` so assistive technology reads it in full; a `.sub-label` "Scoring" summary for
+  Standard and Vegas; and a `.sub-label` "Winnable deals" passage (two paragraphs, a `dl.help-grades` naming Easy,
+  Medium and Hard from the shared `grade.*` keys each beside its `help.winnable.*` explanation, and a closing line
+  about Difficulty on Home) explaining that the solver proves Draw 1, Draw 3 and Vegas deals winnable and that a
+  proven deal is graded by human-style replays. The one action, "Got it" (`action-button--filled`), both dispatches `closeSheet()` and is the
   initial-focus target (I5) — a reference sheet has nothing to edit, so focus starts on the one way out. `sheets.css`
-  gains `.help-rule`/`.help-rule__icon` and `.keys-table` for this sheet; no other sheet uses them yet.
+  gains `.help-rule`/`.help-rule__icon`, `.keys-table` and `.help-grades` for this sheet; no other sheet uses them yet.
 - `sheets/StatsSheet.tsx` — `StatsSheet`, registered in `SheetHost` as `stats` (D2, D8, D13, 5.4). Wraps a
-  `.scroll-x`-wrapped `table.stats-table` (mirroring the mockup's `#sheet-stats`) in a wide `ModalSheet`, heading
-  `t('stats.heading')`, `onDismiss`/`returnFocusFallback` both `closeSheet()`: one column per mode (Draw 1, Draw 3,
+  `.scroll-x`-wrapped `table.stats-table` in a wide `ModalSheet`, heading
+  `t('stats.heading')`, `onDismiss` `closeSheet()` (also the default focus fallback): one column per mode (Draw 1, Draw 3,
   Vegas, Daily, each a `<th scope="col">`) and one `<th scope="row">` per row — Played, Won, Win rate, Best time, Best
   score (Vegas shown as money through `format.ts`'s `formatBank`) and Best streak — reading `state.stats.modes`
   directly; a missing record (never won, so `bestTimeMs`/`bestScore` are `null` or `bestStreak` is 0) shows "—". Below
@@ -201,7 +211,7 @@ noreferrer"`, their visible text also their accessible name), and a privacy line
 - `sheets/NewDealSheet.tsx` — `NewDealSheet`, registered in `SheetHost` as `newDeal` (D2, D3, 5.5, SH "New deal
   options sheet"). Shown by `requestNewDeal()` for a started, unwon game; an unstarted or won game deals at once
   without this sheet. Wraps a streak-loss warning line in `ModalSheet`, heading `t('newDeal.heading')`,
-  `onDismiss`/`returnFocusFallback` both `closeSheet()`, with three `.modal-sheet__actions` buttons: Restart this
+  `onDismiss` `closeSheet()` (also the default focus fallback), with three `.modal-sheet__actions` buttons: Restart this
   deal (`action-button--outline`) dispatches `restartDeal()`; New deal (`action-button--outline`) dispatches
   `dealNewGame(mode)` for the game's own mode; Cancel (`action-button--filled`) dismisses. Both destructive thunks
   already close the sheet and break the replaced game's streak through `breakStreakOf` (`features/game/
@@ -213,12 +223,12 @@ sessionThunks.ts`), so this sheet repeats none of that. Initial focus (I5, D2) l
 - `screens/home/HomeActions.tsx` — `div.cta-row` (6.3, HO "Home actions"): Deal cards (`action-button--filled
 action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`action-button--tonal`, only while
   `selectResumable`, dispatches `continueGame()`) and How to play (`action-button--outline`, `openSheet('help')`). At
-  `max-width: 720px` or `max-height: 720px` `home.css` pins the row to the bottom with a gradient backdrop above
+  `max-width: 720px` or `max-height: 800px` `home.css` pins the row to the bottom with a gradient backdrop above
   `env(safe-area-inset-bottom)`.
 - `screens/home/RecordStrip.tsx` — the `.stat-strip` LCD group named `t('home.record.label')` (6.3): Played and Won as three
   digits, Win rate `n%` or `--`, Streak `current/best` (just `current` while no best), all from `selectOverallStats`.
 - `screens/home/HomeLinks.tsx` — `nav.footlinks` (6.3): Statistics, Settings, Play a deal code and About buttons, each
-  dispatching `openSheet(...)`. Task 8.3 adds the Install app link here.
+  dispatching `openSheet(...)`. An Install app link, dispatching `installApp()` (`app/pwaThunks.ts`), joins them only while `app.installable` is set.
 - `screens/home/HomeTopbar.tsx` — `header.topbar` (6.1, HO "Home top bar"): the decorative `.pixel-dot` logo mark and
   `t('app.title')`, a spacer, `ThemeToggle`, and a Settings `button.icon-action` (gear `Icon`, named `t('settings.heading')`)
   that dispatches `openSheet('settings')`. `ModalSheet` returns focus to it on close.
@@ -234,10 +244,15 @@ action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`a
   Best is `Best <time>` (`formatTime`, as the Statistics sheet) or, for Vegas, the best bank through `formatBank`; a mode with
   no win shows `home.modes.noRecord`. A roving tabindex (only the selected tile is tabbable); click or the arrow keys
   (wrapping, moving focus) write `preferenceSet({ key: 'selectedMode' })`. Selecting never starts a game.
-- `screens/home/WinnableToggle.tsx` — `WinnableToggle` (6.2, HO "Winnable deals only switch"): a `.toggle-card` with the
-  title, a caption (`#winnable-caption`, the switch's `aria-describedby`) and a `Switch`. Draw 1 reads and writes
-  `winnableOnly`; Draw 3 and Vegas show it off and Daily on, all disabled with an explaining caption, and the stored value
-  is never changed there. `Switch` gained optional `disabled` and `describedBy` props.
+- `screens/home/WinnableToggle.tsx` — `WinnableToggle` (HO "Winnable deals only switch", D11): a `.toggle-card` with a
+  `.toggle-card__row` (title, a caption `#winnable-caption` that is the switch's `aria-describedby`, and a `Switch`) and,
+  under it, a `Segmented` radiogroup named `home.difficulty.label` ("Difficulty": Any, Easy, Medium, Hard; the grade
+  names are the shared `grade.*` keys). The switch is live in Draw 1, Draw 3 and Vegas and reads and writes
+  `winnableOnly`, with one caption (`home.winnable.caption`: the solver checks every deal before it is shown, and a deal
+  it cannot prove within the attempt limit is marked "Random deal"); in Daily it is disabled and reports on with
+  `home.winnable.captionDaily`, and the stored value is never changed there. Difficulty reads and writes `difficulty` and
+  is enabled only with the switch on outside Daily; when disabled it still shows the stored choice and writes nothing.
+  Difficulty is not in Settings.
 - `components/ThemeToggle.tsx` — `ThemeToggle` (6.1): an `.icon-action` that offers the opposite of the theme shown (a moon
   offers dark, a sun offers light; named `home.theme.switchToDark`/`switchToLight`). The shown theme is the `theme`
   preference, or for System the device's `(prefers-color-scheme: dark)` read through `useMediaQuery`. It always stores a
@@ -252,8 +267,12 @@ action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`a
   "Draw 3 · Standard", "Vegas", or "Daily · <date>" where the date is the game's own `dailyKey` (`formatDate`, short
   month, UTC, as Home's Daily tile) and a Daily game with a `null` key reads plain "Daily"; the text and accessible name
   are normal case and `layout.css` uppercases it. `DealChip` (`span.deal-chip`, `.is-random` for a random deal) is
-  "Winnable", "Winnable · N shuffles" (`verdict === 'win'`, `attempts` > 1, catalog plural) or "Random deal", with a
-  decorative check or dice `Icon` and the text in `span.deal-chip__text`. Both carry the full text as `title`, truncate
+  "Winnable · <grade>" (`verdict === 'win'` and a `grade`; the grade name is the shared `grade.*` key), "Winnable" (a
+  proven deal with no grade) or "Random deal", with a decorative check or dice `Icon` and the text in
+  `span.deal-chip__text`. The chip is a `role="group"` labelled by that text. The shuffle count is not in the text or
+  the name: when `verdict === 'win'` and `attempts` > 1 the chip carries "found after N shuffles" (`game.chip.deal.shuffleNote`,
+  catalog plural) as its `aria-describedby` description, in a `hidden` span (not read as chip text), and its `title`
+  is the chip text, " — " and that note; otherwise the `title` is the chip text alone (the mode chip's `title` is its text). Both chips truncate
   with an ellipsis inside the slot (which keeps its reserved size), and at 460 px or narrower the deal chip shows only
   its icon by hiding `.deal-chip__text` visually (a clip, not `display: none`), so the text stays its accessible name.
   Keys are `game.chip.*`.
@@ -283,7 +302,7 @@ action-button--deal`, dispatches `dealNewGame(selectedMode)`), Continue game (`a
   the two drift apart.
 - `styles/layout.css` — the Game frame, tokens only (no colour literals, no `prefers-reduced-motion`). `.screen--game`
   is `100dvh`, `overflow: hidden`, padded by `env(safe-area-inset-top/right/bottom/left)` on every edge in both
-  profiles. The stacked profile (`.game-body` capped at `min(100%, 64rem)`) has the region sizes of the mockup: the HUD
+  profiles. The stacked profile (`.game-body` capped at `min(100%, 64rem)`) has these region sizes: the HUD
   ordered Score/Moves, New-deal slot, Time by CSS `order` (slot 2.9rem, 2.6rem at 460 px wide or narrower, 2.5rem in the
   rails — `.game-face`'s own size, never changed by the coarse-pointer rule below), the hint line at one `0.7rem` line
   (`0.64rem` at 480 px or narrower), the chip slot at Back's height with
@@ -323,6 +342,7 @@ Modules in `board/` that compute geometry are pure functions of their inputs (ea
   type-only (`Translate`), so it names no runtime i18n dependency.
 - `board/locate.ts` — `cardIndex(state)`, which maps every card id in a game position to `{ from, index, faceUp, movable }`: its pile, its index in that pile, whether it shows its face, and whether it can
   be picked up. The stock is face down and never movable; waste, foundation and tableau cards defer to `isMovable` in `src/domain/rules.ts`.
+  It also exports `pileKey(ref)`, the one string identity of a pile on the board (`stock`, `waste`, `foundation:<suit>`, `tableau:<col>`), used for `data-pile`, the landing-area map and the keyboard's focus memory.
 - `board/landing.ts` — the landing rectangles for drag and hint visuals: `landingAreas(layout, metrics, piles)` returns a
   map, keyed by `pileKey(ref)` (`stock`, `waste`, `foundation:<suit>`, `tableau:<col>`), of a `Rect` per pile. A
   foundation, the stock and the waste use their slot (the waste its anchor); a column has the card width and runs from
@@ -350,7 +370,7 @@ double }`, `dragStart { card }`, `dragMove { dx, dy }` (the offset from the pres
   `moveFocus(current, key, shift, piles, stockRight)` returns the next `{ from, index }` for Tab, Shift+Tab, Left and
   Right (pile to pile, an empty waste skipped, an empty foundation or column a stop with `index: null`, `undefined` past
   either end) and for Up and Down (face-up cards of a column, clamped, never a face-down card); the target of another
-  pile is that pile's default stop (top card), which `defaultStop(pile, piles)` also exports (`undefined` for an empty waste). `keyToAction(event, { focus })` maps a key event to `undo`, `redo`,
+  pile is that pile's default stop (top card), which `defaultStop(pile, piles)` also exports (`undefined` for an empty waste). Piles are compared with `samePile` from `src/domain/rules.ts`. `keyToAction(event, { focus })` maps a key event to `undo`, `redo`,
   `hint`, `finish`, `draw`, `escape`, `newDeal`, `pause`, `activate` or `pickUp`, treating Ctrl and ⌘ alike and ignoring
   Alt combinations, other modified keys, shifted letters and text fields. The letters (H, A, N, P and Ctrl or ⌘ with Z
   and Y) are layout-independent through the private `letterOf(event)`: a Latin `key` is taken as typed (so AZERTY and
@@ -366,7 +386,7 @@ double }`, `dragStart { card }`, `dragMove { dx, dy }` (the offset from the pres
 
 **`board/constants.ts`** holds the constants that more than one board component needs and that have no other home:
 `TEXT_PRESENTATION` (the U+FE0E suffix that keeps a suit glyph text, used by `CardView` and `PileSlot`), `BADGE_Z` (the
-stock badge's stacking order, above every card) and `CARD_RADIUS_FACTOR` (`0.09`, the card corner radius as a fraction
+stock badge's stacking order, above every card), `SHAKE_CLEAR_MS` (how long a refused card keeps `is-shake`) and `CARD_RADIUS_FACTOR` (`0.09`, the card corner radius as a fraction
 of the card width, which `Board` applies as `--cr`). It has no imports and is a plain constants file, not a geometry
 module. `CARD_RADIUS_FACTOR` and `animations.ts`'s exported `DEAL_STEP_MS` mirror `--card-radius-factor` and
 `--motion-deal-step`; `tests/unit/ui/motionConstants.test.ts` fails if either drifts from `styles/tokens.css`.
@@ -387,7 +407,9 @@ purity rule below.
   omits.
 - `styles/cards.css` — the card styles: `transform: translate(var(--x), var(--y))`, sizes in `--cw` units,
   the 3D flip structure with `-webkit-backface-visibility`, `--ink-*` inks per suit, the `--back-a` / `--back-b`
-  checker (a fixed 8 px) with the `--color-back-rim` rim, and `box-shadow: none` on a buried card. It also holds the
+  checker (a fixed 8 px) with the `--color-back-rim` rim, and `box-shadow: none` on a buried card. The corner index is
+  large so that a 5 and an 8, or a 1 and a 7, read apart on a small screen: the rank is `0.18 × --cw` in the pixel
+  typeface and the suit glyph `0.23 × --cw`. It also holds the
   card transitions (see "Motion model" below) and `.card.is-dragging`: no transition, `z-index` of
   `calc(var(--drag-z-base) + var(--k, 0))` (with `!important`, because React owns the inline `z-index` and rewrites it
   on every render; `--k` is the card's place in the dragged run), a `transform` that adds `--dx` / `--dy` to `--x` /
@@ -465,8 +487,8 @@ corner, and a change under 1 px never reaches the effect because `useBoardSize` 
 `cards.css` turns both card transitions off, so the cards jump to their new places in the same frame. `playDeal`'s
 release also removes the attribute, because its park already keeps the cards off the corner; otherwise a deal due at the
 first size would release with transitions off. There is no `visualViewport` listener: browser bars showing or hiding
-change the board's size, which the board's `ResizeObserver` already reports. Cancelling a drag is added with dragging in
-Phase 6.
+change the board's size, which the board's `ResizeObserver` already reports. A size change also cancels a drag in
+progress (`useBoardPointer` feeds `resize` to the pointer controller).
 
 **The deal.** `useDealAnimation` has one layout effect, keyed on `[epoch, started, ready, reducedMotion, store]` (`ready` is the
 board and its cards rendered; the latest deal order is read from a ref written by an earlier layout effect, so a resize
@@ -532,13 +554,13 @@ is part of the purity rule below.
   selection (placing wins over re-selecting, so a face-down or top card of a legal column counts); else a movable card
   other than the selected one becomes the selection (`selectCard`); else the selection is cleared. (3) With no selection
   a movable card is picked up and anything else does nothing. It is a hook, so it is not in the purity list below.
-- **`useBoardKeyboard`** (`board/useBoardKeyboard.ts`) — `useBoardKeyboard({ boardRef, piles, stockRight, activate, pickUp })` returns `{ target, handlers }`. Focus rests on an anchor (a pile and the card it last rested on), so it follows a card that moves; `target` is that card's `{ from, index }` while the card can be picked up, otherwise the stop of the pile it is in now (`defaultStop`: the top card, the stock for an empty waste). `Board` gives that one element `tabIndex` 0 and every other card and slot -1. `onFocus` (bubbled from any card or slot, so a click also sets the position) records the anchor and the pile's remembered card. `onKeyDown` ignores Ctrl, Command and Alt; Tab, Shift+Tab and the arrow keys call `moveFocus` and `focus()` the element it names (a card by `data-pile` and `data-index`, a slot by `data-pile`), and when Tab or Left or Right lands on another pile the pile's remembered card replaces its default stop while that card is still in the pile and can be picked up. Arrow keys are always prevented; Tab and Shift+Tab only when focus moved, so the browser leaves the board past either end. Enter and Space (`keyToAction`) call `activate`, Shift with either calls `pickUp` (a held key acts once: an event with `repeat` is prevented and dropped, while the arrow keys and Tab keep repeating), with the `Hit` a pointer press on the target gives (a card, the stock, an empty foundation as a slot, an empty column as a column) and never a double tap; both are prevented so Space does not scroll. A new game epoch (`selectEpoch`) resets the anchor to the stock and forgets the remembered cards, since the next deal reuses the card ids. A layout effect moves DOM focus to the target when focus is inside the board on another element (a card that has just stopped being a tab stop). The focus ring is `.board .card:focus-visible::after` in `cards.css` (a frame 5 to 8px outside the card edge, clear of the selection outline, which reaches 4px), which leaves the selection outline on the card face free, and `.board .slot:focus-visible` in `board.css`, both in `--color-focus`. It is a hook, so it is not in the purity list below.
+- **`useBoardKeyboard`** (`board/useBoardKeyboard.ts`) — `useBoardKeyboard({ boardRef, piles, stockRight, activate, pickUp })` returns `{ target, handlers }`. Focus rests on an anchor (a pile and the card it last rested on), so it follows a card that moves; `target` is that card's `{ from, index }` while the card can be picked up, otherwise the stop of the pile it is in now (`defaultStop`: the top card, the stock for an empty waste). `Board` gives that one element `tabIndex` 0 and every other card and slot -1. `onFocus` (bubbled from any card or slot, so a click also sets the position) records the anchor and the pile's remembered card. `onKeyDown` ignores Ctrl, Command and Alt; Tab, Shift+Tab and the arrow keys call `moveFocus` and `focus()` the element it names (a card by `data-pile` and `data-index`, a slot by `data-pile`), and when Tab or Left or Right lands on another pile the pile's remembered card replaces its default stop while that card is still in the pile and can be picked up. Arrow keys are always prevented; Tab and Shift+Tab only when focus moved, so the browser leaves the board past either end. Enter and Space (`keyToAction`) call `activate`, Shift with either calls `pickUp` (a held key acts once: an event with `repeat` is prevented and dropped, while the arrow keys and Tab keep repeating), with the `Hit` a pointer press on the target gives (a card, movable as `selectCardLocations` says, the stock, an empty foundation as a slot, an empty column as a column) and never a double tap; both are prevented so Space does not scroll. A new game epoch (`selectEpoch`) resets the anchor to the stock and forgets the remembered cards, since the next deal reuses the card ids. A layout effect moves DOM focus to the target when focus is inside the board on another element (a card that has just stopped being a tab stop). The focus ring is `.board .card:focus-visible::after` in `cards.css` (a frame 5 to 8px outside the card edge, clear of the selection outline, which reaches 4px), which leaves the selection outline on the card face free, and `.board .slot:focus-visible` in `board.css`, both in `--color-focus`. It is a hook, so it is not in the purity list below.
 - **`useGameShortcuts`** (`board/useGameShortcuts.ts`) — `useGameShortcuts()`, mounted by `GameScreen`, binds one `keydown` listener on `window` (which sees an event after every `document` listener) and reads the store when a key arrives. It passes `event.code` to `keyToAction` so the letters work on any layout, and drops a `repeat` event of any mapped action (prevented, so Space does not scroll and a held key acts once). It skips a `defaultPrevented` event (the board's Enter, Space and Shift keys, and the drag's Escape, are already handled), works out the focus (`none` for the page itself, `board` inside `.board`, otherwise `other`) and maps the event with `keyToAction`; `activate` and `pickUp` are left to `useBoardKeyboard`. N and P are handled first and bypass the input gate entirely (D3, 5.5, 5.7): a non-repeated N dispatches
   `requestNewDeal()` (`features/game/navigationThunks.ts`) whenever no sheet is open and `selectGameControlsIdle`
   (`features/game/gameSlice.ts`) holds, so it still deals at once during the win cascade, before the Win sheet opens;
   a non-repeated P dispatches `resume()` when the Paused sheet is already open, else `pause()` when no sheet is open,
-  `selectGameControlsIdle` holds and the game is not won (checked here too, so the key does nothing rather than
-  dispatching a thunk that no-ops), and does nothing while any other sheet is open. Past that, with a sheet open only
+  `canPause` holds (`features/game/navigationThunks.ts`, the same predicate `pause()` checks, so the key does nothing
+  rather than dispatching a thunk that no-ops), and does nothing while any other sheet is open. Past that, with a sheet open only
   Escape acts, dispatching `closeSheet()` (this never closes the Win sheet). Otherwise, only while `selectInputEnabled` holds: Ctrl or Command with Z is `undo`, with Y or Shift+Z `redo`, H `requestHint`, A `finish` (which does nothing unless Finish is available), Space with nothing focused `play({ type: 'draw' })`, Escape `selectionCleared` when a selection exists. The acting keys are prevented. Typing in a text field never triggers a shortcut (`keyToAction`). It is a hook, so it is not in the purity list below.
 - **`useDealAnimation`** (`board/useDealAnimation.ts`) — `useDealAnimation({ boardRef, ready, dealOrder })` plays the
   deal once per game epoch through `DealtEpochContext` and `playDeal`, and gives the epoch back when a deal is cancelled
@@ -577,7 +599,7 @@ is part of the purity rule below.
   map but keeps the previous reference and `Board` does not re-render.
 - **App selectors** (`src/app/selectors.ts`) — besides `selectReducedMotion`, the named readers `selectDealing` (the
   deal in flight or `null`; `GameScreen`), `selectEpoch` (the game epoch; `useDealAnimation`, `useCascade`), `selectCurrentGame` (the position in
-  play or `null`; `Hud`) and `selectBusy` (the gate flag; no component reads it yet). They take a structural root, so
+  play or `null`; `Hud`). They take a structural root, so
   the module imports no store.
 
 ## Board purity rule
@@ -588,13 +610,23 @@ is part of the purity rule below.
 - Two guards enforce this: an ESLint override on `src/ui/board/{metrics,layout,names,locate,landing,pointerController,keyboardController,cascadeFrames}.ts` (`eslint.config.js`) and
   `tests/unit/repo/boardPurity.test.ts`, which scans every module listed above.
 
+## Fonts and glyph coverage
+
+Two fonts are bundled (`src/assets/fonts/`, see its README): Inter for text and Press Start 2P (`--font-pixel`) for the
+wordmark, card ranks, scores, the record strip, key caps, mode-tile detail lines, the deal and build footers and the
+dealing counter. A character a font lacks would be drawn in a fallback face, so `tests/unit/ui/pixelFont.test.ts`
+reads the code points of both WOFF2 files (`tests/support/fontCoverage.ts#woff2CodePoints`) and fails when a catalog
+message that is drawn in Press Start 2P has a character it does not cover, or any catalog character is missing from
+Inter (the suit symbols excepted, which come from a symbol font on purpose). Press Start 2P has no minus sign, which is
+why the Vegas detail line and the negative bank use a hyphen.
+
 ## Dealing overlay (7.3)
 
 `components/DealingOverlay.tsx` renders nothing unless `selectDealing` has `overlay` set (the deal service sets it once a
 verified deal has been pending for 160 ms). Then `div.deal-overlay` covers `.board-panel` (mounted inside it by `Board`,
 `position: absolute; inset: 0`, so the panel never changes size and the previous table stays rendered underneath) with
-`.deal-overlay__box`: an `aria-hidden` `.spinner`, `t('game.dealingOverlay.title')` and the attempt counter
-`t('game.dealingOverlay.attempt', { count })` ("deal #N"). It has no live region: the one polite status in
+`.deal-overlay__box`: an `aria-hidden` `.spinner`, `t('game.dealingOverlay.title')` ("Shuffling cards before the
+game…") and the attempt counter `t('game.dealingOverlay.attempt', { count })` ("deal #N", set in the pixel typeface). It has no live region: the one polite status in
 `GameScreen` keeps announcing "Dealing…", and the counter is not announced per attempt. `board.css` owns the styles and
 the `spin-card` keyframes; `:root[data-motion='off'] .spinner` stops the spin and leaves the spinner visible. The
 overlay sits inside the panel's isolated stacking context, so the sheet layer stays above it.

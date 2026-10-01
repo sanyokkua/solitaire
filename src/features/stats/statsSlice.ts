@@ -25,7 +25,7 @@ export interface WinRecord {
 }
 
 /** How many completed Daily dates are kept; the stored best streak outlives the trimmed ones. */
-const MAX_DAILY_COMPLETED = 400;
+export const MAX_DAILY_COMPLETED = 400;
 
 const emptyModeStats = (): ModeStats => ({
     played: 0,
@@ -85,10 +85,8 @@ export const selectModeStats = (state: { readonly stats: StatsState }, mode: Mod
     state.stats.modes[mode];
 
 /** Wins as a share of games played; 0 before the first game. */
-export const selectWinRate = (state: { readonly stats: StatsState }, mode: Mode): number => {
-    const { played: gamesPlayed, won: gamesWon } = selectModeStats(state, mode);
-    return gamesPlayed === 0 ? 0 : gamesWon / gamesPlayed;
-};
+export const winRateOf = (modeStats: ModeStats): number =>
+    modeStats.played === 0 ? 0 : modeStats.won / modeStats.played;
 
 /**
  * The current Daily streak: the run of consecutive completed days ending today, or else yesterday; otherwise 0. Dates

@@ -1,10 +1,8 @@
-import { dealingEnded, setRoute, sheetClosed, sheetOpened, type SheetId } from '../../app/appSlice';
+import { setRoute, sheetClosed, sheetOpened, type SheetId } from '../../app/appSlice';
 import type { AppThunk } from '../../app/appThunk';
-import { decodeDealCode } from '../../domain/dealCode';
-import { dealFromSeed } from '../../domain/deal';
+import type { RootState } from '../../app/store';
 import type { Mode } from '../../domain/types';
-import { installed } from './gameSlice';
-import { breakStreakOf, restart, startGame } from './sessionThunks';
+import { restart, startGame } from './sessionThunks';
 
 /**
  * Deals a new game of `mode` and shows the Game screen (D3): closes any open sheet, including Win — Deal again is one
@@ -72,19 +70,22 @@ export function closeSheet(): AppThunk {
 }
 
 /**
- * Pauses the game (D3, D6): only on the Game route, with a game that is not won, and not while a safe-card chain or
- * finish is running or a deal is being prepared (B1, B2). Opens the Paused sheet; the clock stops through the
- * existing eligibility check.
+ * Whether the game can be paused (D3, D6): only on the Game route, with a game that is not won, and not while a
+ * safe-card chain or finish is running or a deal is being prepared (B1, B2). `pause()` and the P shortcut share it.
+ */
+export function canPause({ app, game }: Pick<RootState, 'app' | 'game'>): boolean {
+    if (app.route !== 'game') return false;
+    if (game.busy || app.dealing !== null) return false;
+    return game.current !== null && game.current.status !== 'won';
+}
+
+/**
+ * Pauses the game when `canPause` allows it: opens the Paused sheet; the clock stops through the existing
+ * eligibility check.
  */
 export function pause(): AppThunk {
     return (dispatch, getState) => {
-        const state = getState();
-        if (state.app.route !== 'game') return;
-        if (state.game.busy || state.app.dealing !== null) return;
-
-        const { current } = state.game;
-        if (current === null || current.status === 'won') return;
-        dispatch(sheetOpened('paused'));
+        if (canPause(getState())) dispatch(sheetOpened('paused'));
     };
 }
 
@@ -92,27 +93,5 @@ export function pause(): AppThunk {
 export function resume(): AppThunk {
     return (dispatch) => {
         dispatch(closeSheet());
-    };
-}
-
-/**
- * Plays a deal code (D5, GS "Dealing from a deal code"): trims whitespace and ignores case. An invalid code changes
- * nothing and reports `{ ok: false }`. A valid one breaks the replaced game's streak (as any deal replacement does),
- * installs `dealFromSeed(seed, mode)` marked `random` with one attempt and no Daily date, shows Game, and reports
- * `{ ok: true }`. Installing bumps the game epoch, so any in-flight `startGame` discards its own result through its
- * existing guard when it resolves; `dealingEnded()` here reopens the input gate at once instead of waiting for that
- * stale start's own cleanup to run.
- */
-export function playDealCode(code: string): AppThunk<{ readonly ok: boolean }> {
-    return (dispatch, getState) => {
-        const decoded = decodeDealCode(code);
-        if (decoded === null) return { ok: false };
-
-        dispatch(breakStreakOf(getState().game.current));
-        const state = dealFromSeed(decoded.seed, decoded.mode, { verdict: 'random', attempts: 1 });
-        dispatch(installed({ state, dailyKey: null }));
-        dispatch(dealingEnded());
-        dispatch(setRoute('game'));
-        return { ok: true };
     };
 }

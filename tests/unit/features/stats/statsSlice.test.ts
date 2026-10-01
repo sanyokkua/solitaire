@@ -3,7 +3,7 @@ import type { Mode } from '../../../../src/domain/types';
 import {
     played,
     selectModeStats,
-    selectWinRate,
+    winRateOf,
     statsReducer,
     statsReset,
     streakBroken,
@@ -45,6 +45,7 @@ describe('statsSlice initial state', () => {
     });
 });
 
+// covers: KS-STA-01
 describe('played', () => {
     it('adds one played game to the named mode only', () => {
         const state = reduce(initial(), played('vegas'), played('vegas'));
@@ -53,6 +54,7 @@ describe('played', () => {
     });
 });
 
+// covers: KS-STA-02
 describe('won', () => {
     it('records the first win of a mode', () => {
         const state = reduce(initial(), played('draw1'), won({ mode: 'draw1', elapsedMs: 120_000, score: 3000 }));
@@ -139,6 +141,7 @@ describe('won', () => {
     });
 });
 
+// covers: KS-STA-03
 describe('streakBroken', () => {
     it('zeroes only the named mode and keeps its best streak', () => {
         const state = reduce(
@@ -155,6 +158,7 @@ describe('streakBroken', () => {
     });
 });
 
+// covers: KS-STA-05
 describe('statsReset', () => {
     it('empties every mode and the Daily block', () => {
         const populated = MODES.flatMap((mode) => [played(mode), won({ mode, elapsedMs: 5, score: 5 })]);
@@ -200,15 +204,14 @@ describe('selectors', () => {
         expect(selectModeStats({ stats }, 'draw3').played).toBe(2);
     });
 
-    it('selectWinRate is 0 with no games and won over played otherwise', () => {
-        const none = initial();
-        expect(selectWinRate({ stats: none }, 'draw1')).toBe(0);
+    it('winRateOf takes a mode record: 0 with no games, won over played otherwise', () => {
+        expect(winRateOf(initial().modes.draw1)).toBe(0);
         const half = reduce(
             initial(),
             played('draw1'),
             played('draw1'),
             won({ mode: 'draw1', elapsedMs: 1, score: 1 }),
         );
-        expect(selectWinRate({ stats: half }, 'draw1')).toBe(0.5);
+        expect(winRateOf(half.modes.draw1)).toBe(0.5);
     });
 });

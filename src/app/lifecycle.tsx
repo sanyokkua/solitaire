@@ -9,10 +9,11 @@ import { createLocaleController } from '../i18n/localeController';
 import type { InstallGateway } from '../pwa/installGateway';
 import type { PwaGateway } from '../pwa/pwaGateway';
 import { installableChanged, noticeRaised, systemMotionChanged, visibilityChanged } from './appSlice';
+import { createDealPoolController, type IdleScheduler } from './dealPoolController';
 import { createSavePort } from './savePort';
 import { createAppStore, type AppStore } from './store';
 import { createThemeController } from './themeController';
-import { defaultThunkExtra, lazyDealService, type ThunkExtra } from './thunkExtra';
+import { assembleThunkExtra, type ThunkExtra } from './thunkExtra';
 
 /** The media query behind the device's reduced-motion request. */
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
@@ -30,12 +31,17 @@ export interface StartAppDeps {
      * tests and dev never start a service worker; tests inject fakes to drive the update-ready notice and Install.
      */
     readonly pwa?: { readonly update: PwaGateway; readonly install: InstallGateway };
+    /** When the deal pool starts filling; defaults to the first idle period (`defaultIdleScheduler`, D8). */
+    readonly poolScheduler?: IdleScheduler;
 }
 
 /** The running application: its store (for tests and tooling) and the way to tear everything down. */
 export interface RunningApp {
     readonly store: AppStore;
-    /** Stops the theme and locale controllers, ticker and writer, removes the page listeners, unmounts the UI and disposes the deal service. Idempotent. */
+    /**
+     * Stops the theme, locale and deal pool controllers, ticker and writer, removes the page listeners, unmounts the UI
+     * and disposes the deal service. Idempotent.
+     */
     dispose(): void;
 }
 
@@ -50,8 +56,9 @@ export interface RunningApp {
  * ticker and the persistence writer start, so both begin from the final start-up state; then the page listeners are
  * attached (`visibilitychange` updates the store and saves when the page is hidden, `pagehide` saves, the media query
  * updates the store; the media query is optional and skipped where the browser has none); the PWA gateways, when
- * given, raise the update-ready notice and set `installable`; finally the UI renders into
- * `root`.
+ * given, raise the update-ready notice and set `installable`; the deal pool controller is started, and from the first
+ * idle period (`deps.poolScheduler`) keeps the deal service's pool filling for the selected mode and switch while the
+ * page is visible (D8); finally the UI renders into `root`.
  *
  * The one gateway in `deps.extra` (the browser's storage by default) serves the loader, the thunks and the writer.
  * `dispose()` does not save: a caller that wants the pending write flushes it first.
@@ -68,16 +75,9 @@ export function startApp(root: HTMLElement, deps: StartAppDeps = {}): RunningApp
                       promptInstall: () => gateways.install.prompt(),
                   },
               };
-    const merged: ThunkExtra = { ...defaultThunkExtra(), saver, ...pwaPort, ...deps.extra };
-    // Same rebuild as `createAppStore` (D8), unless `deps.extra` already injected its own `dealService`: reads the
-    // final, merged `extra.today` only once a deal happens, so an injected `deps.extra.today` reaches the default
-    // deal service instead of being shadowed by this module's own `defaultThunkExtra()` call.
-    const extra: ThunkExtra =
-        deps.extra?.dealService === undefined
-            ? { ...merged, dealService: lazyDealService(() => extra.today()) }
-            : merged;
+    const extra = assembleThunkExtra({ saver, ...pwaPort, ...deps.extra });
 
-    const loaded = loadInitialState(extra.gateway, navigator.languages);
+    const loaded = loadInitialState(extra.gateway, extra.languages());
     const store = createAppStore({ preloadedState: loaded.preloadedState, deps: extra });
 
     const reducedMotion = typeof window.matchMedia === 'function' ? window.matchMedia(REDUCED_MOTION_QUERY) : undefined;
@@ -121,6 +121,8 @@ export function startApp(root: HTMLElement, deps: StartAppDeps = {}): RunningApp
         if (!disposed) store.dispatch(installableChanged(available));
     });
 
+    const poolController = createDealPoolController(store, extra.dealService, deps.poolScheduler);
+
     const reactRoot = createRoot(root);
     reactRoot.render(
         <StrictMode>
@@ -137,6 +139,7 @@ export function startApp(root: HTMLElement, deps: StartAppDeps = {}): RunningApp
             disposed = true;
             themeController.dispose();
             localeController.dispose();
+            poolController.dispose();
             ticker.dispose();
             writer.dispose();
             document.removeEventListener('visibilitychange', onVisibilityChange);

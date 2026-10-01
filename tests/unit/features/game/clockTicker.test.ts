@@ -1,3 +1,4 @@
+// covers: KS-SCO-05, KS-SCO-06
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dealFromSeed } from '../../../../src/domain/deal';
 import { applyCommand } from '../../../../src/domain/engine';

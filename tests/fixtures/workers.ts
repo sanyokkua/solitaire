@@ -1,7 +1,8 @@
 /**
  * Shared worker doubles and seed sources for the solver client and deal service tests: `StubWorker`, a worker that
  * never replies on its own (tests script its events), `stubFactory` and `stubAt` to create and read stubs,
- * `realFactory` to start the real solver module in-process, and two `SeedSource`s, `scriptedSeedSource` and
+ * `realFactory` to start the real solver module in-process, `recordingFactory` to start it and log each worker's
+ * requests and replies, and two `SeedSource`s, `scriptedSeedSource` and
  * `mulberry32SeedSource`, that make "fresh" seeds deterministic. A test that uses `realFactory` imports
  * `@vitest/web-worker` first and runs in the node environment (see tests/README.md).
  */
@@ -88,6 +89,39 @@ export function realFactory(): { readonly create: () => WorkerLike; readonly wor
             });
             workers.push(worker);
             return worker;
+        },
+    };
+}
+
+/** What one real worker started by {@link recordingFactory} was asked and answered, in order. */
+export interface WorkerLog {
+    readonly posted: SolverRequest[];
+    readonly replies: SolverResponse[];
+}
+
+/** Like {@link realFactory}, but records every request posted to each worker and every reply it posts, per worker. */
+export function recordingFactory(): { readonly create: () => WorkerLike; readonly logs: WorkerLog[] } {
+    const real = realFactory();
+    const logs: WorkerLog[] = [];
+    return {
+        logs,
+        create: () => {
+            const worker = real.create();
+            const log: WorkerLog = { posted: [], replies: [] };
+            logs.push(log);
+            worker.addEventListener('message', (event: MessageEvent<SolverResponse>) => {
+                log.replies.push(event.data);
+            });
+            return {
+                postMessage: (message: SolverRequest) => {
+                    log.posted.push(message);
+                    worker.postMessage(message);
+                },
+                terminate: () => {
+                    worker.terminate();
+                },
+                addEventListener: worker.addEventListener.bind(worker),
+            };
         },
     };
 }

@@ -14,12 +14,61 @@ if (process.platform === 'darwin' && !process.env.CFFIXED_USER_HOME) {
 /** The device-fit specs (the device matrix, and the same matrix with padded text) run once, in their own Chromium project; no other project collects them. */
 const DEVICE_FIT_SPECS = ['**/deviceFit.spec.ts', '**/pseudoLocale.spec.ts'];
 
+/**
+ * The lean profile of the branch CI job (`E2E_PROFILE=ci`, set by `.github/workflows/ci.yml`): the three desktop engines
+ * only, each run on its own machine, the main game flows without the keyboard specs, and none of the informational or
+ * review specs. A dedicated variable, not `CI`, because `CI` is also set where the unit tests read this file. A local run,
+ * and the pre-push hook, use every project and every spec.
+ */
+const CI_PROFILE = process.env.E2E_PROFILE === 'ci';
+const CI_SKIPPED_SPECS = ['**/dealLatency.spec.ts', '**/dragPerf.spec.ts', '**/visualParity.spec.ts'];
+
+const allProjects = [
+    { name: 'chromium', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Safari'] } },
+    {
+        name: 'iphone-17-pro',
+        testIgnore: DEVICE_FIT_SPECS,
+        use: { ...devices['iPhone 17 Pro'], viewport: { width: 402, height: 874 } },
+    },
+    {
+        name: 'iphone-14-pro-max',
+        testIgnore: DEVICE_FIT_SPECS,
+        use: { ...devices['iPhone 14 Pro Max'], viewport: { width: 430, height: 932 } },
+    },
+    {
+        name: 'galaxy-s25',
+        testIgnore: DEVICE_FIT_SPECS,
+        use: { ...devices['Galaxy S24'], viewport: { width: 360, height: 780 } },
+    },
+    // Every case sets its own viewport and pointer; only Chromium runs it.
+    { name: 'device-fit', testMatch: DEVICE_FIT_SPECS, use: { ...devices['Desktop Chrome'] } },
+];
+
+const CI_PROJECT_NAMES = ['chromium', 'firefox', 'webkit'];
+
+/**
+ * WebKit on the Linux runner has no GPU and runs these suites about ten times slower than on a Mac (a whole winning line
+ * by taps took 3.4 minutes against 20 seconds), so the long game lines and the 200-step undo storm run in the other two
+ * engines on CI; the short specs still run in WebKit. A local run plays all of them in every engine.
+ */
+const CI_WEBKIT_SKIPPED_SPECS = [
+    '**/playByTap.spec.ts',
+    '**/playByDrag.spec.ts',
+    '**/playModes.spec.ts',
+    '**/history.spec.ts',
+];
+
 export default defineConfig({
     testDir: './tests/e2e',
     testMatch: '**/*.spec.ts',
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 2 : 0,
+    retries: CI_PROFILE ? 1 : process.env.CI ? 2 : 0,
+    ...(CI_PROFILE
+        ? { workers: 2, maxFailures: 10, grepInvert: /keyboard/i, timeout: 90_000, expect: { timeout: 15_000 } }
+        : {}),
     reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
     use: {
         baseURL: 'http://127.0.0.1:5173/solitaire/',
@@ -34,26 +83,17 @@ export default defineConfig({
         url: 'http://127.0.0.1:5173/solitaire/',
         reuseExistingServer: !process.env.CI,
     },
-    projects: [
-        { name: 'chromium', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Chrome'] } },
-        { name: 'firefox', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Firefox'] } },
-        { name: 'webkit', testIgnore: DEVICE_FIT_SPECS, use: { ...devices['Desktop Safari'] } },
-        {
-            name: 'iphone-17-pro',
-            testIgnore: DEVICE_FIT_SPECS,
-            use: { ...devices['iPhone 17 Pro'], viewport: { width: 402, height: 874 } },
-        },
-        {
-            name: 'iphone-14-pro-max',
-            testIgnore: DEVICE_FIT_SPECS,
-            use: { ...devices['iPhone 14 Pro Max'], viewport: { width: 430, height: 932 } },
-        },
-        {
-            name: 'galaxy-s25',
-            testIgnore: DEVICE_FIT_SPECS,
-            use: { ...devices['Galaxy S24'], viewport: { width: 360, height: 780 } },
-        },
-        // Every case sets its own viewport and pointer; only Chromium runs it.
-        { name: 'device-fit', testMatch: DEVICE_FIT_SPECS, use: { ...devices['Desktop Chrome'] } },
-    ],
+    projects: (CI_PROFILE ? allProjects.filter((project) => CI_PROJECT_NAMES.includes(project.name)) : allProjects).map(
+        (project) =>
+            CI_PROFILE
+                ? {
+                      ...project,
+                      testIgnore: [
+                          ...(project.testIgnore ?? []),
+                          ...CI_SKIPPED_SPECS,
+                          ...(project.name === 'webkit' ? CI_WEBKIT_SKIPPED_SPECS : []),
+                      ],
+                  }
+                : project,
+    ),
 });

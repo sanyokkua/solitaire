@@ -18,7 +18,7 @@ the cascade. The cascade SHALL animate only movement and opacity.
 
 No-motion path: with motion off, there is no cascade and the win is announced immediately.
 
-*(KS-MOVE-07, spec §4.6, KS-SET-04)*
+*(KS-MOVE-07, KS-SET-04)*
 
 #### Scenario: Cascade order
 - **WHEN** the cascade starts
@@ -74,7 +74,7 @@ Input-agnostic: triggered by the win, whatever input produced it.
 
 No-motion path: with motion off the sheet opens immediately, without the cascade.
 
-*(KS-MOVE-07, KS-SET-04, KS-A11Y-03; spec §4.6 and §3.3 Win)*
+*(KS-MOVE-07, KS-SET-04, KS-A11Y-03)*
 
 #### Scenario: Sheet over the cascade
 

@@ -1,3 +1,5 @@
+// covers: KS-A11Y-01
+
 import { render, screen } from '@testing-library/react';
 import { cardId } from '../../src/domain/cards';
 import { canRecycle } from '../../src/domain/rules';

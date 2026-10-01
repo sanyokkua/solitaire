@@ -74,7 +74,8 @@ const DESTINATIONS: readonly PileRef[] = [
     { pile: 'tableau', col: 6 },
 ];
 
-function samePile(a: PileRef, b: PileRef): boolean {
+/** Whether two pile references name the same pile. */
+export function samePile(a: PileRef, b: PileRef): boolean {
     if (a.pile === 'foundation' && b.pile === 'foundation') return a.suit === b.suit;
     if (a.pile === 'tableau' && b.pile === 'tableau') return a.col === b.col;
     return a.pile === b.pile;

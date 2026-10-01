@@ -11,11 +11,8 @@ import { SettingsSheet } from './SettingsSheet';
 import { StatsSheet } from './StatsSheet';
 import { WinSheet } from './WinSheet';
 
-/**
- * One entry per sheet the player can open (D2): each renders its own `ModalSheet`. Section 5 fills this in one case
- * per task; the rest stay unregistered until their own task adds them.
- */
-const SHEETS: Partial<Record<SheetId, () => ReactNode>> = {
+/** One entry per sheet the player can open (D2): each renders its own `ModalSheet`. */
+const SHEETS: Record<SheetId, () => ReactNode> = {
     settings: SettingsSheet,
     help: HelpSheet,
     stats: StatsSheet,
@@ -32,5 +29,5 @@ export function SheetHost() {
     if (sheet === null) return null;
 
     const Sheet = SHEETS[sheet];
-    return Sheet ? <Sheet /> : null;
+    return <Sheet />;
 }

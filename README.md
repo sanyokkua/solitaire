@@ -1,20 +1,38 @@
 # Klondike Solitaire
 
-Klondike Solitaire as a static, offline-capable single-page app and installable PWA. It is built with
-Vite, React, TypeScript and Redux Toolkit. There is no backend, API or account system: game state,
-preferences and statistics are kept in the browser's `localStorage` (record `solitaire.local-state`).
-The build is served under the `/solitaire/` base path (GitHub Pages).
+A calm, retro-styled Klondike Solitaire that runs in the browser, works offline and installs as an app.
 
-Source: <https://github.com/sanyokkua/solitaire>
+It is a static single-page app (Vite, React, TypeScript, Redux Toolkit): no backend, no API and no account.
+
+Game state, preferences and statistics stay in your browser's `localStorage` (record `solitaire.local-state`).
+
+**Play it: <https://sanyokkua.github.io/solitaire/>**
+
+|                                    Home                                    |                                         Game                                          |
+| :------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------: |
+| ![Home in the light theme](docs/assets/screenshots/home-light-desktop.jpg) | ![The Game screen in the light theme](docs/assets/screenshots/game-light-desktop.jpg) |
+|  ![Home in the dark theme](docs/assets/screenshots/home-dark-desktop.jpg)  |  ![The Game screen in the dark theme](docs/assets/screenshots/game-dark-desktop.jpg)  |
+
+On a phone:
+
+| ![Home on a phone, light](docs/assets/screenshots/home-light-phone.jpg) | ![Home on a phone, dark](docs/assets/screenshots/home-dark-phone.jpg) | ![The Game screen on a phone, light](docs/assets/screenshots/game-light-phone.jpg) | ![The Game screen on a phone, dark](docs/assets/screenshots/game-dark-phone.jpg) |
+| :---------------------------------------------------------------------: | :-------------------------------------------------------------------: | :--------------------------------------------------------------------------------: | :------------------------------------------------------------------------------: |
 
 ## Game
 
-- Modes: Draw 1, Draw 3, Vegas and a Daily deal. Draw 1 can be limited to deals the solver found winnable.
-- Play by tap, drag or keyboard. Undo, redo, hint, finish and pause are available.
-- Deals are deterministic from a seed and can be shared as a deal code.
-- Light, dark and system themes, a four-colour deck, night cards and four card backs; reduced-motion aware.
-- English and Ukrainian interface.
-- Works offline after the first visit and can be installed from the browser.
+- **Modes.** Draw 1, Draw 3, Vegas (a $52 bank, three passes through the deck) and a Daily deal that is the same for everyone on a given UTC date.
+- **Winnable, graded deals.** With "Winnable deals only" on, a built-in solver proves every Draw 1, Draw 3 and Vegas deal winnable before you see it, and grades it Easy, Medium or Hard by how forgiving it is; the Difficulty control asks for a grade. Deals are kept ready in the background, so most start at once, and a slow search shows a "Shuffling cards before the game…" screen.
+  See [winnability](docs/reference/winnability.md).
+- **Play your way.** Tap, drag or keyboard, all equal. Undo, redo, hint, finish and pause.
+- **Shareable.** Every deal is deterministic from a seed and can be shared as a deal code.
+- **Offline and installable.** Works offline after the first visit and can be installed from the browser.
+- **Look.** Light, dark and system themes, a four-colour deck, night cards and four card backs, with reduced motion respected.
+- **Languages.** English and Ukrainian.
+- **Accessible.** Accessible names, live announcements, focus management, 4.5:1 contrast and touch targets of at least 44 px.
+- **Statistics.** Games played and won, best times and scores, and the Daily streak, per mode.
+
+The rules as implemented are in [game rules](docs/reference/game-rules.md), the shortcuts in
+[keyboard and controls](docs/reference/keyboard-and-controls.md).
 
 ## Requirements
 
@@ -53,19 +71,18 @@ All scripts are listed in [docs/reference/scripts.md](docs/reference/scripts.md)
 | ------------------------------------------------------------------------------ | ---------------------------------------------------- |
 | [docs/README.md](docs/README.md)                                               | Index and reading order                              |
 | [docs/architecture/overview.md](docs/architecture/overview.md)                 | Layers, dependency rules, how the pieces fit         |
+| [docs/reference/game-rules.md](docs/reference/game-rules.md)                   | The rules, modes, scoring and deal codes             |
+| [docs/reference/winnability.md](docs/reference/winnability.md)                 | Winnable and graded deals, the solver, the deal pool |
 | [docs/development/project-structure.md](docs/development/project-structure.md) | Where things live and how to navigate the repository |
 | [docs/development/workflow.md](docs/development/workflow.md)                   | OpenSpec workflow, branches, commits, hooks          |
 | [docs/development/testing.md](docs/development/testing.md)                     | Test layers, guards and how to run them              |
-| [docs/spec/](docs/spec/README.md)                                              | Original product specification pack                  |
+| [docs/reference/traceability.md](docs/reference/traceability.md)               | Which tests prove which requirement                  |
 | [AGENTS.md](AGENTS.md)                                                         | Conventions for AI coding agents                     |
 
 ## Contributing
 
-Features and behaviour changes are introduced through [OpenSpec](openspec/): a change is proposed,
-implemented task by task, then archived into `openspec/specs/`. See
-[docs/development/workflow.md](docs/development/workflow.md). Documentation is updated in the same change.
+Features and behaviour changes are introduced through [OpenSpec](openspec/): a change is proposed, implemented task by task, then archived into `openspec/specs/`. See [docs/development/workflow.md](docs/development/workflow.md). Documentation is updated in the same change.
 
 ## License
 
-[MIT](LICENSE). The bundled Inter and Press Start 2P fonts are under the SIL Open Font License 1.1;
-sources are in [src/assets/fonts/README.md](src/assets/fonts/README.md).
+[MIT](LICENSE). The bundled Inter and Press Start 2P fonts are under the SIL Open Font License 1.1; sources are in [src/assets/fonts/README.md](src/assets/fonts/README.md).

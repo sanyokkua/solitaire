@@ -21,6 +21,9 @@ export type Pile = readonly CardId[];
 export type Tableau = readonly [Column, Column, Column, Column, Column, Column, Column];
 export type Foundations = readonly [Pile, Pile, Pile, Pile];
 
+/** How hard a proven-winnable deal is to win, from the survival of seeded playouts. */
+export type Grade = 'easy' | 'medium' | 'hard';
+
 export interface GameState {
     readonly seed: number;
     readonly mode: Mode;
@@ -28,6 +31,8 @@ export interface GameState {
     readonly scoring: ScoringMode;
     readonly verdict: 'win' | 'random';
     readonly attempts: number;
+    /** The deal's grade; `null` unless the verdict is `win` and the deal was graded (never for a deal code). */
+    readonly grade: Grade | null;
     /** Seven columns; index 0 is the bottom of a column. */
     readonly tableau: Tableau;
     /** The last card is the top of both stock and waste. */

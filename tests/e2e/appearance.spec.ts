@@ -30,6 +30,7 @@ const faceOf = (page: Page, suit: string) => page.locator(`.card.is-up[data-suit
 const backOf = (page: Page) => page.locator('.card:not(.is-up) .card-back').first();
 
 test.describe('Theme', () => {
+    // covers: KS-SET-03
     test.describe('Dark theme regardless of the device', () => {
         test.use({ colorScheme: 'light' });
 
@@ -43,6 +44,7 @@ test.describe('Theme', () => {
         });
     });
 
+    // covers: KS-SET-02
     test.describe('System follows the device live', () => {
         test.use({ colorScheme: 'light' });
 
@@ -65,6 +67,7 @@ test.describe('Theme', () => {
     });
 });
 
+// covers: KS-SET-03
 test.describe('Night cards', () => {
     test('change the cards and nothing else with the light theme', async ({ page }) => {
         await openSeeded(page, { theme: 'light', nightCards: true });
@@ -93,6 +96,7 @@ test.describe('Night cards', () => {
 });
 
 test.describe('Deck colours and backs', () => {
+    // covers: KS-A11Y-05
     test('Four colours: diamonds blue and clubs green, hearts red and spades black', async ({ page }) => {
         await openSeeded(page, { theme: 'light', fourColor: true });
 

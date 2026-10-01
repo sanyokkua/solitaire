@@ -1,3 +1,4 @@
+// covers: KS-SCO-01, KS-SCO-02
 import { describe, expect, it } from 'vitest';
 import { applyDelta, commandDelta, eventDelta, startingScore } from '../../../src/domain/scoring';
 import type { GameEvent, PileRef } from '../../../src/domain/types';

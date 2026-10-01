@@ -1,3 +1,4 @@
+// covers: KS-DEAL-03, KS-DEAL-04, KS-DEAL-08, KS-DEAL-11
 import { describe, expect, it } from 'vitest';
 import { dealingEnded, dealingProgressed, setRoute } from '../../../../src/app/appSlice';
 import { dealFromSeed } from '../../../../src/domain/deal';
@@ -115,19 +116,41 @@ describe('startGame', () => {
         expect(env.store.getState().app.dealing).toBeNull();
     });
 
-    it('reads Winnable deals only from the preferences when it starts and forwards it', async () => {
+    it('reads Winnable deals only and the Difficulty from the preferences when it starts and forwards them', async () => {
         const env = setup();
         const fake = fakeOf(env);
 
         void env.store.dispatch(startGame({ mode: 'draw1' }));
         env.store.dispatch(preferenceSet({ key: 'winnableOnly', value: false }));
+        env.store.dispatch(preferenceSet({ key: 'difficulty', value: 'hard' }));
         void env.store.dispatch(startGame({ mode: 'draw3' }));
 
         expect(fake.requests.map(({ request }) => request)).toEqual([
-            { mode: 'draw1', winnableOnly: true },
-            { mode: 'draw3', winnableOnly: false },
+            { mode: 'draw1', winnableOnly: true, target: 'any' },
+            { mode: 'draw3', winnableOnly: false, target: 'hard' },
         ]);
         await Promise.resolve();
+    });
+
+    it('leaves the pending deal and the game in play alone when the Difficulty changes after the start', async () => {
+        const graded: GameState = { ...dealFromSeed(5, 'draw1', { verdict: 'win', attempts: 2, grade: 'easy' }) };
+        const env = setup(graded);
+        env.store.dispatch(preferenceSet({ key: 'difficulty', value: 'medium' }));
+
+        const started = env.store.dispatch(startGame({ mode: 'draw1' }));
+        env.store.dispatch(preferenceSet({ key: 'difficulty', value: 'hard' }));
+        const dealt = dealFromSeed(9, 'draw1', { verdict: 'win', attempts: 3, grade: 'medium' });
+        fakeOf(env).resolve(0, dealt);
+        await started;
+
+        expect(fakeOf(env).requests[0]?.request.target).toBe('medium');
+        expect(current(env)).toBe(dealt);
+        expect(current(env).grade).toBe('medium');
+
+        env.store.dispatch(preferenceSet({ key: 'difficulty', value: 'easy' }));
+
+        expect(current(env)).toBe(dealt);
+        expect(current(env).grade).toBe('medium');
     });
 
     it('changes nothing when the request is cancelled, and clears the dealing progress', async () => {
@@ -345,6 +368,30 @@ describe('restart', () => {
         expect(game.counted).toBe(false);
         expect(game.epoch).toBe(epoch + 1);
         expect(fakeOf(env).requests).toEqual([]);
+    });
+
+    it('keeps the grade of a proven-winnable game', async () => {
+        const original = dealFromSeed(21, 'vegas', { verdict: 'win', attempts: 3, grade: 'hard' });
+        const env = setup(original, null);
+        env.store.dispatch(setRoute('game'));
+        await env.store.dispatch(play({ type: 'draw' }));
+
+        env.store.dispatch(restart());
+
+        expect(current(env).grade).toBe('hard');
+        expect(current(env)).toEqual(original);
+    });
+
+    it('keeps a game without a grade ungraded', async () => {
+        const original = dealFromSeed(21, 'draw1', { verdict: 'win', attempts: 3 });
+        const env = setup(original, null);
+        env.store.dispatch(setRoute('game'));
+        await env.store.dispatch(play({ type: 'draw' }));
+
+        env.store.dispatch(restart());
+
+        expect(current(env).grade).toBeNull();
+        expect(current(env)).toEqual(original);
     });
 
     it('ignores the changed settings and the selected mode', () => {

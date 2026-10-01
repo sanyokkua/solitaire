@@ -20,6 +20,20 @@ describe('cards.css', () => {
     });
 });
 
+describe('the card corner mark in cards.css', () => {
+    /** The font-size factor of `--cw` a rule sets. */
+    const factor = (selector: RegExp): number =>
+        Number(/font-size:\s*calc\(var\(--cw\)\s*\*\s*([\d.]+)\)/.exec(ruleBody(cardsCss, selector))?.[1]);
+
+    it('keeps the rank at least 20% larger than the first release (0.15 of the card width)', () => {
+        expect(factor(/\.corner \.r\s*$/)).toBeGreaterThanOrEqual(0.15 * 1.2);
+    });
+
+    it('keeps the suit glyph at least 20% larger than the first release (0.19 of the card width)', () => {
+        expect(factor(/\.corner \.s\s*$/)).toBeGreaterThanOrEqual(0.19 * 1.2);
+    });
+});
+
 describe('the drag styles in cards.css', () => {
     const dragging = ruleBody(cardsCss, /\.card\.is-dragging\s*$/);
 
@@ -39,6 +53,7 @@ describe('the drag styles in cards.css', () => {
 });
 
 describe('board.css', () => {
+    // covers: KS-INP-10
     it('keeps the table from scrolling, zooming, selecting text or showing the touch callout', () => {
         const board = ruleBody(boardCss, /\.board\s*$/);
 
@@ -84,6 +99,7 @@ describe('the assistance styles', () => {
         return out;
     }
 
+    // covers: KS-SET-04
     it.each(sheets)('%s neutralises every animation under :root[data-motion=off]', (_file, css) => {
         const neutralised = neutralisedSelectors(css);
         for (const selector of animatedSelectors(css)) {
@@ -143,6 +159,7 @@ describe('the assistance styles', () => {
         expect(hot).toMatch(/z-index:\s*1500\b/);
     });
 
+    // covers: KS-A11Y-03
     it('draws the focus ring of a card as a pseudo-element, so the selection outline on the face stays free', () => {
         expect(ruleBody(cardsCss, /\.board \.card:focus-visible\s*$/)).toMatch(/outline:\s*none/);
         const ring = ruleBody(cardsCss, /\.board \.card:focus-visible::after\s*$/);
@@ -154,6 +171,7 @@ describe('the assistance styles', () => {
         expect(ring).toMatch(/pointer-events:\s*none/);
     });
 
+    // covers: KS-A11Y-03
     it('draws the focus ring of a slot as an outline in the focus colour', () => {
         const body = ruleBody(boardCss, /\.board \.slot:focus-visible\s*$/);
 

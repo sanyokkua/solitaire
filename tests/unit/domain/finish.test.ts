@@ -1,3 +1,4 @@
+// covers: KS-AST-05
 import { describe, expect, it } from 'vitest';
 import { finishPlan } from '../../../src/domain/finish';
 import { cardId } from '../../../src/domain/cards';

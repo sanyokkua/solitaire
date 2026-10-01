@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from 'react';
 import { useAppDispatch } from '../../app/hooks';
-import { closeSheet, playDealCode } from '../../features/game/navigationThunks';
+import { closeSheet } from '../../features/game/navigationThunks';
+import { playDealCode } from '../../features/game/sessionThunks';
 import { useTranslate } from '../../i18n/useTranslate';
 import { ModalSheet } from './ModalSheet';
 
@@ -8,7 +9,7 @@ import { ModalSheet } from './ModalSheet';
  * The Play a deal code sheet (5.9, D5, SH "Play a deal code sheet"): opened from Home's "Play a deal code" link.
  * A labelled input, focused on open (I5), and a Play button inside a `<form>` so Enter in the input also submits
  * (SH input coverage: tap/click or Enter; drag is not an input path). Submitting dispatches `playDealCode(code)`
- * (`features/game/navigationThunks.ts`), which trims whitespace and ignores case itself. That thunk breaks the
+ * (`features/game/sessionThunks.ts`), which trims whitespace and ignores case itself. That thunk breaks the
  * replaced game's streak, installs the deal and shows Game on success, but does not close the sheet, so this
  * component dispatches `closeSheet()` itself when `{ ok: true }` comes back. On `{ ok: false }` nothing else is
  * dispatched: an inline error is shown, tied to the input as its accessible description (`aria-describedby`), the

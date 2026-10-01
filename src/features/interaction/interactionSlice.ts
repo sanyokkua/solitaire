@@ -1,16 +1,18 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { CardId, Mode, PileRef } from '../../domain/types';
+import type { CardId, Grade, Mode, PileRef } from '../../domain/types';
 import { preferenceSet, preferencesReset } from '../preferences/preferencesSlice';
 import { cleared, committed, installed, redone, replaced, undone } from '../game/gameSlice';
 import type { Announcement } from './announcements';
 
 /**
- * The outcome of a just-won game (D4): the mode, the final score (Vegas: the bank) already including `timeBonus`,
+ * The outcome of a just-won game (D4): the mode, the grade the game was dealt with (`null` for a random deal, a deal
+ * played from a code or a game upgraded from an older record; a restart keeps it), the final score (Vegas: the bank) already including `timeBonus`,
  * the elapsed time, the move count, the Standard time bonus (0 under Vegas), and whether it is a new best time for
  * the mode (its first win, or strictly faster than the previous best).
  */
 export interface WinSummary {
     readonly mode: Mode;
+    readonly grade: Grade | null;
     readonly score: number;
     readonly elapsedMs: number;
     readonly moves: number;

@@ -1,3 +1,4 @@
+// covers: KS-PWA-03
 import { describe, expect, it, vi } from 'vitest';
 import { createPwaGateway, type RegisterServiceWorker } from '../../../src/pwa/pwaGateway';
 

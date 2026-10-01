@@ -64,6 +64,7 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
+// covers: KS-PER-02
 describe('reloading the page', () => {
     it('restores an unfinished game exactly, with its undo and redo history', async () => {
         const user = userEvent.setup();
@@ -110,6 +111,7 @@ describe('reloading the page', () => {
     });
 });
 
+// covers: KS-SET-01
 describe('starting the page', () => {
     it('applies a stored Dark theme to the document before the first screen renders', async () => {
         const storage = memoryStorage();

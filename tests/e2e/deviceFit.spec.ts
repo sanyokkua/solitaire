@@ -1,3 +1,5 @@
+// covers: KS-A11Y-04, KS-GEN-03, KS-GEN-05
+
 import { expect, test, type Page } from '@playwright/test';
 import { BASELINES, DEVICE_CONFIGS, boardSizeFor, type Baseline, type DeviceConfig } from '../fixtures/viewports';
 import { worstColumnState } from '../fixtures/boardPositions';

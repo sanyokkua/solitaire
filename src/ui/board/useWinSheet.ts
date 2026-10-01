@@ -5,7 +5,7 @@ import type { GameState } from '../../domain/types';
 import { selectEpoch } from '../../features/game/gameSlice';
 import { openSheet } from '../../features/game/navigationThunks';
 
-/** The mockup's timing: the Win sheet follows the cascade by this long. */
+/** The Win sheet follows the cascade by this long. */
 const WIN_SHEET_DELAY_MS = 2400;
 
 /** What the last effect run saw, so the next run can tell a win from a change of game (mirrors `useCascade`). */

@@ -1,3 +1,4 @@
+// covers: KS-AST-01
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setRoute } from '../../../../src/app/appSlice';
 import type { AppStore } from '../../../../src/app/store';

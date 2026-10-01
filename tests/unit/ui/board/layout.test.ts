@@ -99,6 +99,7 @@ describe('positions column compression', () => {
         expect(nth(ys, ys.length - 1) + DESKTOP.ch).toBeLessThanOrEqual(DESKTOP.bottom + EPSILON);
     });
 
+    // covers: KS-GEN-05
     it('keeps every card of a worst-case column inside a coarse board', () => {
         const board = measure({ width: 390, height: 660 }, { coarse: true });
         for (const y of columnYs(board, worstColumn())) {
@@ -143,6 +144,7 @@ describe('positions top row', () => {
         });
     });
 
+    // covers: KS-SET-05
     it('mirrors the top row with Stock on the right and leaves the tableau where it is', () => {
         const state = makeState({
             stock: [40],
@@ -169,6 +171,7 @@ describe('positions top row', () => {
     });
 });
 
+// covers: KS-MOVE-06
 describe('positions waste fan', () => {
     it('fans the top three waste cards at 0, 1 and 2 steps in Draw 3, the lower cards sharing the first position', () => {
         const state = makeState({ draw: 3, mode: 'draw3', waste: [10, 11, 12, 13, 14] });

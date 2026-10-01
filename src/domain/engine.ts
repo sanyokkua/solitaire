@@ -1,18 +1,17 @@
 import { suitOf } from './cards';
 import { canDrop, canRecycle, column, groupAt, isWon } from './rules';
 import { applyDelta, commandDelta } from './scoring';
+import { stepTalon } from './talon';
 import type {
     CardId,
     Column,
     Command,
-    Foundations,
     GameEvent,
     GameState,
     Pile,
     PileRef,
     RejectReason,
     Suit,
-    Tableau,
     TableauCol,
 } from './types';
 
@@ -42,16 +41,35 @@ function accept(before: GameState, after: GameState, events: readonly GameEvent[
     };
 }
 
-// `map` on a fixed-arity tuple yields a plain array; the index never changes, so the arity is preserved.
+// `map` widens a fixed-arity tuple to a plain array, so each arity is rebuilt by destructuring instead.
+function replaceAt7<T>(
+    tuple: readonly [T, T, T, T, T, T, T],
+    index: TableauCol,
+    value: T,
+): readonly [T, T, T, T, T, T, T] {
+    const [a, b, c, d, e, f, g] = tuple;
+    return [
+        index === 0 ? value : a,
+        index === 1 ? value : b,
+        index === 2 ? value : c,
+        index === 3 ? value : d,
+        index === 4 ? value : e,
+        index === 5 ? value : f,
+        index === 6 ? value : g,
+    ];
+}
+
+function replaceAt4<T>(tuple: readonly [T, T, T, T], index: Suit, value: T): readonly [T, T, T, T] {
+    const [a, b, c, d] = tuple;
+    return [index === 0 ? value : a, index === 1 ? value : b, index === 2 ? value : c, index === 3 ? value : d];
+}
+
 function withColumn(state: GameState, col: TableauCol, next: Column): GameState {
-    return { ...state, tableau: state.tableau.map((c, i) => (i === col ? next : c)) as unknown as Tableau };
+    return { ...state, tableau: replaceAt7(state.tableau, col, next) };
 }
 
 function withFoundation(state: GameState, suit: Suit, next: Pile): GameState {
-    return {
-        ...state,
-        foundations: state.foundations.map((f, i) => (i === suit ? next : f)) as unknown as Foundations,
-    };
+    return { ...state, foundations: replaceAt4(state.foundations, suit, next) };
 }
 
 interface Lifted {
@@ -116,17 +134,24 @@ function applyAutoFoundation(state: GameState, from: PileRef): CommandResult {
 }
 
 function applyDraw(state: GameState): CommandResult {
-    if (state.stock.length > 0) {
-        const count = Math.min(state.draw, state.stock.length);
-        const turned = state.stock.slice(-count).reverse();
-        const after = { ...state, stock: state.stock.slice(0, -count), waste: [...state.waste, ...turned] };
-        return accept(state, after, [{ type: 'drew', count }], true);
+    const step = stepTalon(state.stock, state.waste, state.draw);
+    if (step === undefined) return reject(state, 'nothing-to-draw');
+    if (!step.recycled) {
+        return accept(
+            state,
+            { ...state, stock: step.stock, waste: step.waste },
+            [{ type: 'drew', count: step.drew }],
+            true,
+        );
     }
-    if (state.waste.length === 0) return reject(state, 'nothing-to-draw');
     if (!canRecycle(state)) return reject(state, 'pass-limit');
     const pass = state.passes + 1;
-    const after = { ...state, stock: [...state.waste].reverse(), waste: [], passes: pass };
-    return accept(state, after, [{ type: 'recycled', pass }], true);
+    return accept(
+        state,
+        { ...state, stock: step.stock, waste: step.waste, passes: pass },
+        [{ type: 'recycled', pass }],
+        true,
+    );
 }
 
 /** Validates and applies one command. Pure and total: it never throws and never modifies `state`. */

@@ -1,3 +1,4 @@
+// covers: KS-AST-03, KS-MOVE-07
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { dealFromSeed } from '../../../src/domain/deal';
@@ -5,7 +6,7 @@ import type { Command, GameState } from '../../../src/domain/types';
 import { expandLine } from '../../../src/solver/line';
 import { solve } from '../../../src/solver/solver';
 import { MIDGAME_POSITIONS, midgameState, replayLine } from '../../fixtures/solverCorpus';
-import { faceUp, foundationsOf, makeState, tableauOf } from '../../fixtures/states';
+import { faceUp, foundationsOf, makeState, tableauOf, vegasAtLimit } from '../../fixtures/states';
 
 const BUDGET = 5000;
 const SPADES = 3;
@@ -60,6 +61,54 @@ describe('expandLine on hand-built positions', () => {
         const line = winLine(state);
         expect(line.slice(0, 3)).toEqual([{ type: 'draw' }, { type: 'draw' }, wasteToSpades(1)]);
         expectWon(state, line);
+    });
+});
+
+describe('expandLine with explicit draw steps', () => {
+    const KING_OF_SPADES = cardId(SPADES, 13);
+    const FIVE = cardId(0, 5);
+    const SIX = cardId(0, 6);
+
+    it('plays a draw step as a draw command before the move it prepares (Draw 3)', () => {
+        // One Draw 3 draw turns [K, 5, 6] over; the deepest card, the King, ends on top of the waste.
+        const state = makeState({
+            mode: 'draw3',
+            draw: 3,
+            foundations: foundationsOf(0, 0, 0, 12),
+            stock: [KING_OF_SPADES, FIVE, SIX],
+        });
+        const line = expandLine(state, [{ t: 'd' }, { t: 'tf', card: KING_OF_SPADES }]);
+        expect(line).toEqual([{ type: 'draw' }, wasteToSpades(2)]);
+        const end = replayLine(state, line).state;
+        expect(end.foundations[SPADES]).toHaveLength(13);
+        expect(end.waste).toEqual([SIX, FIVE]);
+        expect(end.stock).toEqual([]);
+    });
+
+    it('plays a draw step on an empty stock as a recycle and counts the pass (Vegas)', () => {
+        const state = makeState({
+            mode: 'vegas',
+            scoring: 'vegas',
+            draw: 3,
+            passes: 1,
+            foundations: foundationsOf(0, 0, 0, 12),
+            waste: [FIVE, KING_OF_SPADES],
+        });
+        const line = expandLine(state, [{ t: 'd' }, { t: 'd' }, { t: 'tf', card: KING_OF_SPADES }]);
+        expect(line).toEqual([{ type: 'draw' }, { type: 'draw' }, wasteToSpades(1)]);
+        const replay = replayLine(state, line);
+        expect(replay.events).toContainEqual({ type: 'recycled', pass: 2 });
+        expect(replay.state.foundations[SPADES]).toHaveLength(13);
+        expect(replay.state.passes).toBe(2);
+    });
+
+    it('throws for a recycle step past the Vegas pass limit', () => {
+        const state = vegasAtLimit({ waste: [FIVE] });
+        expect(() => expandLine(state, [{ t: 'd' }])).toThrow(Error);
+    });
+
+    it('throws for a draw step with nothing to draw', () => {
+        expect(() => expandLine(makeState({ mode: 'draw3', draw: 3 }), [{ t: 'd' }])).toThrow(Error);
     });
 });
 

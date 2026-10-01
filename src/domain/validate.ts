@@ -1,6 +1,6 @@
 import { DECK_SIZE, isCardId, rankOf, suitOf } from './cards';
-import { modeConfig } from './deal';
-import { isWon } from './rules';
+import { GRADES, MODES, modeConfig } from './deal';
+import { isWon, passLimit } from './rules';
 import type { CardId, Column, GameState, Mode, Pile, Suit, TableauCard } from './types';
 
 /** A plain, non-null, non-array object — the shape every other check assumes it can read fields from. */
@@ -15,7 +15,12 @@ function isNonNegativeInteger(value: unknown): value is number {
 
 /** One of the four known game modes. */
 function isMode(value: unknown): value is Mode {
-    return value === 'draw1' || value === 'draw3' || value === 'vegas' || value === 'daily';
+    return MODES.some((mode) => mode === value);
+}
+
+/** A known grade or `null`; a grade is only ever recorded for a proven-winnable deal. */
+function isGradeFor(verdict: 'win' | 'random', grade: unknown): boolean {
+    return grade === null || (verdict === 'win' && GRADES.some((known) => known === grade));
 }
 
 /**
@@ -55,7 +60,7 @@ function isFoundation(suit: Suit, value: unknown): value is Pile {
  */
 function hasGameStateShape(value: unknown): value is GameState {
     if (!isPlainObject(value)) return false;
-    const { seed, mode, draw, scoring, verdict, attempts, tableau, stock, waste, foundations } = value;
+    const { seed, mode, draw, scoring, verdict, attempts, grade, tableau, stock, waste, foundations } = value;
     const { score, moves, passes, elapsedMs, undos, started, status } = value;
 
     if (!isNonNegativeInteger(seed) || seed > 0xffffffff) return false;
@@ -63,12 +68,13 @@ function hasGameStateShape(value: unknown): value is GameState {
     const config = modeConfig(mode);
     if (draw !== config.draw || scoring !== config.scoring) return false;
     if (verdict !== 'win' && verdict !== 'random') return false;
+    if (!isGradeFor(verdict, grade)) return false;
     if (status !== 'playing' && status !== 'won') return false;
     if (typeof started !== 'boolean') return false;
     if (typeof score !== 'number' || !Number.isFinite(score)) return false;
     if (!isNonNegativeInteger(attempts)) return false;
     if (!isNonNegativeInteger(moves)) return false;
-    if (!isNonNegativeInteger(passes) || passes < 1) return false;
+    if (!isNonNegativeInteger(passes) || passes < 1 || passes > passLimit(mode)) return false;
     if (!isNonNegativeInteger(elapsedMs)) return false;
     if (!isNonNegativeInteger(undos)) return false;
 

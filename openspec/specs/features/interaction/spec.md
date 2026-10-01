@@ -42,7 +42,7 @@ further state.
 
 Input-agnostic: one gate for all paths.
 
-*(KS-INP-09, phased-design Phase 6 "ignore board input while dealing")*
+*(KS-INP-09)*
 
 #### Scenario: Dealing
 - **WHEN** a winnable deal is being prepared and the player taps a card of the previous table
@@ -59,12 +59,16 @@ Input-agnostic: one gate for all paths.
 ### Requirement: Hints come from the solver line or the heuristic
 Requesting a hint SHALL first ask for the position's advice: when it is a dead end, the player SHALL
 be told so through the dead-end notice and no hint SHALL be shown. Otherwise the hint SHALL be the
-first move of the solver's winning line where the deal service supplies one within its budget
-(Draw 1 and Daily), and the heuristic hint otherwise. The hint SHALL name the source cards and the
-target pile, or the stock when the best move is to draw or recycle. A hint SHALL be shown for about
-2 seconds, described in text, and then cleared; it SHALL also be cleared by the next pointer press,
-undo, redo, a new position or a new deal. A hint that arrives after the position or the game changed
-SHALL be dropped. A hint SHALL cost no score and no move and SHALL NOT change the game.
+first move of the solver's winning line where the deal service supplies one within its budget, in
+every mode (Draw 1, Draw 3, Vegas and Daily), and the heuristic hint otherwise. The hint SHALL name
+the source cards and the target pile, or the stock when the best move is to draw or recycle. A hint
+SHALL be shown for about 2 seconds, described in text, and then cleared; it SHALL also be cleared by
+the next pointer press, undo, redo, a new position or a new deal. A hint that arrives after the
+position or the game changed SHALL be dropped. A hint SHALL cost no score and no move and SHALL NOT
+change the game.
+
+Input-agnostic: the Hint control (pointer or keyboard) and the H shortcut issue the same request;
+drag is not an input path, since a hint is asked for, not moved.
 
 Deterministic: the same position gives the same heuristic hint; a solver hint is the solver's
 first command.
@@ -75,8 +79,13 @@ first command.
 - **WHEN** a hint is requested in a winnable Draw 1 position and the solver answers in time
 - **THEN** the hint's source and target are the first move of that line
 
+#### Scenario: Draw 3 and Vegas use the solver line
+- **WHEN** a hint is requested in a winnable Draw 3 or Vegas position and the solver answers in time
+- **THEN** the hint's source and target are the first move of that line, or the stock when that move
+  is a draw or a recycle
+
 #### Scenario: Heuristic fallback
-- **WHEN** a hint is requested in Draw 3, or the solver does not answer in time
+- **WHEN** a hint is requested and the solver offers no line or does not answer in time
 - **THEN** the heuristic hint is shown
 
 #### Scenario: Draw from the stock
@@ -146,26 +155,38 @@ SHALL announce that the move is not possible.
 
 ### Requirement: Win summary
 
-When a game is won, the system SHALL record a win summary holding the game's mode, final score (for
-Vegas, the final bank), elapsed time, move count, time bonus (zero when none applies) and whether it
-is a new best time. The final score already includes the time bonus: it is the same score that
-statistics records as the mode's best. It is a new best time when it is the mode's first win, or when
-the time is strictly lower than the mode's previous best time; the previous best SHALL be read before
-the win updates the statistics. The summary SHALL be runtime-only and never stored. It SHALL be
-cleared when a new deal is installed or the game is cleared.
+When a game is won, the system SHALL record a win summary holding the game's mode, its grade (none
+when the game has no grade: a random deal, a deal played from a code, or a game upgraded from an
+older stored record), final score (for Vegas, the final bank), elapsed time, move count, time bonus
+(zero when none applies) and whether it is a new best time. The grade is the one the game was dealt
+with, including after a restart. The final score already includes the time bonus: it is the same
+score that statistics records as the mode's best. It is a new best time when it is the mode's first
+win, or when the time is strictly lower than the mode's previous best time; the previous best SHALL
+be read before the win updates the statistics. The summary SHALL be runtime-only and never stored.
+It SHALL be cleared when a new deal is installed or the game is cleared.
 
 Input-agnostic: recorded on the transition to won, whether it came from a player move, a safe-card
 send or finishing.
 
 Deterministic: the same game and statistics always yield the same summary.
 
-*(KS-STA-02, KS-SCO-04; spec §3.3 Win; runtime-only storage (new))*
+*(KS-STA-02, KS-SCO-04, KS-DEAL-11 (new); runtime-only storage (new))*
 
 #### Scenario: First win is a new best
 
 - **WHEN** the first Draw 1 game is won in 2 minutes with 90 moves
 - **THEN** the summary holds Draw 1, the final score, 2 minutes, 90 moves, the time bonus and a new
   best time
+
+#### Scenario: The summary carries the grade
+
+- **WHEN** a winnable Draw 3 game graded Hard is won
+- **THEN** the summary holds the grade Hard
+
+#### Scenario: An ungraded game has no grade in the summary
+
+- **WHEN** a game dealt from a deal code is won
+- **THEN** the summary holds no grade
 
 #### Scenario: The displayed score includes the time bonus
 

@@ -1,3 +1,5 @@
+// covers: KS-INP-03, KS-INP-04, KS-INP-07
+
 import { describe, expect, it } from 'vitest';
 import {
     initialPointerState,
@@ -192,7 +194,7 @@ describe('double-tap', () => {
         expect(effects.map((effect) => effect.type === 'tap' && effect.double)).toEqual([false, false, false]);
     });
 
-    it('keeps the window open after a double, as the mockup does', () => {
+    it('keeps the window open after a double: a third tap is still a double', () => {
         const { effects } = run([
             ...tapAt(CARD_A, 1000, 1050),
             ...tapAt(CARD_A, 1100, 1150),

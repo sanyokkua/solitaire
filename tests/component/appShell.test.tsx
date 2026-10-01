@@ -1,3 +1,5 @@
+// covers: KS-GEN-02, KS-GEN-04
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { act, screen } from '@testing-library/react';
@@ -26,9 +28,12 @@ function renderApp(preloadedState: RenderWithStoreOptions['preloadedState'] = {}
     return { store, dealService };
 }
 
-/** The Home top bar's theme toggle and Settings button, the selected mode tile and the Winnable switch come first. */
+/**
+ * The Home top bar's theme toggle and Settings button, the selected mode tile, the Winnable switch and the Difficulty
+ * group's checked option come first.
+ */
 async function tabPastTopbar(user: ReturnType<typeof userEvent.setup>): Promise<void> {
-    for (let stop = 0; stop < 4; stop += 1) {
+    for (let stop = 0; stop < 5; stop += 1) {
         await user.tab();
     }
 }
@@ -66,7 +71,9 @@ describe('application shell navigation', () => {
         expect(backToHome()).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /deal cards/i })).not.toBeInTheDocument();
         expect(store.getState().app.route).toBe('game');
-        expect(dealService.requests.map(({ request }) => request)).toEqual([{ mode: 'draw1', winnableOnly: true }]);
+        expect(dealService.requests.map(({ request }) => request)).toEqual([
+            { mode: 'draw1', winnableOnly: true, target: 'any' },
+        ]);
     });
 
     it('starts a game in the selected mode and shows Game when the start control is activated by keyboard', async () => {
@@ -105,7 +112,9 @@ describe('application shell navigation', () => {
 
         await user.click(dealCards());
 
-        expect(dealService.requests.map(({ request }) => request)).toEqual([{ mode: 'vegas', winnableOnly: false }]);
+        expect(dealService.requests.map(({ request }) => request)).toEqual([
+            { mode: 'vegas', winnableOnly: false, target: 'any' },
+        ]);
     });
 
     it('returns to Home when the back control is activated by pointer', async () => {
@@ -174,6 +183,7 @@ function playedGameState(): RenderWithStoreOptions['preloadedState'] {
     return { game: playedGame() };
 }
 
+// covers: KS-PER-02
 describe('Continue game', () => {
     it('is hidden when there is no game', () => {
         renderApp();
@@ -225,6 +235,7 @@ describe('Continue game', () => {
         expect(store.getState().game.current).toEqual(before);
     });
 
+    // covers: KS-A11Y-03
     it('receives keyboard focus and the global stylesheet draws a focus outline on buttons', async () => {
         const user = userEvent.setup();
         renderApp(playedGameState());
@@ -248,6 +259,7 @@ describe('Game frame', () => {
         expect(screen.getByRole('heading', { level: 1, name: 'Klondike' })).toBeInTheDocument();
     });
 
+    // covers: KS-GEN-11
     it('holds the build stamp in the frame footer on Game and once on Home, never twice', async () => {
         const user = userEvent.setup();
         renderApp();

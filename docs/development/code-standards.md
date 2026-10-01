@@ -3,9 +3,12 @@
 ## Formatting, linting, types
 
 - **Prettier** (`.prettierrc.json`): 4-space indent, 120 columns, semicolons, single quotes, trailing commas everywhere.
-  `.prettierignore` excludes `docs/`, so Markdown under `docs/` is not auto-formatted.
+  `.prettierignore` excludes only `openspec/`, the lockfile, build and test output, `node_modules/` and the tool folders
+  `.agents/`, `.claude/` and `.husky/_/`, so the maintained docs are checked by `format:check` and formatted by
+  lint-staged like source (`configContract.test.ts` fails if `docs/` is ever excluded).
 - **ESLint** (`eslint.config.js`): `typescript-eslint` `strictTypeChecked` + `stylisticTypeChecked`, `react-hooks`,
-  `react-refresh`. `no-explicit-any` and `consistent-type-imports` are errors. Layer rules below are also ESLint rules.
+  `react-refresh`. `no-explicit-any` and `consistent-type-imports` are errors. Most layer rules below are also ESLint rules; the
+  exceptions (`src/pwa`, `src/i18n`'s React import, `src/features` to `src/app`, storage access) are guard tests.
 - **TypeScript** (`tsconfig.app.json`): `strict`, `noUnusedLocals`/`noUnusedParameters`, `noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`, `verbatimModuleSyntax` (use `import type` for types), `noEmit`.
 
@@ -13,33 +16,35 @@
 
 The authoritative list is in `AGENTS.md`. Summary and what enforces each:
 
-| Principle                                              | Enforced by                                                            |
-| ------------------------------------------------------ | ---------------------------------------------------------------------- |
-| Pure domain and solver (no React, Redux, DOM, storage) | ESLint import restrictions; `tests/unit/repo/domainPurity.test.ts`, `solverPurity.test.ts` |
-| Deterministic by seed (mulberry32, no `Math.random`)   | Purity tests ban `Math.random`; `src/domain/prng.ts`                   |
-| UI renders state and dispatches commands               | Convention; `applyCommand` lives in domain; ESLint bans route/sheet actions in UI |
-| Static and offline, no third-party hosts               | `scripts/validate-artifact.mjs` (no cross-origin URLs)                 |
-| Every move reachable by tap, drag and keyboard         | E2E `playByTap`, `playByDrag`, `playByKeyboard` win tests              |
-| Motion is optional                                     | Single no-motion path (`data-motion='off'`); `motion.spec.ts`          |
-| Accessible by default                                  | `a11y.spec.ts` (axe), `contrast.test.ts`, announcer and focus tests    |
-| Versioned, defensively decoded storage                 | `storageBoundary.test.ts`, codec tests                                 |
-| Docs are part of the change                            | Review; see [workflow](workflow.md#documentation-is-part-of-the-change) |
-| Mockup is visual reference only                        | Convention                                                             |
+| Principle                                              | Enforced by                                                                                                                                   |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pure domain and solver (no React, Redux, DOM, storage) | ESLint import restrictions; `tests/unit/repo/domainPurity.test.ts`, `solverPurity.test.ts`                                                    |
+| Deterministic by seed (mulberry32, no `Math.random`)   | Purity tests ban `Math.random`; `src/domain/prng.ts`                                                                                          |
+| UI renders state and dispatches commands               | Convention; `applyCommand` lives in domain; ESLint bans route/sheet actions in UI                                                             |
+| Static and offline, no third-party hosts               | `scripts/validate-artifact.mjs` (no cross-origin URLs), `configContract.test.ts` (`index.html`)                                               |
+| Every move reachable by tap, drag and keyboard         | E2E `playByTap`, `playByDrag`, `playByKeyboard` win tests                                                                                     |
+| Motion is optional                                     | Single no-motion path (`data-motion='off'`); `motion.spec.ts`                                                                                 |
+| Accessible by default                                  | `a11y.spec.ts` (axe), `contrast.test.ts`, announcer and focus tests                                                                           |
+| Versioned, defensively decoded storage                 | `storageBoundary.test.ts`, codec tests                                                                                                        |
+| Docs are part of the change                            | Review; `docsLinks.test.ts` (no broken links or paths), `noSpecPack.test.ts`; see [workflow](workflow.md#documentation-is-part-of-the-change) |
+| Look and feel is fixed                                 | Review against `docs/assets/screenshots/`, regenerated by `npm run screenshots`                                                               |
 
 ## Layer boundaries
 
-| Layer          | May import                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------------ |
-| `src/domain`   | Only its own sibling files. One exception: `prng.ts` may use `crypto` (injectable seed source).        |
-| `src/solver`   | Its siblings and `../domain/<file>`. No `crypto`; `self` only in `solver.worker.ts`.                   |
-| `src/features` | Domain, other features, i18n types. Value imports from `solver/` are banned (type imports fine): the solver runs in a Web Worker reached by URL. |
-| `src/i18n`     | Only itself. `useTranslate.ts` is the only file allowed to import React or react-redux.                |
-| `src/pwa`      | Nothing from `app`, `features` or `ui`. Only `registerPwa.ts` imports `virtual:pwa-register`; only `main.tsx` imports `registerPwa`. |
-| `src/ui`       | Anything above except: `setRoute`, `sheetOpened`, `sheetClosed` from `app/appSlice` are banned; dispatch the intents in `features/game/navigationThunks.ts` instead. |
-| Pure board modules (`src/ui/board/{metrics,layout,names,locate,landing,pointerController,keyboardController,cascadeFrames}.ts`) | Siblings, `../../domain/<file>`, type-only `i18n/translate`. No React, DOM globals, storage, `crypto`, `Math.random` (`boardPurity.test.ts`). |
-| Browser storage | Only `src/features/persistence/storageGateway.ts` may name `localStorage` (`storageBoundary.test.ts`). |
+| Layer                                                                                                                           | May import                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/domain`                                                                                                                    | Only its own sibling files. One exception: `prng.ts` may use `crypto` (injectable seed source).                                                                                                                                                                                                                                                                                                                                                                                  |
+| `src/solver`                                                                                                                    | Its siblings and `../domain/<file>`. No `crypto`; `self` only in `solver.worker.ts`.                                                                                                                                                                                                                                                                                                                                                                                             |
+| `src/features`                                                                                                                  | Domain, other features, i18n types. From `src/app` only: the slice's actions and types (`app/appSlice`), `app/selectors`, and the type-only `AppThunk` (`app/appThunk`) and `RootState`/`AppDispatch` (`app/store`). Never the store instance or factory, `lifecycle`, `hooks`, `thunkExtra`, `themeController` or any other app module, and nothing from `src/ui`. Value imports from `solver/` are banned (type imports fine): the solver runs in a Web Worker reached by URL. |
+| `src/i18n`                                                                                                                      | Only itself. `useTranslate.ts` is the only file allowed to import React or react-redux.                                                                                                                                                                                                                                                                                                                                                                                          |
+| `src/pwa`                                                                                                                       | Nothing from `app`, `features` or `ui`. Only `registerPwa.ts` imports `virtual:pwa-register`; only `main.tsx` imports `registerPwa`.                                                                                                                                                                                                                                                                                                                                             |
+| `src/ui`                                                                                                                        | Anything above except: `setRoute`, `sheetOpened`, `sheetClosed` from `app/appSlice` are banned; dispatch the intents in `features/game/navigationThunks.ts` instead.                                                                                                                                                                                                                                                                                                             |
+| Pure board modules (`src/ui/board/{metrics,layout,names,locate,landing,pointerController,keyboardController,cascadeFrames}.ts`) | Siblings, `../../domain/<file>`, type-only `i18n/translate`. No React, DOM globals, storage, `crypto`, `Math.random` (`boardPurity.test.ts`).                                                                                                                                                                                                                                                                                                                                    |
+| Browser storage                                                                                                                 | Only `src/features/persistence/storageGateway.ts` may name `localStorage` (`storageBoundary.test.ts`).                                                                                                                                                                                                                                                                                                                                                                           |
 
 `tests/unit/repo/layerBoundaries.test.ts` and `eslintRules.test.ts` guard these rules themselves, so loosening a rule fails a test.
+
+The features → app rule has no ESLint entry: the `src/features → src/app import direction` suite in `layerBoundaries.test.ts` reads every file under `src/features` and fails the gate on a forbidden import. `import { x, type Y }` counts as a value import; only `import type` is type-only.
 
 ## Engineering principles
 

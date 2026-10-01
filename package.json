@@ -1,7 +1,7 @@
 {
     "name": "solitaire",
     "private": true,
-    "version": "0.1.0",
+    "version": "1.0.0",
     "type": "module",
     "engines": {
         "node": ">=22.22.2"
@@ -22,10 +22,12 @@
         "bench": "vitest bench --run",
         "e2e": "playwright test",
         "e2e:headed": "playwright test --headed",
+        "screenshots": "CAPTURE_SCREENSHOTS=1 playwright test screenshots --project=chromium",
         "prepare": "husky",
         "validate:lifecycle-storage": "node scripts/validate-lifecycle-storage.mjs",
         "validate:artifact": "node scripts/validate-artifact.mjs",
-        "validate": "npm run format:check && npm run lint && npm run typecheck && npm run validate:lifecycle-storage && npm run test:unit && npm run build && npm run validate:artifact"
+        "trace": "node scripts/trace-requirements.mjs",
+        "validate": "npm run format:check && npm run lint && npm run typecheck && npm run validate:lifecycle-storage && vitest run tests/unit tests/component --coverage && npm run build && npm run validate:artifact"
     },
     "lint-staged": {
         "*.{ts,tsx}": [

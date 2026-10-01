@@ -1,3 +1,5 @@
+// covers: KS-A11Y-02
+
 import { act, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { setRoute } from '../../src/app/appSlice';

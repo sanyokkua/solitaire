@@ -1,3 +1,4 @@
+// covers: KS-DEAL-07
 import { afterEach, describe, expect, it } from 'vitest';
 import { decodeDealCode, encodeDealCode } from '../../../../src/domain/dealCode';
 import { DAILY_V1, dailySeed, dailySeeds, utcDayKey } from '../../../../src/features/deal/daily';
@@ -29,7 +30,7 @@ async function dailyDealAt(instant: Date): Promise<{
     const factory = stubFactory();
     const service = createDealService({ createWorker: factory.create, now: () => instant });
     try {
-        const deal = service.deal({ mode: 'daily', winnableOnly: false });
+        const deal = service.deal({ mode: 'daily', winnableOnly: false, target: 'any' });
         const stub = stubAt(factory.stubs, 0);
         stub.emit('error');
         const outcome = await deal;
@@ -119,9 +120,14 @@ describe('dailySeed and dailySeeds', () => {
 
 describe('Daily v1 golden dates', () => {
     it.each(DAILY_GOLDEN)(
-        'picks the pinned seed for $day',
-        ({ day, seed, attempts }) => {
-            expect(findWinnable(dailySeeds(day), DAILY_V1.budget)).toEqual({ seed, verdict: 'win', attempts });
+        'picks the pinned seed, attempts and grade for $day',
+        ({ day, seed, attempts, grade }) => {
+            expect(findWinnable(dailySeeds(day), DAILY_V1.budget, 'daily')).toMatchObject({
+                seed,
+                verdict: 'win',
+                attempts,
+                grade,
+            });
             expect(decodeDealCode(encodeDealCode(seed, 'daily'))).toEqual({ seed, mode: 'daily' });
         },
         30_000,

@@ -1,3 +1,4 @@
+// covers: KS-AST-02, KS-AST-06
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { advise } from '../../../src/domain/deadEnd';
@@ -5,6 +6,7 @@ import { hint } from '../../../src/domain/hint';
 import { faceUp, foundationsOf, frozenState, tableauOf } from '../../fixtures/states';
 
 const HEARTS = 0;
+const DIAMONDS = 1;
 const SPADES = 3;
 
 const c = cardId;
@@ -19,6 +21,17 @@ describe('advise', () => {
     it('reports a dead end rather than a recycle when the pass limit leaves nothing playable', () => {
         const state = frozenState({ waste: [c(SPADES, 9)] });
         expect(hint(state)).toEqual({ kind: 'recycle' });
+        expect(advise(state)).toEqual({ kind: 'dead-end' });
+    });
+
+    it('reports a dead end rather than a Draw 3 draw when the playable card is one the grouping never uncovers', () => {
+        // Stock top-down: H1 S9 D9. The one draw leaves D9 on top, and the ace stays buried under it.
+        const state = frozenState({
+            mode: 'draw3',
+            draw: 3,
+            stock: [c(DIAMONDS, 9), c(SPADES, 9), c(HEARTS, 1)],
+        });
+        expect(hint(state)).toEqual({ kind: 'draw' });
         expect(advise(state)).toEqual({ kind: 'dead-end' });
     });
 

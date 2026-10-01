@@ -646,7 +646,7 @@
     transition: none;
 }
 
-/* The New-deal control's press effect has a no-motion path with no scaling (spec §3.2 GM "New deal control"). */
+/* The New-deal control's press effect has a no-motion path with no scaling (motion is optional). */
 :root[data-motion='off'] .game-face__button:active:not(:disabled) {
     transform: translate(-50%, -50%);
 }

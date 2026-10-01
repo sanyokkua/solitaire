@@ -10,7 +10,7 @@ const LINKS = [
     ['home.links.about', 'about'],
 ] as const;
 
-/** Home's footer links (mockup `.footlinks`, HO "Home links"): each button opens its sheet. */
+/** Home's footer links (`.footlinks`): each button opens its sheet. */
 export function HomeLinks() {
     const t = useTranslate();
     const dispatch = useAppDispatch();

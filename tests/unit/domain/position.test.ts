@@ -1,3 +1,4 @@
+// covers: KS-AST-06
 import { describe, expect, it } from 'vitest';
 import { cardId } from '../../../src/domain/cards';
 import { positionKey } from '../../../src/domain/position';

@@ -1,3 +1,5 @@
+// covers: KS-INP-04, KS-INP-05, KS-INP-06, KS-INP-07
+
 import { act } from '@testing-library/react';
 import { dealingProgressed, setRoute, sheetOpened } from '../../src/app/appSlice';
 import { play, undo } from '../../src/features/game/gameThunks';
@@ -304,6 +306,7 @@ describe('cancelling a drag', () => {
         expectRestored(m);
     });
 
+    // covers: KS-GEN-08
     it('cancels when the board is resized', async () => {
         const m = mount();
         dragging(m);
@@ -392,6 +395,7 @@ describe('cancelling a drag', () => {
     });
 });
 
+// covers: KS-INP-09
 describe('a closed input gate', () => {
     function expectIgnored(m: Mounted) {
         const before = m.store.getState().game.current;

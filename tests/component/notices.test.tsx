@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { noticeDismissed, noticeRaised, setRoute, type NoticeId } from '../../src/app/appSlice';
 import { App } from '../../src/App';
-import { readOnlyEntered, writeFailed, writeSucceeded } from '../../src/features/persistence/persistenceSlice';
+import { writeFailed, writeSucceeded } from '../../src/features/persistence/persistenceSlice';
 import { Notices } from '../../src/ui/components/Notices';
 import { playedGame } from '../fixtures/games';
 import { restoreMatchMedia, stubMatchMedia } from '../support/matchMedia';
@@ -60,6 +60,7 @@ describe('Notices', () => {
         expect(store.getState().app.notices).toEqual([]);
     });
 
+    // covers: KS-MOVE-05
     it('No redeals: shows "No redeals left" and removes it after 3.2 s', () => {
         vi.useFakeTimers();
         const { store } = setup();
@@ -170,13 +171,16 @@ describe('Notices', () => {
         raise(store, 'dead-end');
         raise(store, 'storage-write');
 
-        expect(screen.getByText('Ходів не залишилось. Скасуйте кілька ходів або здайте нову гру.')).toBeInTheDocument();
+        expect(
+            screen.getByText('Ходів більше немає. Скасуйте кілька ходів або почніть нову роздачу.'),
+        ).toBeInTheDocument();
         const status = screen.getByRole('status');
         expect(status).toHaveTextContent('Не вдалося зберегти прогрес.');
         expect(within(status).getByRole('button', { name: 'Закрити' })).toBeInTheDocument();
     });
 });
 
+// covers: KS-PWA-03
 describe('Update-ready notice', () => {
     it('stays until Later, and Later dismisses it', () => {
         vi.useFakeTimers();
@@ -193,9 +197,8 @@ describe('Update-ready notice', () => {
     });
 
     it('shows the warning text when saving is read-only or the last save failed', () => {
-        const { store } = setup();
-        act(() => {
-            store.dispatch(readOnlyEntered());
+        const { store } = renderWithStore(<Notices onUpdate={() => undefined} />, {
+            preloadedState: { game: playedGame(), persistence: { readOnly: true, lastError: 'read' } },
         });
         raise(store, 'update-ready');
 
@@ -209,10 +212,6 @@ describe('Update-ready notice', () => {
 
         act(() => {
             store.dispatch(writeFailed());
-        });
-        expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
-        act(() => {
-            store.dispatch(readOnlyEntered());
         });
         expect(screen.getByText('A new version is ready.')).toBeInTheDocument();
     });
@@ -268,6 +267,7 @@ describe('Update-ready notice', () => {
         expect(store.getState().app.notices).toEqual([]);
     });
 
+    // covers: KS-A11Y-04
     it('Update and Later reuse the notice-dismiss class, which carries the 44x44 coarse-pointer hit area rule', () => {
         const { store } = setup();
         raise(store, 'update-ready');

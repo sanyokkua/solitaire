@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { startDistServer } from './support/distServer';
 import { readGame } from './support/game';
+import { holdDealPool, playerWorker, tagWorkers } from './support/workers';
 
 test.use({ serviceWorkers: 'allow' });
 
@@ -57,6 +58,7 @@ async function dealAndDraw(page: Page): Promise<void> {
     await expect(page.locator(MOVES_VALUE)).toHaveText('001');
 }
 
+// covers: KS-GEN-01, KS-PWA-01, KS-PWA-04
 test.describe('Offline', () => {
     test('offline cold start: Home, a Winnable Draw 1 deal, a move and Settings all work', async ({
         context,
@@ -67,6 +69,9 @@ test.describe('Offline', () => {
         await visitOnline(online);
         await online.close();
 
+        // The deal must be the player's own search, not one served from the pool, so the pool is held.
+        await holdDealPool(context);
+        await tagWorkers(context);
         const { page, requests } = await openOffline(context);
 
         await expect(page.getByRole('heading', { name: 'Solitaire' })).toBeVisible();
@@ -82,9 +87,10 @@ test.describe('Offline', () => {
 
         await expect(page.getByRole('radio', { name: /Draw 1/ })).toBeChecked();
         await expect(page.getByRole('switch', { name: /Winnable/ })).toBeChecked();
-        const worker = page.waitForEvent('worker');
         await dealAndDraw(page);
-        expect((await worker).url()).toContain('worker');
+        const worker = await playerWorker(page, 'draw1');
+        expect(worker.url).toContain('worker');
+        expect(worker.answered, 'the solver worker loaded offline and answered').toBe(true);
 
         await page.getByRole('button', { name: 'Settings' }).click();
         await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
@@ -92,6 +98,7 @@ test.describe('Offline', () => {
         expectSameOrigin(requests, baseURL);
     });
 
+    // covers: KS-PER-02
     test('offline, a reload on Game and Continue from Home restore the game', async ({
         context,
         baseURL,
@@ -118,6 +125,7 @@ test.describe('Offline', () => {
     });
 });
 
+// covers: KS-PWA-03
 test('update after saving: Later hides the notice for the session, Update reloads with the game restored', async ({
     page,
 }, testInfo) => {

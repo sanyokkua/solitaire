@@ -199,6 +199,7 @@ describe('Deal animation', () => {
         expect(delayed(container)).toHaveLength(0);
     });
 
+    // covers: KS-SET-04
     it('Deal without motion: the epoch is claimed and switching motion on never replays', () => {
         const { container, dealt, store } = mount({ reduced: true });
 

@@ -1,29 +1,69 @@
 # Features layer
 
-Application services and Redux slices built on top of the domain and solver layers.
-`deal/` landed in Phase 3 (Solver & deal service); `preferences/`, `stats/`, `game/` and `persistence/` landed in
-Phase 4 (State, persistence & timer). The `persistence/` layer includes the versioned codec (v1), storage gateway,
-loader for defensive decode and hydration, writer for debounced persistence, and reset thunks. `interaction/` (the
-runtime-only interaction state: selection, hint, announcements, dead ends and the input gate) landed with the Phase 6 change `add-board-interaction`.
+Application services and Redux slices built on top of the domain and solver layers, in six folders: `deal/` (the deal
+service, its graded-spare pool and verdict cache, the solver client and the Daily seeds), `game/` (the game session,
+history, clock and the game, session and navigation thunks), `interaction/` (the runtime-only interaction state:
+selection, hint, announcements, dead ends, the win summary and the input gate), `preferences/`, `stats/` and
+`persistence/` (the versioned codec, version 2 reading version 1, the storage gateway, the loader for defensive decode
+and hydration, the writer for debounced persistence, and the reset thunks), plus `shared/` (the timers).
 
 - `deal/daily.ts` — UTC day key and daily v1 seed list
 - `deal/solverClient.ts` — lazy solver Web Worker client: request ids, cancellation (`cancel`, and `cancelHints` for hints alone) and timeout rules, malformed replies fail the client, never-rejecting results; its `hint` settles as a `SolverHintOutcome` (`ok`, `cancelled`, `timeout`, `busy` or `failed`), distinct from the deal service's `HintOutcome`
-- `deal/dealService.ts` — `createDealService`: `deal({ mode, winnableOnly }, onProgress?)`, `hint(state)` and `dispose()`.
-  `deal()` deals Draw 1 (switch on, 40 fresh seeds at 5,000 nodes) and Daily (the UTC day's v1 candidates at 20,000
-  nodes, whatever the switch says) through the solver worker, and every other request (Draw 3, Vegas, Draw 1 with the
-  switch off) at once on the input thread from one fresh seed, `random`, 1 attempt. The state is
-  `dealFromSeed(seed, mode, { verdict, attempts })`, so its deal code reproduces it without the solver.
-  `onProgress({ overlay, attempt })` reports each attempt as it starts; `overlay` turns true once the request has been
-  pending 160 ms (one timer per request, cleared on settle). Every `deal()` cancels pending requests first and settles
-  as `{ status: 'cancelled' }` when a newer one replaces it; if the worker fails, the first seed (Draw 1) or
-  `dailySeed(day, 1)` (Daily) is dealt as `random`, 1 attempt. A dealt Daily deal also carries `dayKey`, the UTC
-  `YYYY-MM-DD` its candidate seeds were derived from (worker-verified or the worker-failure fallback alike); every other
-  mode omits `dayKey`. `hint(state)` settles as `{ status: 'hint', source, hint }`,
-  `{ status: 'none' }` (won, or no move at all) or `{ status: 'cancelled' }` (a newer hint, any deal or `dispose()`
-  replaced it). Draw 1 positions without a pass limit ask the solver (3,000 nodes, 150 ms) and take its first line
-  move; no suggestion, a timeout, a failure or a pending deal falls back to the domain heuristic, which is all Draw 3
-  and Vegas use. `dispose()` cancels everything and terminates the worker. Exports `WINNABLE_BUDGET`, `MAX_ATTEMPTS`
-  and `HINT_BUDGET`
+- `deal/dealService.ts` — `createDealService`: `deal({ mode, winnableOnly, target }, onProgress?)`, `hint(state)`,
+  `prefetch({ mode, winnableOnly })`, `pause()` and `dispose()`. `target` is the grade wanted (`any`, `easy`, `medium`
+  or `hard`, the Difficulty preference). It builds two solver clients from the same `createWorker` factory, the
+  player's and the pool's (passed to `createDealPool`, which owns it), and one `createVerdictCache()`. `deal()` with the
+  switch on first takes Draw 1, Draw 3 and Vegas deals from the pool: a pooled deal of the target's grade (the oldest
+  of any grade for `any`) is dealt at once as `dealFromSeed(seed, mode, { verdict: 'win', attempts, grade })`, with the
+  attempts recorded when it was found (1 for a spare), no progress report, no overlay timer and no worker request.
+  Otherwise it searches on the player's worker (48 fresh seeds at the mode's budget from `winnableBudget(mode)`,
+  selecting `{ target, gradeLimit: GRADE_LIMIT }`), and Daily (the UTC day's v1 candidates at 20,000 nodes, always for
+  `any`, whatever the switch or the Difficulty says, and never from the pool) the same way. Every search sends the
+  cache's `known(mode, budget, seeds)` verdicts and records each `outcome` the worker reports, so a second Daily
+  request in a session searches none of the candidates again; the spares of a Draw 1, Draw 3 or Vegas search are
+  deposited in the pool. A request with the switch off is dealt at once on the input thread from one fresh seed,
+  `random`, 1 attempt, ungraded, and `target` is ignored. The state is `dealFromSeed(seed, mode, { verdict, attempts,
+grade })`, where `grade` is the grade of the deal the search selected (the closest one, labelled with its own grade,
+  when `target` is not found), so its deal code reproduces it without the solver. `onProgress({ overlay, attempt })`
+  reports each attempt of a search as it starts; `overlay` turns true once the request has been pending 160 ms (one
+  timer per request, cleared on settle). Every `deal()` cancels the player's pending requests first (never the pool's
+  fill) and settles as `{ status: 'cancelled' }` when a newer one replaces it; if the worker fails, the first seed
+  (Draw 1, Draw 3, Vegas) or `dailySeed(day, 1)` (Daily) is dealt as `random`, 1 attempt, ungraded, in every mode. The
+  pool starts no fill while a request that may search is pending: every `deal()` sets `setBusy(mode is Daily or the
+switch is on)` before it takes from the pool, a pooled deal clears it at once, and a search clears it when it settles
+  only if it is still the current request, so a superseded search never ends the pause of a newer one. A dealt Daily
+  deal also carries `dayKey`, the UTC `YYYY-MM-DD` its candidate seeds were derived from (worker-verified or the
+  worker-failure fallback alike); every other mode omits `dayKey`. `hint(state)` settles as `{ status: 'hint', source,
+hint }`, `{ status: 'none' }` (won, or no move at all) or `{ status: 'cancelled' }` (a newer hint, any deal or
+  `dispose()` replaced it). Every position that is not won, in every mode, asks the solver on the player's worker only
+  (3,000 nodes, 150 ms), so a hint never waits behind a pool fill, and takes its first line move; no proof, a timeout,
+  a failure or a pending deal falls back to the domain heuristic. `prefetch(choice)` sets the pool's choice and resumes
+  filling (Daily or the switch off fills nothing); `pause()` starts no new fill until the next `prefetch`, leaving the
+  fill in flight. A failed pool worker affects only the pool. `dispose()` cancels everything and terminates both
+  workers; `prefetch` and `pause` do nothing afterwards.
+- `deal/verdictCache.ts` — `createVerdictCache(limit = 256)`: an in-memory least-recently-used map from mode, budget and seed to the
+  worker's `Outcome` (verdict, and grade for a win). `known(mode, budget, seeds)` returns the entries held for exactly those seeds
+  (a read counts as a use); `record(mode, budget, outcome)` stores one, dropping the least recently used at the limit. An entry at
+  another mode or budget never matches; nothing is stored. The deal service sends `known` with every search and records
+  every outcome its worker reports.
+- `deal/dealPool.ts` — `createDealPool({ client, seedSource? })`: the graded-spare pool, in memory only, over its own
+  `SolverClient` (which it owns and disposes). Proven, graded deals are kept per mode (Draw 1, Draw 3, Vegas) and grade,
+  at most `POOL_PER_GRADE` (2) each, oldest first. `take(mode, target)` removes and returns the oldest `{ seed, grade,
+attempts }` of that grade, or the oldest of any grade for `any`, and never a deal of another grade; `deposit(mode,
+spares)` keeps a player search's spares that fit, with attempts 1. The filler works on the current choice only
+  (`setChoice({ mode, winnableOnly } | undefined)`; Daily, the switch off or `undefined` fills nothing and keeps what is
+  pooled), one request at a time: `findWinnable` with 48 fresh crypto seeds, the mode's budget and `{ target, gradeLimit:
+GRADE_LIMIT }`, where `target` is the grade whose bucket holds fewest deals (ties easy, medium, hard); it pools the
+  selected deal (never a `random` one) with its own grade and attempts, and its spares that fit. `pause()`/`resume()`
+  and `setBusy(busy)` stop new fills without cancelling the one in flight, whose deals are pooled under the mode it was
+  started for. A fill that pools nothing or fails ends the filling until the next `take`, `setChoice`, `resume` or
+  `setBusy(false)`; a failure keeps every pooled deal and the next fill starts a new worker. `dispose()` ends the fill
+  in flight and ignores later calls. The deal service builds it over its second client and drives it (`take`,
+  `deposit`, `setBusy`, and `setChoice`/`resume`/`pause` through `prefetch` and `pause`).
+- `deal/budgets.ts` — the node budgets and the attempt cap: `WINNABLE_BUDGET` (Draw 1, 5,000), `DRAW3_WINNABLE_BUDGET` and
+  `VEGAS_WINNABLE_BUDGET` (the ordered-talon search, 20,000 each), `MAX_ATTEMPTS` (48 candidates) and `HINT_BUDGET`
+  (3,000); `winnableBudget(mode)` picks the winnable budget for Draw 1, Draw 3 and Vegas, and `GRADE_LIMIT` caps the proven candidates graded in search of the requested grade. Daily has its own pinned pair in `daily.ts`. The Draw 3 and Vegas values come from the per-mode benchmark
+  recorded in `tests/README.md`.
 - `game/history.ts` — pure undo and redo over `Session` (`{ current, history, future }`, both stacks unbounded).
   `commit(session, next)` starts an undo step (the position in play joins `history`, `future` is cleared);
   `replace(session, next)` updates the position in play inside the current step. `undo` and `redo` restore the last
@@ -39,7 +79,7 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   `replaced(next)` (over `history.ts`'s `commit` and `replace`), `undone()` / `redone()` (ignored while `busy`),
   `accrued({ atMs, eligible })`, `busySet`, `countedSet` and `cleared()` (no game, epoch + 1). Selectors take the
   structural shape `{ game }`: `selectCanUndo`, `selectCanRedo`, `selectResumable` (started and still playing), `selectDisplayedScore` (charges
-  applied), `selectCanFinish` (not busy and `finishPlan` exists, memoised on the piles plus draw, passes, mode and status, so clock ticks never recompute the plan), `selectBusy`, `selectEpoch` and `selectCurrentGame` (moved here from `src/app/selectors.ts`, since they read only `game` state). `selectGameControlsIdle` (structural `{ app, game }`) is false while `busy` or `app.dealing` is non-null, used by the HUD New deal control and Time (Phase 7). `accrued` settles play
+  applied), `selectCanFinish` (not busy and `finishPlan` exists, memoised on the piles plus draw, passes, mode and status, so clock ticks never recompute the plan), `selectEpoch` and `selectCurrentGame` (moved here from `src/app/selectors.ts`, since they read only `game` state). `selectGameControlsIdle` (structural `{ app, game }`) is false while `busy` or `app.dealing` is non-null, used by the HUD New deal control and Time. `accrued` settles play
   time at an injected-clock reading: while `eligible` and an anchor is set it adds the whole milliseconds since the
   anchor to `current.elapsedMs` (so it stays an integer on a fractional clock), capped at 1 s per step and never
   negative, then moves the anchor forward by what was added (the sub-millisecond remainder carries over; a larger or
@@ -78,22 +118,27 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   scored, counted and pass-limited by the engine and the win is recorded once). Before each step it waits `delay(75)`
   (`delay(0)` under `selectReducedMotion`) and stops if the `epoch` moved, the game is gone or won, or the engine refuses
   a step; `busy` is cleared at the end only if the epoch is unchanged
-- `game/sessionThunks.ts` — split out of `gameThunks.ts` (D15, a pure move; behaviour unchanged): `breakStreakOf(outgoing)`,
-  exported so `navigationThunks.ts`'s `playDealCode` can reuse it, breaks the streak of a game about to be replaced
+- `game/sessionThunks.ts` — split out of `gameThunks.ts` (D15, a pure move; behaviour unchanged): `breakStreakOf(outgoing)`
+  (module-private, shared by `startGame`, `restart` and `playDealCode`) breaks the streak of a game about to be replaced
   (`streakBroken(outgoing.mode)`) when it was started and not won; an unstarted or won outgoing game costs nothing.
-  `startGame({ mode })` deals and installs a new game: it reads `winnableOnly` from the preferences and forwards it in
-  the `dealService.deal` request, publishes the service's progress as `app.dealing` (a report that arrives after the
+  `startGame({ mode })` deals and installs a new game: it reads `winnableOnly` and `difficulty` from the preferences
+  when the start begins and forwards them in the `dealService.deal` request (`difficulty` as `target`), so a later change
+  of either leaves the pending deal and the game in play alone, publishes the service's progress as `app.dealing` (a report that arrives after the
   game epoch moved is dropped), and changes nothing when the result is `cancelled`, the game epoch moved while
   dealing (a restart, a reset or another install), or a newer start was requested (even if this deal had already
   resolved). Otherwise it breaks the replaced game's streak then dispatches `installed` with the deal's `dayKey`
   (Daily) or `null`. `dealingEnded()` runs at the end only if the start is still the latest for that deal service (a
   per-service start id in a `WeakMap`), so a superseded start never clears a newer start's progress; a rejection
   propagates after that cleanup. `restart()` replays the current deal on the spot with
-  `dealFromSeed(seed, mode, { verdict, attempts })`, so the layout is identical and nothing played carries over; it
+  `dealFromSeed(seed, mode, { verdict, attempts, grade })`, so the layout is identical, the grade is kept and nothing played carries over; it
   reads no preference, keeps `dailyKey`, breaks the streak by the same rule, is allowed while `busy` (the install bumps
   the epoch and stops the sequence), and does nothing without a game. `continueGame()` shows the Game screen (`setRoute('game')`) only while
   `selectResumable` holds (a started game that is still playing) and does nothing otherwise; it touches nothing but the
-  route, so it never replaces the game or breaks a streak
+  route, so it never replaces the game or breaks a streak. `playDealCode(code)` (D5) trims and case-folds the code through
+  `domain/dealCode.ts`'s `decodeDealCode`; an invalid code changes nothing and reports `{ ok: false }`, a valid one
+  breaks the replaced game's streak, installs `dealFromSeed(seed, mode, { verdict: 'random', attempts: 1, grade: null })` (a code carries no provenance) with
+  `dailyKey: null`, ends any in-flight start's dealing progress (`dealingEnded()` — the epoch bump already makes that
+  start discard its own result), shows Game and reports `{ ok: true }`
 - `game/navigationThunks.ts` — the intent thunks that own every route and sheet change (D3): the UI dispatches these,
   never `setRoute`/`sheetOpened`/`sheetClosed` directly (an ESLint rule bans importing those three from `src/ui/**`,
   checked by `tests/unit/repo/eslintRules.test.ts`). `dealNewGame(mode)` closes any open sheet (including Win — this
@@ -102,14 +147,10 @@ runtime-only interaction state: selection, hint, announcements, dead ends and th
   when there is no game; it does nothing while `game.busy` or `app.dealing !== null`. `restartDeal()` closes the sheet
   and calls `restart()`. `goHome()` closes any open sheet (Win included) and shows Home. `openSheet(id)` and
   `closeSheet()` wrap `sheetOpened`/`sheetClosed` for the UI; `closeSheet()` refuses to close `win` (the other way it
-  closes is `dealNewGame`'s Deal again), so Escape can never dismiss it. `pause()` opens the `paused` sheet, but only
-  on the Game route, with a game that is not won, and not while `game.busy` or `app.dealing !== null`. `resume()` is
-  `closeSheet()`. `playDealCode(code)` (D5) trims and case-folds the code through `domain/dealCode.ts`'s
-  `decodeDealCode`; an invalid code changes nothing and reports `{ ok: false }`, a valid one breaks the replaced
-  game's streak (`breakStreakOf`, exported from `sessionThunks.ts` for this), installs `dealFromSeed(seed, mode, {
-verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight start's dealing progress
-  (`dealingEnded()` — the epoch bump already makes that start discard its own result), shows Game and reports
-  `{ ok: true }`
+  closes is `dealNewGame`'s Deal again), so Escape can never dismiss it. `pause()` opens the `paused` sheet when the exported `canPause(state)`
+  holds: on the Game route, with a game that is not won, and not while `game.busy` or `app.dealing !== null` (the P
+  shortcut checks the same predicate). `resume()` is
+  `closeSheet()`
 - `interaction/interactionSlice.ts` — the runtime-only interaction state (never persisted, and not read by the persistence
   writer, so changing it never writes): `selection: { from: PileRef, index } | null`, with `selectionSet` and
   `selectionCleared`. Its `extraReducers` clear the selection, the hint and the pending hint on the game actions
@@ -117,10 +158,10 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
   so it cannot go stale. It also holds the announcement log `announcement: { seq, items: [{ n, item }] }` (reducer `announced(items)`: an empty batch is a no-op, otherwise each item gets a running `n` that continues from the last and is never reused, only the latest 20 are kept, and `seq` grows once per batch). No game action resets it, so an install cannot drop an unspoken `won`; the `Announcement` union and the pure `announcementsOf(events)` live in `interaction/announcements.ts`, which also
   carries the `codeCopied` descriptor (5.6, D14; no `announcementsOf` case, since it is never derived from a
   `GameEvent` — `dealCodeCopied()` dispatches it directly, like `deadEnd`). The hint: `hint: HintView | null` (`{ id, kind: 'move' | 'draw' | 'recycle', cards, target: PileRef | 'stock' }`, set by `hintSet`, cleared by `hintCleared(id?)`, which given an id clears only that hint so an older timer cannot clear a newer one, and also cleared by `preferenceSet` and `preferencesReset`), `lastHintId` (ids only grow) and `pendingHint: { epoch, key } | null` (the hint request in flight, `pendingHintSet`). The dead-end memory: `deadEndSeen`, the position keys already reported in this game (`deadEndRecorded(key)`), emptied by `installed` and `cleared` only, so undo and redo keep it. The win summary (D4): `win: WinSummary | null`
-  (`{ mode, score, elapsedMs, moves, timeBonus, newBestTime }`), set by `winRecorded` (dispatched from `gameThunks.ts`'s
+  (`{ mode, grade, score, elapsedMs, moves, timeBonus, newBestTime }`; `grade` is the `Grade` the game was dealt with, kept by a restart, or `null` for a random deal, a deal code or a v1-upgraded game), set by `winRecorded` (dispatched from `gameThunks.ts`'s
   `commitCommand` right after `won`) and cleared, alongside `deadEndSeen`, by `installed` and `cleared` only; never
   read by the persistence writer, so it is never in the encoded record
-- `interaction/selectors.ts` — structural `{ game, interaction }` selectors: `selectSelection`, `selectAnnouncement`, `selectHint`, `selectPendingHint`, `selectNextHintId`, `selectWinSummary`, `selectSelectedGroup`
+- `interaction/selectors.ts` — structural `{ game, interaction }` selectors: `selectSelection`, `selectAnnouncement`, `selectHint`, `selectNextHintId`, `selectWinSummary`, `selectSelectedGroup`
   (`groupAt` over the position in play) and `selectLegalTargets` (`legalTargets` for that run), the last two memoised
   and `undefined` when nothing is selected, no game is in play, or the card no longer starts a movable run. `selectInputEnabled` (structural `{ app, game }`) is the one input gate every input path reads: true only on the Game route with no deal in flight, no sheet open, a game that is not won and no chain or Finish running; there is no cascade term because the game stays won for the whole win cascade
 - `interaction/interactionThunks.ts` — `selectCard(from, index)`: dispatches `selectionSet` only when the position in
@@ -152,8 +193,7 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
   `{ dispose }`, which clears the interval and unsubscribes (idempotent)
 - `src/app/savePort.ts` (outside this layer) — `createSavePort()` returns a `SavePort` (`{ flush, cancel }`) that does
   nothing until `connect(writer)` gives it a real writer; `startApp` creates one before the store and connects it once
-  the writer exists, and the store's `ThunkExtra.saver` is that same instance, so any thunk (a Settings reset, later
-  the PWA update thunk `src/app/pwaThunks.ts`) can flush or cancel the pending save without reaching the writer directly (D8)
+  the writer exists, and the store's `ThunkExtra.saver` is that same instance, so any thunk (a Settings reset, the PWA update thunk `src/app/pwaThunks.ts`) can flush or cancel the pending save without reaching the writer directly (D8)
 - `src/app/pwaThunks.ts` (outside this layer) — `applyUpdate()` flushes the pending save through `saver`, then calls
   `pwa.applyUpdate()` (it still applies when persistence is read-only or the flush throws); `installApp()` prompts
   through `pwa.promptInstall()`, then clears `app.installable`. `ThunkExtra.pwa` is inert by default; `main.tsx` passes
@@ -164,13 +204,16 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
   element with `themeController.ts` and sets `<html lang>`/`document.title` with `src/i18n/localeController.ts`
   (both before the first render), starts the ticker and the writer and connects the save port to the writer, attaches
   the page listeners (`visibilitychange` updates `documentVisible` and flushes the writer when hidden, `pagehide`
-  flushes, the reduced-motion media query updates `systemReducedMotion`), renders, and returns `{ store, dispose }`,
-  which also disposes the locale controller
+  flushes, the reduced-motion media query updates `systemReducedMotion`), starts the deal pool controller
+  (`src/app/dealPoolController.ts`: from the first idle period it calls the deal service's `prefetch({ mode,
+winnableOnly })` when the selected mode or the switch changes or the page becomes visible, and `pause()` when it is
+  hidden), renders, and returns `{ store, dispose }`, which also disposes the locale and deal pool controllers
 - `stats/statsSlice.ts` — per-mode statistics (`played`, `won`, `streak`, `bestStreak`, `bestTimeMs`, `bestScore` for
   Draw 1, Draw 3, Vegas and Daily). `played(mode)` counts a game, `won({ mode, elapsedMs, score })` adds a win, grows
   the streak and keeps the fastest time and highest score (negative Vegas banks included), `streakBroken(mode)` zeroes
-  one mode's streak and keeps its best, `statsReset()` restores fresh initial state. Selectors `selectModeStats` and
-  `selectWinRate` take the structural shape `{ stats }`. The `daily` block records Daily completions:
+  one mode's streak and keeps its best, `statsReset()` restores fresh initial state. Selector `selectModeStats`
+  takes the structural shape `{ stats }`; `winRateOf(modeStats)` is the win rate of one mode record
+  (the Statistics sheet uses it directly). The `daily` block records Daily completions:
   `dailyCompleted(dayKey)` adds a UTC `YYYY-MM-DD` once (a repeat is a no-op, an earlier date lands in sorted
   position), raises `daily.bestStreak` to the consecutive run containing it, then keeps only the newest 400 dates — the
   stored best survives the trim. `selectDailyStreak(state, todayKey)` is the run of consecutive days ending today or
@@ -185,7 +228,7 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
 - `preferences/locale.ts` — `Locale` and `SUPPORTED_LOCALES` re-exported from the `src/i18n/catalog.ts` registry (a
   new, data-only dependency from `features` to `i18n`), plus `resolveLocale(languages)`: the first browser-preferred
   language whose primary subtag is supported (`uk-UA` selects `uk`), otherwise English
-- `preferences/preferencesSlice.ts` — the twelve user preferences with the specification §6 defaults
+- `preferences/preferencesSlice.ts` — the thirteen user preferences (the last is `difficulty`: `any`, `easy`, `medium` or `hard`, default `any`) with the documented defaults (`docs/reference/storage-format.md`)
   (`defaultPreferences(locale)`; only the language depends on the browser). `preferenceSet({ key, value })` changes one
   preference (a key/value mismatch fails typechecking), `preferencesReset(locale)` restores the defaults. Selectors
   `selectPreferences` and `selectPreference(state, key)` take the structural shape `{ preferences }`, so this slice
@@ -197,28 +240,33 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
   throw. The default storage is `window.localStorage`, or none (every call fails) outside a browser or when reaching it
   throws, as in Safari private mode; tests inject `memoryStorage()` or `throwingStorage()` from
   `tests/fixtures/storage.ts`
-- `persistence/recordCodec.ts` — the v1 device record, pure. Exports `STORAGE_KEY` (`solitaire.local-state`),
-  `BACKUP_KEY` (`solitaire.local-state.unreadable`), `RECORD_VERSION` (1) and `MAX_STORED_STEPS` (200).
+- `persistence/recordCodec.ts` — the version 2 device record, pure. Exports `STORAGE_KEY` (`solitaire.local-state`),
+  `BACKUP_KEY` (`solitaire.local-state.unreadable`) and `RECORD_VERSION` (2).
   `encodeRecord({ preferences, stats, game })` returns one JSON string whose objects are built field by field in a
   fixed order (`version`, `preferences`, `stats`, then `session`), so equal input always gives the identical string;
   `session` is present only for a started game that is still playing. `decodeRecord(raw)` never throws and returns
   `{ ok: true, record: { preferences, stats, session } }` or `{ ok: false, reason }`: `empty` (no stored value),
-  `malformed` (not JSON), `future` (a version above 1, never interpreted) or `invalid` (anything else that is not
-  exactly a valid v1 record). Every object must have exactly its known keys; the enum values, non-negative integer
-  counts (a mode's `streak` may not exceed its `bestStreak`), `bestTimeMs`, `bestScore` and the Daily list (at most 400 real, strictly ascending `YYYY-MM-DD` dates) are
+  `malformed` (not JSON), `future` (a version above 2, never interpreted) or `invalid` (anything else that is not
+  exactly a valid version 1 or 2 record). A version 1 record (twelve preferences, no `difficulty`) is decoded with its
+  own exact key set and upgraded by `upgradeV1`, which adds `difficulty: 'any'` (and `sessionCodec.ts` gives its game `grade: null`) and changes nothing else, so the loader
+  treats it as valid (no backup, no notice) and the next save writes version 2. Every object must have exactly its known keys; the enum values, non-negative integer
+  counts (a mode's `streak` may not exceed its `bestStreak`), `bestTimeMs`, `bestScore` and the Daily list (at most `MAX_DAILY_COMPLETED`, 400, real, strictly ascending `YYYY-MM-DD` dates, the cap exported by `statsSlice.ts`) are
   checked, and a bad part rejects the whole record, with no salvage
-- `persistence/sessionCodec.ts` — the stored game, used by `recordCodec.ts`. `encodeSession` keeps the newest 200
+- `persistence/guards.ts` — the shape checks the codecs share when decoding untrusted storage: `isRecord`, `hasExactKeys`
+  (required and optional keys; unknown keys fail) and `isDayKey` (a real UTC `YYYY-MM-DD` date)
+- `persistence/sessionCodec.ts` — the stored game, used by `recordCodec.ts`. Exports `MAX_STORED_STEPS` (200) and `RecordVersion` (`1 | 2`). `encodeSession` keeps the newest 200
   history steps and the nearest 200 future steps (the tail of each stack, since the next redo is last) as compact
   steps holding `tableau`, `stock`, `waste`, `foundations`, `score`, `moves`, `passes`, `elapsedMs`, `undos` and
-  `started` (the last three because a snapshot keeps the values it had when captured). `decodeSession` accepts exactly
+  `started` (the last three because a snapshot keeps the values it had when captured). `decodeSession(value, version)` accepts exactly
   `current`, `history`, `future`, `dailyKey` (a real date, and only for a Daily game, or `null`) and `counted`;
-  `current` must pass `isValidGameState`, have exactly the `GameState` keys and `{ id, up }` cards, and be started and
-  playing; each step is rebuilt into a full `GameState` (the constant fields
-  copied from `current`, `status` `playing`) that must pass `isValidGameState` too, so a round trip is exact. Also
-  exports the shared `isRecord`, `hasExactKeys` and `isDayKey` checks
+  `current` must have exactly the `GameState` keys of that record version (checked on the raw record, before it is
+  validated; version 2 adds `grade` right after `attempts`; a version 1 game is then upgraded with `grade: null`),
+  pass `isValidGameState`, have `{ id, up }` cards, and be started and playing; each step is rebuilt into a full
+  `GameState` (the constant fields, `grade` among them, copied from `current`, `status` `playing`; a step with a `grade`
+  key is refused) that must pass `isValidGameState` too, so a round trip is exact
 - `persistence/persistenceSlice.ts` — what the shell needs to know about saving: `{ readOnly, lastError }`, starting at
-  `{ readOnly: false, lastError: null }` (`initialPersistenceState`). `readOnlyEntered()` stops saving for the session,
-  `writeFailed()` sets `lastError` to `'write'`, and `writeSucceeded()` clears it only if it is `'write'`, so a
+  `{ readOnly: false, lastError: null }` (`initialPersistenceState`). Read-only comes only from the loader's `preloadedState`, and stops saving for the
+  session; `writeFailed()` sets `lastError` to `'write'`, and `writeSucceeded()` clears it only if it is `'write'`, so a
   start-up `'read'` error stays. `persistenceReset()` restores the initial state, and is how
   `resetAllLocalData` (in `resetThunks.ts`) ends a read-only session
 - `persistence/persistenceLoader.ts` — `loadInitialState(gateway, languages)` reads the record before the store exists
@@ -254,25 +302,27 @@ verdict: 'random', attempts: 1 })` with `dailyKey: null`, ends any in-flight sta
   A failed remove does not stop the reset. Nothing is written until the player's next change
 
 The store hands every thunk a `ThunkExtra` (`src/app/thunkExtra.ts`): `dealService` (created lazily, so a store that
-never deals never starts the solver worker), `now` (`performance.now`), `delay` (`setTimeout`), `today`
+never deals, hints or prefetches never starts a solver worker; `pause()` never creates it), `now` (`performance.now`), `delay` (`setTimeout`), `today`
 (`new Date()`), `gateway` (a storage gateway over the browser's local storage), `saver` (a `SavePort`, unconnected
-until `startApp` wires it to the real writer) and `languages` (`navigator.languages` by default). The store has six
+until `startApp` wires it to the real writer), `pwa` (a `PwaPort`, inert until `main.tsx` supplies the real gateways)
+and `languages` (`navigator.languages` by default). The store has six
 slices: `app`, `preferences`, `stats`, `game`, `interaction` and `persistence`. `createAppStore({ preloadedState, deps })` starts
 from the loaded state (see `persistenceLoader.ts`) and replaces any of the thunk dependencies, which is how tests
 inject `fakeDealService()` or a fake clock. The store's development state checks skip `game.history` and
 `game.future`, which are unbounded.
 
 One dependency needs care (5.4, D8): the default (lazy) deal service's Daily-deal date logic reads a `now` clock
-(`createDealService({ now })`), and that clock must track whichever `today` a caller ends up with — even though the
-deal service is unavoidably built before `deps.today` is known. `defaultThunkExtra()` alone builds a self-consistent
-pair (its own `today`, and a deal service reading that same `today`) so it still works stand-alone. `createAppStore`
-and `startApp` (`src/app/lifecycle.tsx`) then, only when the caller did not inject its own `dealService`, replace it
-with `lazyDealService(() => extra.today())` from `src/app/thunkExtra.ts` (now exported for this): that closure reads
-the final, merged `extra.today` lazily, at the moment a deal actually happens, not when the store was built — so
-`createAppStore({ deps: { today } })`'s injected clock is what the default deal service's Daily deal reads. An
-explicitly injected `deps.dealService` bypasses this rebuild and is used exactly as given.
+(`createDealService({ now })`), and that clock must track whichever `today` a caller ends up with. The single assembly
+`assembleThunkExtra(overrides, create?)` in `src/app/thunkExtra.ts` (used by `createAppStore` and `startApp`) merges the
+overrides over the defaults and, only when the caller did not inject its own `dealService`, builds the lazy default
+once as `lazyDealService(() => extra.today(), create)` (`create` defaults to `createDealService`; only tests pass another): that closure reads the final, merged `extra.today` at the moment a deal
+actually happens, not when the store was built, so `createAppStore({ deps: { today } })`'s injected clock is what the
+default deal service's Daily deal reads. An explicitly injected `deps.dealService` is used exactly as given. `startApp`
+also reads the browser languages for the loader through `extra.languages()`, so a test injects `languages` instead of
+patching `navigator.languages`.
 
-This layer may depend on `src/domain` and Redux Toolkit. It reaches `src/solver` only through the worker
+This layer may depend on `src/domain`, Redux Toolkit, the data-only `src/i18n/catalog.ts` registry and, for its slice,
+thunk type and store types, `src/app` (`appSlice.ts`, `appThunk.ts`, `selectors.ts` and type-only `store.ts`). It reaches `src/solver` only through the worker
 URL (a `new URL(...)` string, not an import) and typed messages, so solver code never loads on the input
 thread: type-only imports from `src/solver` are allowed, value imports are lint errors
 (`@typescript-eslint/no-restricted-imports` in `eslint.config.js`). It never imports from

@@ -3,8 +3,7 @@ import type { RootState } from '../../app/store';
 import { canRecycle } from '../../domain/rules';
 import type { CardId } from '../../domain/types';
 import type { BoardPiles } from './layout';
-import { pileKey } from './landing';
-import { cardIndex, type CardLocation } from './locate';
+import { cardIndex, pileKey, type CardLocation } from './locate';
 
 /**
  * The five piles the board draws, or `null` while there is no game. The result keeps its identity for as long as the

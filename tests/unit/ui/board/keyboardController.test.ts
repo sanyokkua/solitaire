@@ -1,3 +1,5 @@
+// covers: KS-INP-08
+
 import { describe, expect, it } from 'vitest';
 import type { PileRef } from '../../../../src/domain/types';
 import {

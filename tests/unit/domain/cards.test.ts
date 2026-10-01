@@ -1,3 +1,4 @@
+// covers: KS-DEAL-01
 import { describe, expect, it } from 'vitest';
 import {
     DECK_SIZE,

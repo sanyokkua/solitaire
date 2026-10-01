@@ -7,6 +7,7 @@ import {
     preferenceSet,
     selectPreferences,
     type CardBack,
+    type Preferences,
     type TapMode,
     type Theme,
 } from '../../features/preferences/preferencesSlice';
@@ -17,6 +18,13 @@ import { SettingRow } from '../components/SettingRow';
 import { Switch } from '../components/Switch';
 import { Swatches } from '../components/Swatches';
 import { ModalSheet } from './ModalSheet';
+
+/** The preferences that are plain on/off switches. */
+type SwitchPreference = { [K in keyof Preferences]: Preferences[K] extends boolean ? K : never }[keyof Preferences];
+
+/** The switch rows of each group, in display order; each reads `settings.<key>.label` and `.description`. */
+const APPEARANCE_SWITCHES: readonly SwitchPreference[] = ['nightCards', 'fourColor'];
+const PLAY_SWITCHES: readonly SwitchPreference[] = ['highlight', 'autoSafe', 'stockRight', 'animations'];
 
 /**
  * Settings (D2, D13): Appearance and Play groups (5.1), Language and Data groups (5.2). Every control dispatches
@@ -31,6 +39,18 @@ export function SettingsSheet() {
     const dispatch = useAppDispatch();
     const preferences = useAppSelector(selectPreferences);
     const themeFirstOptionRef = useRef<HTMLButtonElement>(null);
+
+    const switchRow = (key: SwitchPreference) => (
+        <SettingRow key={key} label={t(`settings.${key}.label`)} description={t(`settings.${key}.description`)} inline>
+            <Switch
+                label={t(`settings.${key}.label`)}
+                checked={preferences[key]}
+                onChange={(value) => {
+                    dispatch(preferenceSet({ key, value }));
+                }}
+            />
+        </SettingRow>
+    );
 
     return (
         <ModalSheet
@@ -61,29 +81,7 @@ export function SettingsSheet() {
                 />
             </SettingRow>
 
-            <SettingRow
-                label={t('settings.nightCards.label')}
-                description={t('settings.nightCards.description')}
-                inline
-            >
-                <Switch
-                    label={t('settings.nightCards.label')}
-                    checked={preferences.nightCards}
-                    onChange={(value) => {
-                        dispatch(preferenceSet({ key: 'nightCards', value }));
-                    }}
-                />
-            </SettingRow>
-
-            <SettingRow label={t('settings.fourColor.label')} description={t('settings.fourColor.description')} inline>
-                <Switch
-                    label={t('settings.fourColor.label')}
-                    checked={preferences.fourColor}
-                    onChange={(value) => {
-                        dispatch(preferenceSet({ key: 'fourColor', value }));
-                    }}
-                />
-            </SettingRow>
+            {APPEARANCE_SWITCHES.map(switchRow)}
 
             <SettingRow label={t('settings.cardBack.label')}>
                 <Swatches<CardBack>
@@ -127,53 +125,7 @@ export function SettingsSheet() {
                 />
             </SettingRow>
 
-            <SettingRow label={t('settings.highlight.label')} description={t('settings.highlight.description')} inline>
-                <Switch
-                    label={t('settings.highlight.label')}
-                    checked={preferences.highlight}
-                    onChange={(value) => {
-                        dispatch(preferenceSet({ key: 'highlight', value }));
-                    }}
-                />
-            </SettingRow>
-
-            <SettingRow label={t('settings.autoSafe.label')} description={t('settings.autoSafe.description')} inline>
-                <Switch
-                    label={t('settings.autoSafe.label')}
-                    checked={preferences.autoSafe}
-                    onChange={(value) => {
-                        dispatch(preferenceSet({ key: 'autoSafe', value }));
-                    }}
-                />
-            </SettingRow>
-
-            <SettingRow
-                label={t('settings.stockRight.label')}
-                description={t('settings.stockRight.description')}
-                inline
-            >
-                <Switch
-                    label={t('settings.stockRight.label')}
-                    checked={preferences.stockRight}
-                    onChange={(value) => {
-                        dispatch(preferenceSet({ key: 'stockRight', value }));
-                    }}
-                />
-            </SettingRow>
-
-            <SettingRow
-                label={t('settings.animations.label')}
-                description={t('settings.animations.description')}
-                inline
-            >
-                <Switch
-                    label={t('settings.animations.label')}
-                    checked={preferences.animations}
-                    onChange={(value) => {
-                        dispatch(preferenceSet({ key: 'animations', value }));
-                    }}
-                />
-            </SettingRow>
+            {PLAY_SWITCHES.map(switchRow)}
 
             <div className="sub-label">{t('settings.group.language')}</div>
 

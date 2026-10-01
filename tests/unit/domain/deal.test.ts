@@ -1,5 +1,6 @@
+// covers: KS-DEAL-01, KS-DEAL-02
 import { describe, expect, it } from 'vitest';
-import { dealFromSeed, modeConfig } from '../../../src/domain/deal';
+import { GRADES, dealFromSeed, modeConfig } from '../../../src/domain/deal';
 import { encodeDealCode } from '../../../src/domain/dealCode';
 import type { Mode } from '../../../src/domain/types';
 import { DEAL_FIXTURES, GOLDEN_DEAL, deckOrderOf } from '../../fixtures/deals';
@@ -45,7 +46,7 @@ describe('dealFromSeed', () => {
         expect(deckOrderOf(other)).not.toEqual(deckOrderOf(first));
     });
 
-    it('matches the golden shuffled deck order computed by the mockup reference', () => {
+    it('matches the golden shuffled deck order computed by the reference implementation', () => {
         const state = dealFromSeed(GOLDEN_DEAL.seed, GOLDEN_DEAL.mode);
         expect(deckOrderOf(state)).toEqual(GOLDEN_DEAL.permutation);
     });
@@ -65,6 +66,7 @@ describe('dealFromSeed', () => {
         expect(state.status).toBe('playing');
         expect(state.verdict).toBe('random');
         expect(state.attempts).toBe(1);
+        expect(state.grade).toBeNull();
     });
 
     it.each<Mode>(['draw1', 'draw3', 'vegas', 'daily'])(
@@ -85,6 +87,37 @@ describe('dealFromSeed', () => {
         const state = dealFromSeed(7, 'daily', { verdict: 'win', attempts: 5 });
         expect(state.verdict).toBe('win');
         expect(state.attempts).toBe(5);
+        expect(state.grade).toBeNull();
+    });
+
+    // covers: KS-DEAL-11
+    it('records a grade with its verdict and attempts', () => {
+        const state = dealFromSeed(7, 'draw3', { verdict: 'win', attempts: 2, grade: 'medium' });
+        expect(state.verdict).toBe('win');
+        expect(state.attempts).toBe(2);
+        expect(state.grade).toBe('medium');
+    });
+
+    it('keeps an explicit null grade as null', () => {
+        expect(dealFromSeed(7, 'draw1', { verdict: 'random', attempts: 1, grade: null }).grade).toBeNull();
+    });
+
+    it.each<Mode>(['draw1', 'draw3', 'vegas', 'daily'])(
+        'never lets provenance change the layout or the deal code (%s)',
+        (mode) => {
+            const plain = dealFromSeed(99, mode);
+            const graded = dealFromSeed(99, mode, { verdict: 'win', attempts: 4, grade: 'hard' });
+            expect(graded.seed).toBe(plain.seed);
+            expect(graded.tableau).toEqual(plain.tableau);
+            expect(graded.stock).toEqual(plain.stock);
+            expect(graded.waste).toEqual(plain.waste);
+            expect(graded.foundations).toEqual(plain.foundations);
+            expect(encodeDealCode(graded.seed, graded.mode)).toBe(encodeDealCode(plain.seed, plain.mode));
+        },
+    );
+
+    it('lists the grades easiest first', () => {
+        expect(GRADES).toEqual(['easy', 'medium', 'hard']);
     });
 
     it('does not let a partial override drop the other default', () => {

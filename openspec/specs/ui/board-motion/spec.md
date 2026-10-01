@@ -20,7 +20,7 @@ flip turn.
 Input-agnostic: animation follows any change of position, whether from Undo, Redo, restart, a new
 deal, or a drag/tap/keyboard move.
 
-*(KS-PERF-01, spec §8.3)*
+*(KS-PERF-01)*
 
 #### Scenario: Undo glides the card back
 
@@ -53,7 +53,7 @@ and that deal SHALL count as played, so switching motion back on never replays i
 
 Input-agnostic: the deal follows starting or restarting a game, whichever control started it.
 
-*(Spec §4.1, §8.3, R§12.3; KS-SET-04 no-motion path; deal animation and replay rules (new))*
+*(KS-SET-04 no-motion path; deal animation and replay rules (new))*
 
 #### Scenario: Fresh deal animates
 

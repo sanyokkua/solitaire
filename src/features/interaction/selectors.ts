@@ -3,14 +3,7 @@ import { groupAt, legalTargets } from '../../domain/rules';
 import type { CardId, PileRef } from '../../domain/types';
 import type { AppState } from '../../app/appSlice';
 import type { GameSliceState } from '../game/gameSlice';
-import type {
-    AnnouncementLog,
-    HintView,
-    InteractionState,
-    PendingHint,
-    Selection,
-    WinSummary,
-} from './interactionSlice';
+import type { AnnouncementLog, HintView, InteractionState, Selection, WinSummary } from './interactionSlice';
 
 /** The structural slice of the store the interaction selectors read, so this module needs no store import. */
 interface InteractionRoot {
@@ -37,11 +30,6 @@ export function selectAnnouncement({ interaction }: InteractionRoot): Announceme
 /** The hint on show, or `null`. */
 export function selectHint({ interaction }: InteractionRoot): HintView | null {
     return interaction.hint;
-}
-
-/** The hint request in flight, or `null`. */
-export function selectPendingHint({ interaction }: InteractionRoot): PendingHint | null {
-    return interaction.pendingHint;
 }
 
 /** The id the next hint takes: one more than any hint shown so far in this session. */

@@ -1,7 +1,7 @@
 import { DECK_SIZE } from './cards';
 import { mulberry32 } from './prng';
 import { startingScore } from './scoring';
-import type { CardId, Column, GameState, Mode, ScoringMode, TableauCol } from './types';
+import type { CardId, Column, GameState, Grade, Mode, ScoringMode, TableauCol } from './types';
 
 export interface ModeConfig {
     readonly draw: 1 | 3;
@@ -15,6 +15,12 @@ const MODE_CONFIG: Readonly<Record<Mode, ModeConfig>> = {
     daily: { draw: 1, scoring: 'standard' },
 };
 
+/** Every game mode, in display order; the one list the validator, the record codec and the statistics sheet share. */
+export const MODES: readonly Mode[] = ['draw1', 'draw3', 'vegas', 'daily'];
+
+/** Every grade, easiest first: the distance between two grades is the difference of their positions. */
+export const GRADES: readonly Grade[] = ['easy', 'medium', 'hard'];
+
 export function modeConfig(mode: Mode): ModeConfig {
     return MODE_CONFIG[mode];
 }
@@ -22,6 +28,7 @@ export function modeConfig(mode: Mode): ModeConfig {
 export interface DealMeta {
     readonly verdict?: 'win' | 'random';
     readonly attempts?: number;
+    readonly grade?: Grade | null;
 }
 
 /** The 52 card ids in ascending order. */
@@ -66,6 +73,7 @@ export function dealFromSeed(seed: number, mode: Mode, meta: DealMeta = {}): Gam
         scoring,
         verdict: meta.verdict ?? 'random',
         attempts: meta.attempts ?? 1,
+        grade: meta.grade ?? null,
         tableau: [
             dealColumn(deck, 0),
             dealColumn(deck, 1),

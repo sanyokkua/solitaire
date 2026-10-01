@@ -32,6 +32,8 @@ function isFocusable(element: Element | null): element is HTMLElement {
 export interface ModalSheetProps {
     /** The sheet's visible heading, read as its accessible name. */
     readonly heading: string;
+    /** An extra class on the heading, for a sheet whose title has its own look (the Win sheet's pixel title). */
+    readonly headingClassName?: string;
     /** Focused once, when the sheet opens. */
     readonly initialFocusRef: RefObject<HTMLElement | null>;
     /** `false` for the Win sheet only: no close button, and Escape/the backdrop do nothing (SH "Escape and the backdrop close a sheet"). */
@@ -40,8 +42,11 @@ export interface ModalSheetProps {
     readonly wide?: boolean;
     /** Escape, the backdrop, or the close button; ignored while `dismissable` is `false`. */
     readonly onDismiss: () => void;
-    /** Called once the sheet has closed, to move focus back: to the opener when it is still reachable, or as a fallback otherwise (SH "Sheet focus is trapped and returned"). */
-    readonly returnFocusFallback: () => void;
+    /**
+     * Called once the sheet has closed and the opener is no longer reachable, to move focus elsewhere (SH "Sheet focus
+     * is trapped and returned"). Defaults to `onDismiss`.
+     */
+    readonly returnFocusFallback?: () => void;
     readonly children: ReactNode;
 }
 
@@ -49,10 +54,11 @@ export interface ModalSheetProps {
  * The one generic dialog every sheet (`SheetHost`, section 5) wraps its content in (D2): a centred panel over a
  * dimmed, `inert`-adjacent backdrop, with a focus trap, Escape/backdrop dismissal, and focus return on close. Redux-
  * agnostic by design (constitution 3): the caller supplies `onDismiss` (typically `closeSheet()`) and decides what
- * "the opener" or "the screen heading" means through `returnFocusFallback`.
+ * "the screen heading" means through `returnFocusFallback` when the opener is gone.
  */
 export function ModalSheet({
     heading,
+    headingClassName,
     initialFocusRef,
     dismissable = true,
     wide = false,
@@ -64,6 +70,13 @@ export function ModalSheet({
     const headingId = useId();
     const panelRef = useRef<HTMLDivElement>(null);
     const openerRef = useRef<Element | null>(null);
+    const fallback = returnFocusFallback ?? onDismiss;
+    const fallbackRef = useRef(fallback);
+
+    // Keep the fallback from the latest commit for the unmount cleanup below, so a re-render never re-runs that cleanup.
+    useEffect(() => {
+        fallbackRef.current = fallback;
+    });
 
     // Capture the opener and move focus in, once, when the sheet mounts.
     useEffect(() => {
@@ -78,10 +91,10 @@ export function ModalSheet({
             if (isFocusable(openerRef.current)) {
                 openerRef.current.focus();
             } else {
-                returnFocusFallback();
+                fallbackRef.current();
             }
         },
-        [returnFocusFallback],
+        [],
     );
 
     function attemptDismiss(): void {
@@ -115,7 +128,7 @@ export function ModalSheet({
     }
 
     return (
-        <div className="modal-layer" data-testid="modal-backdrop" onClick={onBackdropClick}>
+        <div className="modal-layer" onClick={onBackdropClick}>
             <div
                 ref={panelRef}
                 className={wide ? 'modal-sheet modal-sheet--wide' : 'modal-sheet'}
@@ -125,7 +138,9 @@ export function ModalSheet({
                 onKeyDown={onKeyDown}
             >
                 <div className="modal-sheet__header">
-                    <h2 id={headingId}>{heading}</h2>
+                    <h2 id={headingId} className={headingClassName}>
+                        {heading}
+                    </h2>
                     {dismissable && (
                         <button
                             type="button"
