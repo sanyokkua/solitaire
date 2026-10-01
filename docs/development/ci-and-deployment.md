@@ -1,8 +1,8 @@
 # CI and deployment
 
 The app is a static site deployed to GitHub Pages under `/solitaire/`. Two workflows exist:
-`.github/workflows/ci.yml` (checks) and `.github/workflows/pages.yml` (deploy). Neither runs Playwright on the release: the
-end-to-end suite runs locally in full and in `ci.yml` in a lean profile.
+`.github/workflows/ci.yml` (checks) and `.github/workflows/pages.yml` (deploy). `ci.yml` builds pull requests and runs the end-to-end suite in a lean
+profile; `pages.yml` builds `master` and deploys it without Playwright. The full suite runs locally.
 
 ## Flow
 
@@ -141,8 +141,8 @@ Triggers: push to `master` and manual `workflow_dispatch`. Concurrency group `pa
 - Job `deploy`: `needs: build`; the only job with `pages: write` and `id-token: write`; environment `github-pages`
   whose URL is the deployment's `page_url`; uses `actions/deploy-pages`.
 
-Playwright is not run in `pages.yml` (the job has a 15 min cap): a release is normally a merged pull request whose branch
-already passed `ci.yml`, so the release only re-validates and deploys. Whether master is
+Playwright is not run in `pages.yml` (the job has a 15 min cap): a release is a pull request that already passed `ci.yml`
+before it was merged, so the release only re-validates and deploys. Whether master is
 protected so that Pages deploys only after a green CI is a repository setting that is not recorded in the repo.
 The repository's Pages source is GitHub Actions (`build_type: workflow`, read from the GitHub Pages API).
 
@@ -179,7 +179,7 @@ stamp and the version. To reproduce a CI stamp locally: `GITHUB_RUN_NUMBER=7 npm
 
 ## GitHub Pages deployment
 
-1. A commit lands on `master`: the integration branch reaches it by a pull request, as the [release procedure](release.md) describes (branch rules are in [workflow](workflow.md)).
+1. A commit lands on `master`: a feature branch reaches it by a pull request, as the [release procedure](release.md) describes (branch rules are in [workflow](workflow.md)).
 2. `pages.yml` builds and validates, uploads `dist/` as the Pages artifact, and `deploy` publishes it.
 3. The service worker precaches the new build. Returning players see the "new version ready" notice and choose Update or
    Later; see [i18n and PWA](../architecture/i18n-and-pwa.md).

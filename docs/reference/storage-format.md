@@ -49,7 +49,7 @@ Exactly these thirteen keys, in this order (`PREFERENCE_KEYS`). Defaults are fro
 
 | Version | Written by                         | Difference                                                                                                        |
 | ------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| 1       | the first release                  | twelve preference keys (no `difficulty`); seventeen game keys (no `grade`)                                        |
+| 1       | the pre-1.0 build                  | twelve preference keys (no `difficulty`); seventeen game keys (no `grade`)                                        |
 | 2       | the current app (`RECORD_VERSION`) | thirteen preference keys (`difficulty` last); eighteen game keys (`grade` right after `attempts`); same step keys |
 
 The decoder reads both. A readable version 1 record is upgraded in memory and without loss: every value is kept and

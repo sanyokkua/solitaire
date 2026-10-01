@@ -40,7 +40,7 @@ The first complete release: everything planned for the game is built, checked in
 
 - Full-game wins in every mode through real input, edge cases proven end to end, and a strict requirement-traceability check
   that ties every requirement to the tests or manual checks that prove it.
-- Informational drag-performance and deal-latency traces, a device matrix checked on every screen size, and a flake sweep of
+- Informational drag-performance and deal-latency traces, a device matrix checked in emulation on every screen size (real-device checks are still pending), and a flake sweep of
   the whole suite.
 - Committed reference screenshots of the production build.
 
@@ -50,3 +50,6 @@ The first complete release: everything planned for the game is built, checked in
   OpenSpec holds the requirements, and the maintained documentation records the game rules, the winnability facts and the
   architecture.
 - Documentation-link and retired-pack guards run with the unit tests.
+- CI builds pull requests only: a `validate` job and one job each for Chromium, Firefox and WebKit, in parallel, with a lean
+  browser profile; the full seven-project suite stays the local and pre-push run. Pushes to `master` deploy through
+  `pages.yml`, which re-validates without Playwright.

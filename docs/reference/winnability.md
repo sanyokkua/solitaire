@@ -82,7 +82,7 @@ For a player, the Home screen has a "Winnable deals only" switch and a Difficult
 Selection is reject sampling: shuffle, search within a bounded budget, keep or try another seed.
 
 - **Candidates.** A player request tries up to **48** fresh seeds (`MAX_ATTEMPTS`), one after another. That is 20% more
-  than the 40 the first release tried, so a request finds a proven deal, and one of the requested grade, more often. The
+  than the 40 the pre-1.0 build tried, so a request finds a proven deal, and one of the requested grade, more often. The
   first proven win with the requested grade is dealt.
 - **Budget per candidate.** Draw 1: 5,000 nodes. Draw 3 and Vegas: 20,000 nodes of the ordered-talon search. Values
   are in `src/features/deal/budgets.ts`.

@@ -271,7 +271,7 @@ too coarse).
 
 Calibration and cost: `tests/bench/grading.bench.ts` graded the first 60 proven seeds per mode under four parameter
 variants; the pinned values give Easy, Medium and Hard about 17 / 33 / 50% of Draw 1 deals, 18 / 42 / 40% of Draw 3 and
-23 / 28 / 48% of Vegas. One grading costs about 0.2 s (Draw 1), 0.35 s (Draw 3) and 0.45 s (Vegas) on average on a
+23 / 28 / 48% of Vegas. One grading costs about 0.2 s (Draw 1), 0.33 s (Draw 3) and 0.43 s (Vegas) on average on a
 desktop, at most about 2 s. It runs in the worker, and only after a `win`. A Daily deal is graded with the Draw 1 row.
 
 ### Selection with a target grade

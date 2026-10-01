@@ -74,8 +74,8 @@ Sequence diagrams for these are in [data flows](data-flows.md).
 ## Build and delivery
 
 Vite builds to `dist/` with base `/solitaire/`; `vite-plugin-pwa` (prompt mode) generates the service worker and precache
-manifest. `scripts/validate-artifact.mjs` checks the artifact. GitHub Actions run `validate` and the Playwright suite on
-every push, and deploy `dist/` to GitHub Pages from `master`. See [CI and deployment](../development/ci-and-deployment.md).
+manifest. `scripts/validate-artifact.mjs` checks the artifact. GitHub Actions run `validate` and a lean Playwright suite (Chromium, Firefox
+and WebKit) on every pull request, and deploy `dist/` to GitHub Pages from `master`. See [CI and deployment](../development/ci-and-deployment.md).
 
 ## Where the requirements come from
 

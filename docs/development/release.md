@@ -1,8 +1,8 @@
 # Release procedure
 
 A release is a version of `package.json`, an entry in [`CHANGELOG.md`](../../CHANGELOG.md), a merge to `master` (which
-deploys to GitHub Pages) and a tag. The version follows [semantic versioning](https://semver.org/); the first release is
-1.0.0.
+deploys to GitHub Pages) and a tag. The version follows [semantic versioning](https://semver.org/). The first release is
+1.0.0, which is on `master`; its `v1.0.0` tag has not been created yet (step 5).
 
 **Every push, every pull request and every tag happens only when the author asks for it.** Preparing a release
 (the version, the changelog, the checks) does not include any of them.
@@ -24,14 +24,14 @@ deploys to GitHub Pages) and a tag. The version follows [semantic versioning](ht
    same, valid semver), and add the entry to the top of `CHANGELOG.md` with the version, the date and the highlights.
    `tests/unit/repo/configContract.test.ts` checks the version.
 
-3. **Merge into the integration branch.** Archive the OpenSpec change (`/opsx:archive`), which squash-merges the change's
-   branch, `feature/<change-name>`, into the integration branch named in its proposal (`feature/app-v1-release` for
-   `finalize-v1-release`).
+3. **Archive the change.** Archive the OpenSpec change (`/opsx:archive`) on its branch, `feature/<change-name>`, so the
+   change and the main specs are in the pull request.
 
-4. **Merge into `master`.** Open a pull request from the integration branch to `master`, wait for the CI checks, and merge
-   it. The merge deploys to GitHub Pages through `pages.yml` (see [CI and deployment](ci-and-deployment.md)).
+4. **Merge into `master`.** Open a pull request from `feature/<change-name>` to `master`; `ci.yml` builds it (the
+   `validate` job and a Chromium, Firefox and WebKit job each). Merge it when the checks are green. The merge deploys to
+   GitHub Pages through `pages.yml`, which validates again and publishes (see [CI and deployment](ci-and-deployment.md)).
 
-5. **Tag.** On `master`, on the commit the merged pull request produced, create the tag `v` followed by the package version
-   (for example `v1.0.0`) and push it. A release tag is never created on a feature or integration branch.
+5. **Tag.** On `master`, on the merge commit, create the tag `v` followed by the package version (for example `v1.0.0`)
+   and push it. A release tag is never created on a feature branch.
 
-Stale remote branches from finished work are removed after the release, also only on request.
+Finished feature branches are deleted after the merge, also only on request.

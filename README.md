@@ -21,7 +21,7 @@ On a phone:
 ## Game
 
 - **Modes.** Draw 1, Draw 3, Vegas (a $52 bank, three passes through the deck) and a Daily deal that is the same for everyone on a given UTC date.
-- **Winnable, graded deals.** With "Winnable deals only" on, a built-in solver proves every Draw 1, Draw 3 and Vegas deal winnable before you see it, and grades it Easy, Medium or Hard by how forgiving it is; the Difficulty control asks for a grade. Deals are kept ready in the background, so most start at once, and a slow search shows a "Shuffling cards before the game…" screen.
+- **Winnable, graded deals.** With "Winnable deals only" on, a built-in solver proves every Draw 1, Draw 3 and Vegas deal winnable before you see it (a deal it cannot prove within the attempt limit is dealt as a labelled "Random deal"), and grades it Easy, Medium or Hard by how forgiving it is; the Difficulty control asks for a grade. Deals are kept ready in the background, so most start at once, and a slow search shows a "Shuffling cards before the game…" screen.
   See [winnability](docs/reference/winnability.md).
 - **Play your way.** Tap, drag or keyboard, all equal. Undo, redo, hint, finish and pause.
 - **Shareable.** Every deal is deterministic from a seed and can be shared as a deal code.
@@ -58,7 +58,7 @@ npm run preview    # serve the production build
 ## Check
 
 ```sh
-npm run validate   # format, lint, typecheck, unit/component tests, build, artifact check
+npm run validate   # format, lint, typecheck, lifecycle-storage guard, unit/component tests with coverage, build, artifact check
 npx playwright install --with-deps chromium firefox webkit   # once, for the browser suite
 npm run e2e        # Playwright end-to-end suite
 ```
@@ -78,6 +78,10 @@ All scripts are listed in [docs/reference/scripts.md](docs/reference/scripts.md)
 | [docs/development/testing.md](docs/development/testing.md)                     | Test layers, guards and how to run them              |
 | [docs/reference/traceability.md](docs/reference/traceability.md)               | Which tests prove which requirement                  |
 | [AGENTS.md](AGENTS.md)                                                         | Conventions for AI coding agents                     |
+
+## Changelog
+
+Every release is recorded in [CHANGELOG.md](CHANGELOG.md); the release procedure is in [docs/development/release.md](docs/development/release.md).
 
 ## Contributing
 

@@ -4,6 +4,10 @@ Checks that no automated test can make on the machines the tests run on: a real 
 own audit. Each row names the KS ids it covers, so the [traceability matrix](traceability.md) counts it as coverage for
 those ids. `npm run trace` reads the table below; the second column must hold the ids, comma-separated.
 
+Status at 1.0.0: the Lighthouse and installability row has a result; the rows that need a real phone or an iPhone (drag
+smoothness, deal latency, real-device fit, iOS scroll suppression) are still pending, and the release shipped with them
+open.
+
 ## Checks
 
 | Check                         | KS ids                          | Procedure                                                                                                                                                                                                                                                                                   | Target                                                                                                             | Result                                                                                                                                                                                                                                                                |

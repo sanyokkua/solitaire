@@ -44,6 +44,8 @@ If a spec and a page conflict, fix whichever is wrong.
 | [code-standards](development/code-standards.md)       | Formatting, lint, types, layer rules, principles      |
 | [testing](development/testing.md)                     | Test layers, guards, Playwright projects, docs checks |
 | [ci-and-deployment](development/ci-and-deployment.md) | Workflows, validation, GitHub Pages                   |
+| [release](development/release.md)                     | Release procedure: version, changelog, merge, tag     |
+| [CHANGELOG](../CHANGELOG.md)                          | What each release contains                            |
 
 ## Reference
 

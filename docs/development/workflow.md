@@ -50,8 +50,8 @@ Small fixes (typos, a failing test, a documentation correction) do not need a ch
 
 - Never work on `master`.
 - `master` is the release branch.
-- Each change runs on `feature/<change-name>`, cut from the active integration branch (named in the change's proposal, `feature/app-v1-release` for `finalize-v1-release`) or from `master` when there is none.
-- At archive the change branch is squash-merged into the integration branch, which reaches `master` by pull request.
+- Each change runs on `feature/<change-name>`, cut from `master`.
+- The change reaches `master` by a pull request, squash-merged after `ci.yml` is green; there is no integration branch.
 - Conventional Commit subjects (`feat: ...`, `fix: ...`, `docs: ...`).
 - Commit or push only when asked, except the per-task commits above (push always needs an explicit request).
 - Do not commit `dist/`, coverage or Playwright output (they are ignored).

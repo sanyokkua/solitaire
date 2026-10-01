@@ -51,7 +51,8 @@ An emulated viewport cannot show a real notch, home indicator, browser bar or fo
 author owns, record the checks below in [manual checks](manual-checks.md) (the "Real-device fit" row): the sizes the page
 really reports, in portrait and landscape, in the browser and installed, run as `[innerWidth, innerHeight]` in a remote
 inspector; whether every control and card clears the safe areas; and whether the sizes match the table above. A device
-the author does not have is waived, with the date and the reason.
+the author does not have is waived, with the date and the reason. Version 1.0.0 shipped with every row below still
+pending: the layout is proven in emulation only (the `device-fit` suite), not on hardware.
 
 | Device                                | Sizes match the table | Controls and cards clear the safe areas | Date, browser | Result or waiver |
 | ------------------------------------- | --------------------- | --------------------------------------- | ------------- | ---------------- |

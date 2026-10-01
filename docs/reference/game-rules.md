@@ -127,7 +127,7 @@ none turns up; [winnability.md](winnability.md#selection)). If no candidate is p
   win is used, else the last candidate. Candidate `k` (1 to 40) uses the seed `(YYYYMMDD * 131 + k * 7919) >>> 0`. The
   formula, the budget, the attempt cap and the search are pinned as "Daily v1" (`src/features/deal/daily.ts#DAILY_V1`):
   changing any of them would change every past and future Daily, so it would be a new version. The Daily search and
-  its 40 candidates stay as they were in the first release, while player deals try 48 candidates
+  its 40 candidates stay as they were in the pre-1.0 build, while player deals try 48 candidates
   ([winnability.md](winnability.md#selection)).
 - Winning a Daily deal records its date; the statistics keep the completed dates (at most 400) and a best Daily
   streak.
