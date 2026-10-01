@@ -105,6 +105,24 @@ describe('Playwright CI profile (E2E_PROFILE=ci)', () => {
         expect(ci.grepInvert).toEqual(/keyboard/i);
     });
 
+    it('gives slow runners room: 90 s per test, 15 s per expectation, two workers', async () => {
+        const ci = await ciConfig();
+        expect(ci.timeout).toBe(90_000);
+        expect(ci.expect?.timeout).toBe(15_000);
+        expect(ci.workers).toBe(2);
+    });
+
+    it.each(['playByTap', 'playByDrag', 'playModes', 'history'])(
+        'skips the long spec %s in webkit only',
+        async (spec) => {
+            const ci = await ciConfig();
+            const ignored = (name: string) => ci.projects?.find((project) => project.name === name)?.testIgnore;
+            expect(ignored('webkit')).toContain(`**/${spec}.spec.ts`);
+            expect(ignored('chromium')).not.toContain(`**/${spec}.spec.ts`);
+            expect(ignored('firefox')).not.toContain(`**/${spec}.spec.ts`);
+        },
+    );
+
     it.each(['dealLatency', 'dragPerf', 'visualParity'])('ignores the informational spec %s', async (spec) => {
         const ci = await ciConfig();
         for (const project of ci.projects ?? []) {

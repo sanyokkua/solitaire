@@ -48,13 +48,27 @@ const allProjects = [
 
 const CI_PROJECT_NAMES = ['chromium', 'firefox', 'webkit'];
 
+/**
+ * WebKit on the Linux runner has no GPU and runs these suites about ten times slower than on a Mac (a whole winning line
+ * by taps took 3.4 minutes against 20 seconds), so the long game lines and the 200-step undo storm run in the other two
+ * engines on CI; the short specs still run in WebKit. A local run plays all of them in every engine.
+ */
+const CI_WEBKIT_SKIPPED_SPECS = [
+    '**/playByTap.spec.ts',
+    '**/playByDrag.spec.ts',
+    '**/playModes.spec.ts',
+    '**/history.spec.ts',
+];
+
 export default defineConfig({
     testDir: './tests/e2e',
     testMatch: '**/*.spec.ts',
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
     retries: CI_PROFILE ? 1 : process.env.CI ? 2 : 0,
-    ...(CI_PROFILE ? { workers: 3, maxFailures: 10, grepInvert: /keyboard/i } : {}),
+    ...(CI_PROFILE
+        ? { workers: 2, maxFailures: 10, grepInvert: /keyboard/i, timeout: 90_000, expect: { timeout: 15_000 } }
+        : {}),
     reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
     use: {
         baseURL: 'http://127.0.0.1:5173/solitaire/',
@@ -71,6 +85,15 @@ export default defineConfig({
     },
     projects: (CI_PROFILE ? allProjects.filter((project) => CI_PROJECT_NAMES.includes(project.name)) : allProjects).map(
         (project) =>
-            CI_PROFILE ? { ...project, testIgnore: [...(project.testIgnore ?? []), ...CI_SKIPPED_SPECS] } : project,
+            CI_PROFILE
+                ? {
+                      ...project,
+                      testIgnore: [
+                          ...(project.testIgnore ?? []),
+                          ...CI_SKIPPED_SPECS,
+                          ...(project.name === 'webkit' ? CI_WEBKIT_SKIPPED_SPECS : []),
+                      ],
+                  }
+                : project,
     ),
 });

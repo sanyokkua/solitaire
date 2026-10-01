@@ -115,7 +115,8 @@ in the `validate` job, where the config tests need every project) differs from a
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | seven projects: three engines, three phones, device-fit | `chromium`, `firefox`, `webkit` only                                                         |
 | every spec                                              | no keyboard titles (`grepInvert: /keyboard/i`), no `dealLatency`, `dragPerf`, `visualParity` |
-| no retries (2 on any `CI`)                              | 1 retry, 3 workers, `maxFailures: 10`                                                        |
+| no retries (2 on any `CI`)                              | 1 retry, 2 workers, 90 s per test, 15 s per expectation, `maxFailures: 10`                   |
+| every spec in every engine                              | `playByTap`, `playByDrag`, `playModes` and `history` skipped in `webkit` only                |
 
 Why: the informational specs and the phone projects took most of a 57-minute run on a 4-core runner, and a hung test
 repeated three times cost nine minutes. Reproduce a shard locally with
